@@ -515,7 +515,9 @@ agent in the :ref:`observation_module` page of the documentation.) The
 And, to make it "Markovian" we also need to include :
 
 - the (constant) values of :math:`\mathcal{S}_{\text{im}}^{(\text{in})}` that 
-  are not "part of" :math:`\mathcal{X}`. This might include some physical
+  are not "part of" :math:`\mathcal{X}` (more information about that in 
+  the paragraph ":ref:`mdp-call-simulator-step`" of this documentation). 
+  This might include some physical
   parameters of some elements of the grid (like transformers or powerlines) or
   some other parameters of the solver controlling either the equations to be 
   solved or the solver to use etc. \*
@@ -531,12 +533,189 @@ And, to make it "Markovian" we also need to include :
   you need to be aware of the implementation of the :class:`grid2op.Backend.Backend`
   you are using.
 
+.. note::
+  In this modeling, by design, the agent sees everything that will happen in the
+  future, without uncertainties. To make a parrallel with a "maze" environment, 
+  the agent would see the full maze and its position at each step.
+
+  This is of course not fully representative of the daily powergrid operations, 
+  where the operators cannot see exactly the future. To make this modeling 
+  closer to the reality, you can refer to the paragphs :ref:`pomdp` and :ref:`non-pomdp`
+  below.
+
 .. _mdp-transition-kernel-def:
 
 Transition Kernel
 ~~~~~~~~~~~~~~~~~~~
 
-TODO 
+In this subsection we will describe the so called transition kernel, this is the function that given a 
+state :math:`s` and an action :math:`a` gives a probability distribution over all possible next state 
+:math:`s' \in \mathcal{S}`.
+
+In this subsection, we chose to model this transition kernel as a deterministic
+function (which is equivalent to saying that the probability distribution overs :math:`\mathcal{S}` is 
+a Dirac distribution).
+
+.. note::
+  The removal of the :math:`\mathcal{X}` matrix in the "observation space" see section :ref:`pomdp` or the 
+  rewriting of the MDP to say in the "fully observable setting" (see section :ref:`non-pomdp`) or the
+  introduction of the "opponent" described in section :ref:`mdp-opponent` are all things that "makes" this
+  "transition kernel" probabilistic. We chose the simplicity in presenting it in a fully deterministic
+  fashion.
+
+So let's write what the next state is given the current state :math:`s \in \mathcal{S}` and the action of 
+the agent :math:`a \in \mathcal{A}`. To do that we split the computation in different steps explained bellow.
+
+.. note::
+  To be exhaustive, if the actual state is :math:`s = s_{\emptyset}` then the :math:`s' = s_{\emptyset}` is 
+  returned regardless of the action and the steps described below are skipped.
+
+If the end of the episode is reached then :math:`s' = s_{\emptyset}` is returned.
+
+Step 1: legal vs illegal
++++++++++++++++++++++++++
+
+The first step is to check if the action is :blue:`legal` or not. This depends on the :blue:`rules` (see the 
+dedicated page :ref:`rule-module` of the documentation) and the :blue:`parameters` (more information at the page 
+:ref:`parameters-module` of the documentation). There are basically two cases:
+
+#. the action :math:`a` is legal: then proceed to next step
+#. the action :math:`a` is not, then replace the action by `do nothing`, an action that does not 
+   affect anything and proceed to next step
+
+.. _mdp-read-x-values:
+
+Step 2: load next environment values
++++++++++++++++++++++++++++++++++++++
+
+This is also rather straightforward, the current index is updated (+1 is added) and this 
+new index is used to find the "optimal" (from a market or a central authority perspective)
+value each producer produce to satisfy the demand mof each consumers (in this case large cities or
+companies). These informations are stored in the :math:`\mathcal{X}` matrix.
+
+.. _mdp-redispatching-step:
+
+Step 3: Compute the generators setpoints and handle storage units
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+The next step of the environment is to handle the "continuous" part of the action (*eg* "storage_p", 
+"curtail" or "redisp") and to make sure a suitable setpoint can be reached for each generators (you
+can refer to the pages :ref:`storage-mod-el` and :ref:`generator-mod-el` of this documentation 
+for more information).
+
+There are two alternatives:
+
+#. either the physical constraints cannot be met (there exist no feasible solutions 
+   for at least one generator), and in this case the next state is the 
+   terminal state :math:`s_{\emptyset}` (ignore all the steps bellow)
+#. or they can be met. In this case the "target generator values" is computed as well
+   as the "target storage unit values"
+
+.. note::
+  There is a parameters called :blue:`LIMIT_INFEASIBLE_CURTAILMENT_STORAGE_ACTION` that will
+  try to avoid, as best as possible to fall into infeasibile solution. It does so by limiting 
+  the amount of power that is curtailed or injected in the grid from the storage units: it 
+  modifies the actions :math:`a`.
+
+.. _mdp-call-simulator-step:
+
+Step 4: Call the simulator
++++++++++++++++++++++++++++++++
+
+At this stage then (assuming the physical constraints can be met), the setpoint for the following variables
+is known:
+
+- the status of the lines is deduced from the "change_line_status" and "set_line_status" and their
+  status in :math:`s` (the current state). If there are maintenance (or attacks, see section 
+  :ref:`mdp-opponent`) they can also disconnect powerlines.
+- the busbar to which each elements  is connected is also decuced from the "change_bus" and 
+  "set_bus" part of the action
+- the consumption active and reactive values have been computed from the :math:`\mathcal{X}` 
+  values at previous step
+- the generator active values have just been computed after taking into account the redispatching,
+  curtailement and storage (at this step)
+- the voltage setpoint for each generators is either read from :math:`\mathcal{X}` or 
+  deduced from the above data by the "voltage controler" (more information on :ref:`voltage-controler-module`)
+
+All this should be part of the input solver data :math:`\mathcal{S}_{\text{im}}^{(\text{in})}`. If not, then the
+solver cannot be used unfortunately...
+
+With that (and the other data used by the solver and included in the space, see paragraph 
+:ref:`mdp-state-space-def` of this documentation), the necessary data is shaped (by the Backend) into 
+a valid :math:`s_{\text{im}}^{(\text{in})} \in \mathcal{S}_{\text{im}}^{(\text{in})}`.
+
+The solver is then called and there are 2 alternatives (again):
+
+#. either the solver cannot find a feasible solution (it "diverges"), and in this case the next state is the 
+   terminal state :math:`s_{\emptyset}` (ignore all the steps bellow)
+#. or a physical solution is found and the process carries out in the next steps
+
+.. _mdp-protection-emulation-step:
+
+Step 5: Emulation of the "protections"
+++++++++++++++++++++++++++++++++++++++++++
+
+At this stage an object :math:`s_{\text{im}}^{(\text{out})} \in \mathcal{S}_{\text{im}}^{(\text{out})}` 
+has been computed by the solver. 
+
+The first step performed by grid2op is to look at the flows (in Amps) on the powerlines (these data
+are part of :math:`s_{\text{im}}^{(\text{out})}`) and to check whether they meet some constraints 
+defined in the :blue:`parameters` (mainly if for some powerline the flow is too high, or if it has been 
+too high for too long, see :blue:`HARD_OVERFLOW_THRESHOLD`, :blue:`NB_TIMESTEP_OVERFLOW_ALLOWED` and 
+:blue:`NO_OVERFLOW_DISCONNECTION`). If some powerlines are disconnected at this step, then the
+"setpoint" send to the backend at the previous step is modified and it goes back 
+to :ref:`mdp-call-simulator-step`.
+
+.. note::
+  The simulator can already handle a real simulation of these "protections". This "outer loop"
+  is because some simulators does not do it.
+
+.. note::
+  For the purist, this "outer loop" necessarily terminates. It is trigger when at least one 
+  powerline needs to be disconnected. And there are :green:`n_line` (finite) powerlines.
+
+Step 6: Reading back the "grid dependant" attributes
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+At this stage an object :math:`s_{\text{im}}^{(\text{out})} \in \mathcal{S}_{\text{im}}^{(\text{out})}` 
+has been computed by the solver and all the "rules" / "parameters" regarding powerlines
+are met.
+
+As discussed in the section about "state space" (see :ref:`mdp-state-space-def` for more information),
+the next state space :math:`s'` include some part of the outcome of the solver. These data
+are then read from the  :math:`s_{\text{im}}^{(\text{out})}`, which
+includes but is not limited to the loads active values `load_p`_, 
+loads reactive values `load_q`_, voltage magnitude 
+at each loads `load_v`_, the same kind of attributes but for generators
+`gen_p`_, `gen_q`_, `gen_v`_, `gen_theta`_  and also for powerlines 
+`p_or`_, `q_or`_, `v_or`_, `a_or`_, `theta_or`_, `p_ex`_, `q_ex`_, `v_ex`_, 
+`a_ex`_, `theta_ex`_, `rho`_ etc.
+  
+
+Step 7: update the other attributes of the state space
++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+Finally, the environment takes care of updating all the other "part"
+of the state space, which are:
+
+- attributes related to "redispatching" are updated at in paragraph :ref:`mdp-redispatching-step`
+- and so are attributes related to storage units
+- the information about the date and time are loaded from the :math:`\mathcal{X}` matrix.
+
+As for the attributes related to the rules of the game, they are updated in the following way:
+
+- `timestep_overflow`_ is set to 0 for all powerlines not in overflow and increased by 1 for all the other
+- `time_before_cooldown_line`_ is reduced by 1 for all line that has not been impacted by the action :math:`a` 
+  otherwise set to :blue:`param.NB_TIMESTEP_COOLDOWN_LINE`
+- `time_before_cooldown_sub`_ is reduced by 1 for all substations that has not been impacted by the action :math:`a` 
+  otherwise set to :blue:`param.NB_TIMESTEP_COOLDOWN_SUB`
+
+The new state :math:`s'` is then passed to the agent.
+
+.. note::
+  We remind that this process might have terminated before reaching the last step described above, for example
+  at :ref:`mdp-redispatching-step` or at :ref:`mdp-call-simulator-step` or during the 
+  emulation of the protections described at :ref:`mdp-protection-emulation-step`
 
 Reward Kernel
 ~~~~~~~~~~~~~~~~~~~
@@ -558,9 +737,12 @@ of this documentation.
 Extensions
 -----------
 
-TODO: this part of the section is still an ongoing work.
+In this last section of this page of the documentation, we dive more onto some aspect of the grid2op MDP.
 
-Let us know if you want to contribute !
+.. note:: 
+  TODO: This part of the section is still an ongoing work.
+
+  Let us know if you want to contribute !
 
 
 .. _pomdp:
@@ -568,22 +750,55 @@ Let us know if you want to contribute !
 Partial Observatibility
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-This is the case in most grid2op environment: only some part of the environment
+This is the case in most grid2op environments: only some part of the environment
 state at time `t` :math:`s_t` are
-given to the agent in the observation at time `t` :math:`o_t`.
+given to the agent in the observation at time `t` :math:`o_t`. 
+
+Mathematically this can be modeled with the introduction of an "observation space" and an 
+"observation kernel". This kernel will only expose part of the "state space" to the agent and
+(in grid2op) is a deterministic function that depends on the environment state :math:`s'`.
 
 More specifically, in most grid2op environment (by default at least), none of the 
 physical parameters of the solvers are provided. Also, to represent better
 the daily operation in power systems, only the `t` th row of the matrix :math:`\mathcal{X}_t` 
 is given in the observation :math:`o_t`. The components :math:`\mathcal{X}_{t', i}` 
-(for :math:`\forall t' > t`) are not given.
+(for :math:`\forall t' > t`) are not given. The observation kernel in grid2op will 
+mask out some part of the "environment state" to the agent.
 
 .. _non-pomdp:
 
 Or not partial observatibility ?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-TODO remodel the grid2op MDP without the X
+If we consider that the agent is aware of the simulator used and all it's "constant" (see
+paragraph :ref:`mdp-state-space-def`) part of :math:`\mathcal{S}_{\text{im}}^{(\text{in})}`
+(which are part of the simulator that are not affected by the actions of 
+the agent nor by environment) then we can model the grid2op MDP without the need 
+to use an observation kernel: it can be a regular MDP.
+
+To "remove" the need of partial observatibility, without the need to suppose that the 
+agent sees all the future we can adapt slightly the modeling which allows us to
+remove completely the :math:`\mathcal{X}` matrix :
+
+- the observation space / state space (which are equal in this setting) are the same as the 
+  one used in :ref:`pomdp`
+- the transition kernel is now stochastic. Indeed, the "next" value of the loads and generators 
+  are, in this modeling not read from a :math:`\mathcal{X}` matrix but sampled from a given 
+  distribution which replaces the step :ref:`mdp-read-x-values` of subsection 
+  :ref:`mdp-transition-kernel-def`. And once the values of these variables are sampled, 
+  the rest of the steps described there are unchanged.
+
+.. note::
+  The above holds as long as there exist a way to sample new values for gen_p, load_p, gen_v and
+  load_q that is markovian. We suppose it exists here and will not write it down.
+
+.. note::
+  Sampling from these distribution can be quite challenging and will not be covered here. 
+
+  One of the challenging part is that the sampled generations need to meet the demand (and
+  the losses) as well as all the constraints on the generators (p_min, p_max and ramps)
+
+.. _mdp-opponent:
 
 Adversarial attacks
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
