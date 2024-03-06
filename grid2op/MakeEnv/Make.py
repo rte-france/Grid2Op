@@ -290,7 +290,7 @@ def make(
     .. versionchanged:: 1.9.3
         Remove the possibility to use this function with arguments (force kwargs)
     
-    .. versionadded:: 1.9.9
+    .. versionadded:: 1.10.0
         The `n_busbar` parameters
         
     Parameters

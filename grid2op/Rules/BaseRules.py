@@ -38,7 +38,7 @@ class BaseRules(ABC):
         As opposed to "ambiguous action", "illegal action" are not illegal per se.
         They are legal or not on a certain environment. For example, disconnecting
         a powerline that has been cut off for maintenance is illegal. Saying to action to both disconnect a
-        powerline and assign it to bus 2 on it's origin end is ambiguous, and not tolerated in Grid2Op.
+        powerline and assign it to bus 2 on it's origin side is ambiguous, and not tolerated in Grid2Op.
 
         Parameters
         ----------

@@ -326,11 +326,11 @@ To know what element of the grid is the "42nd", you can:
    case the extremity side of powerline `line_id`.
 2) look at the table  :attr:`grid2op.Space.GridObjects.grid_objects_types` and especially the line 42 so
    `env.grid_objects_types[42,:]` which contains this information as well. Each column of this table encodes
-   for one type of element (first column is substation, second is load, then generator, then origin end of
-   powerline then extremity end of powerline and finally storage unit. Each will have "-1" if the element
+   for one type of element (first column is substation, second is load, then generator, then origin side of
+   powerline then extremity side of powerline and finally storage unit. Each will have "-1" if the element
    is not of that type, and otherwise and id > 0. Taking the same example as for the above bullet point!
    `env.grid_objects_types[42,:] = [sub_id, -1, -1, -1, line_id, -1]` meaning the "42nd" element of the grid
-   if the extremity end (because it's the 5th column) of id `line_id` (the other element being marked as "-1").
+   if the extremity side (because it's the 5th column) of id `line_id` (the other element being marked as "-1").
 3) refer to the :func:`grid2op.Space.GridObject.topo_vect_element` for an "easier" way to retrieve information
    about this element. 
 

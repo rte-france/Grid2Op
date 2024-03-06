@@ -1,7 +1,6 @@
 .. Color profiles for Sphinx.
 .. Has to be used with hacks.css
 .. (https://bitbucket.org/lbesson/web-sphinx/src/master/.static/hacks.css)
-
 .. role:: black
 .. role:: gray
 .. role:: grey
@@ -39,6 +38,71 @@
 .. role:: center
 .. role:: left
 .. role:: right
-
-
 .. (c) Lilian Besson, 2011-2016, https://bitbucket.org/lbesson/web-sphinx/
+
+.. _n_gen: ./space.html#grid2op.Space.GridObjects.n_gen
+.. _n_load: ./space.html#grid2op.Space.GridObjects.n_load
+.. _n_line: ./space.html#grid2op.Space.GridObjects.n_line
+.. _n_sub: ./space.html#grid2op.Space.GridObjects.n_sub
+.. _n_storage: ./space.html#grid2op.Space.GridObjects.n_storage
+.. _dim_topo: ./space.html#grid2op.Space.GridObjects.dim_topo
+.. _dim_alarms: ./space.html#grid2op.Space.GridObjects.dim_alarms
+.. _dim_alerts: ./space.html#grid2op.Space.GridObjects.dim_alerts
+.. _year: ./observation.html#grid2op.Observation.BaseObservation.year
+.. _month: ./observation.html#grid2op.Observation.BaseObservation.month
+.. _day: ./observation.html#grid2op.Observation.BaseObservation.day
+.. _hour_of_day: ./observation.html#grid2op.Observation.BaseObservation.hour_of_day
+.. _minute_of_hour: ./observation.html#grid2op.Observation.BaseObservation.minute_of_hour
+.. _day_of_week: ./observation.html#grid2op.Observation.BaseObservation.day_of_week
+.. _gen_p: ./observation.html#grid2op.Observation.BaseObservation.gen_p
+.. _gen_q: ./observation.html#grid2op.Observation.BaseObservation.gen_q
+.. _gen_v: ./observation.html#grid2op.Observation.BaseObservation.gen_v
+.. _load_p: ./observation.html#grid2op.Observation.BaseObservation.load_p
+.. _load_q: ./observation.html#grid2op.Observation.BaseObservation.load_q
+.. _load_v: ./observation.html#grid2op.Observation.BaseObservation.load_v
+.. _p_or: ./observation.html#grid2op.Observation.BaseObservation.p_or
+.. _q_or: ./observation.html#grid2op.Observation.BaseObservation.q_or
+.. _v_or: ./observation.html#grid2op.Observation.BaseObservation.v_or
+.. _a_or: ./observation.html#grid2op.Observation.BaseObservation.a_or
+.. _p_ex: ./observation.html#grid2op.Observation.BaseObservation.p_ex
+.. _q_ex: ./observation.html#grid2op.Observation.BaseObservation.q_ex
+.. _v_ex: ./observation.html#grid2op.Observation.BaseObservation.v_ex
+.. _a_ex: ./observation.html#grid2op.Observation.BaseObservation.a_ex
+.. _rho: ./observation.html#grid2op.Observation.BaseObservation.rho
+.. _topo_vect: ./observation.html#grid2op.Observation.BaseObservation.topo_vect
+.. _line_status: ./observation.html#grid2op.Observation.BaseObservation.line_status
+.. _timestep_overflow: ./observation.html#grid2op.Observation.BaseObservation.timestep_overflow
+.. _time_before_cooldown_line: ./observation.html#grid2op.Observation.BaseObservation.time_before_cooldown_line
+.. _time_before_cooldown_sub: ./observation.html#grid2op.Observation.BaseObservation.time_before_cooldown_sub
+.. _time_next_maintenance: ./observation.html#grid2op.Observation.BaseObservation.time_next_maintenance
+.. _duration_next_maintenance: ./observation.html#grid2op.Observation.BaseObservation.duration_next_maintenance
+.. _target_dispatch: ./observation.html#grid2op.Observation.BaseObservation.target_dispatch
+.. _actual_dispatch: ./observation.html#grid2op.Observation.BaseObservation.actual_dispatch
+.. _storage_charge: ./observation.html#grid2op.Observation.BaseObservation.storage_charge
+.. _storage_power_target: ./observation.html#grid2op.Observation.BaseObservation.storage_power_target
+.. _storage_power: ./observation.html#grid2op.Observation.BaseObservation.storage_power
+.. _storage_theta: ./observation.html#grid2op.Observation.BaseObservation.storage_theta
+.. _gen_p_before_curtail: ./observation.html#grid2op.Observation.BaseObservation.gen_p_before_curtail
+.. _curtailment: ./observation.html#grid2op.Observation.BaseObservation.curtailment
+.. _curtailment_limit: ./observation.html#grid2op.Observation.BaseObservation.curtailment_limit
+.. _is_alarm_illegal: ./observation.html#grid2op.Observation.BaseObservation.is_alarm_illegal
+.. _time_since_last_alarm: ./observation.html#grid2op.Observation.BaseObservation.time_since_last_alarm
+.. _last_alarm: ./observation.html#grid2op.Observation.BaseObservation.last_alarm
+.. _attention_budget: ./observation.html#grid2op.Observation.BaseObservation.attention_budget
+.. _max_step: ./observation.html#grid2op.Observation.BaseObservation.max_step
+.. _current_step: ./observation.html#grid2op.Observation.BaseObservation.current_step
+.. _delta_time: ./observation.html#grid2op.Observation.BaseObservation.delta_time
+.. _gen_margin_up: ./observation.html#grid2op.Observation.BaseObservation.gen_margin_up
+.. _gen_margin_down: ./observation.html#grid2op.Observation.BaseObservation.gen_margin_down
+.. _curtailment_mw: ./observation.html#grid2op.Observation.BaseObservation.curtailment_mw
+.. _theta_or: ./observation.html#grid2op.Observation.BaseObservation.theta_or
+.. _theta_ex: ./observation.html#grid2op.Observation.BaseObservation.theta_ex
+.. _gen_theta: ./observation.html#grid2op.Observation.BaseObservation.gen_theta
+.. _load_theta: ./observation.html#grid2op.Observation.BaseObservation.load_theta
+.. _active_alert: ./observation.html#grid2op.Observation.BaseObservation.active_alert
+.. _time_since_last_alert: ./observation.html#grid2op.Observation.BaseObservation.time_since_last_alert
+.. _alert_duration: ./observation.html#grid2op.Observation.BaseObservation.alert_duration
+.. _total_number_of_alert: ./observation.html#grid2op.Observation.BaseObservation.total_number_of_alert
+.. _time_since_last_attack: ./observation.html#grid2op.Observation.BaseObservation.time_since_last_attack
+.. _was_alert_used_after_attack: ./observation.html#grid2op.Observation.BaseObservation.was_alert_used_after_attack
+.. _attack_under_alert: ./observation.html#grid2op.Observation.BaseObservation.attack_under_alert

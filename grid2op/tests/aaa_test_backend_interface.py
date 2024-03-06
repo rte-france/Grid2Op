@@ -38,9 +38,9 @@ class AAATestBackendAPI(MakeBackend):
         """do not run nor modify ! (used for this test class only)"""
         return "BasicTest_load_grid_" + type(self).__name__
 
-    def aux_make_backend(self) -> Backend:
+    def aux_make_backend(self, n_busbar=2) -> Backend:
         """do not run nor modify ! (used for this test class only)"""
-        backend = self.make_backend_with_glue_code()
+        backend = self.make_backend_with_glue_code(n_busbar=n_busbar)
         backend.load_grid(self.get_path(), self.get_casefile())
         backend.load_redispacthing_data("tmp")  # pretend there is no generator
         backend.load_storage_data(self.get_path())
@@ -594,7 +594,7 @@ class AAATestBackendAPI(MakeBackend):
         assert len(topo_vect) == dim_topo, (f"backend.get_topo_vect() should return a vector of size 'dim_topo' "
                                             f"({dim_topo}) but found size is {len(topo_vect)}. "
                                             f"Remember: shunt are not part of the topo_vect")
-        assert np.all(topo_vect <= 2), (f"For simple environment, we suppose there are 2 buses per substation / voltage levels. "
+        assert np.all(topo_vect <= type(backend).n_busbar_per_sub), (f"For simple environment, we suppose there are 2 buses per substation / voltage levels. "
                                         f"topo_vect is supposed to give the id of the busbar (in the substation) to "
                                         f"which the element is connected. This cannot be {np.max(topo_vect)}."
                                         f"NB: this test is expected to fail if you test on a grid where more "
@@ -1555,4 +1555,118 @@ class AAATestBackendAPI(MakeBackend):
                                        el_nm, el_key, el_pos_topo_vect)
         else:
              warnings.warn(f"{type(self).__name__} test_28_topo_vect_set: This test is not performed in depth as your backend does not support storage units (or there are none on the grid)")
-            
+
+    def test_29_xxx_handle_more_than_2_busbar_called(self):    
+        """Tests that at least one of the function:
+        
+        - :func:`grid2op.Backend.Backend.can_handle_more_than_2_busbar`
+        - :func:`grid2op.Backend.Backend.cannot_handle_more_than_2_busbar`
+        
+        has been implemented in the :func:`grid2op.Backend.Backend.load_grid`
+        implementation.
+        
+        This test supposes that :
+        
+        - backend.load_grid(...) is implemented
+        
+        .. versionadded:: 1.10.0
+        
+        """
+        self.skip_if_needed()
+        backend = self.aux_make_backend()
+        assert not backend._missing_two_busbars_support_info
+    
+    def test_30_n_busbar_per_sub_ok(self):    
+        """Tests that your backend can properly handle more than
+        3 busbars (only applies if your backend supports the feature): basically that 
+        objects can be moved to busbar 3 without trouble.
+        
+        This test supposes that :
+        
+        - backend.load_grid(...) is implemented
+        - backend.runpf() (AC mode) is implemented
+        - backend.apply_action() for all types of action
+        - backend.reset() is implemented
+        - backend.get_topo_vect() is implemented       
+        
+        .. versionadded:: 1.10.0
+        
+        """    
+        self.skip_if_needed()
+        backend = self.aux_make_backend(n_busbar=3)
+        cls = type(backend)
+        if cls.n_busbar_per_sub != 3:
+            self.skipTest("Your backend does not support more than 2 busbars.")
+        
+        res = backend.runpf(is_dc=False)
+        assert res[0],  f"Your backend diverged in AC after loading the grid state, error was {res[1]}"    
+        topo_vect_orig = self._aux_check_topo_vect(backend)
+        
+        # line or
+        line_id = 0
+        busbar_id = 3
+        backend.reset(self.get_path(), self.get_casefile())
+        action = type(backend)._complete_action_class()
+        action.update({"set_bus": {"lines_or_id": [(line_id, busbar_id)]}})
+        bk_act = type(backend).my_bk_act_class()
+        bk_act += action
+        backend.apply_action(bk_act)
+        res = backend.runpf(is_dc=False)  
+        assert res[0],  f"Your backend diverged in AC after setting a line (or side) on busbar 3, error was {res[1]}"    
+        topo_vect = self._aux_check_topo_vect(backend)
+        error_msg = (f"Line {line_id} (or. side) has been moved to busbar {busbar_id}, yet according to 'topo_vect' "
+                     f"is still connected (origin side) to busbar {topo_vect[cls.line_or_pos_topo_vect[line_id]]}")
+        assert topo_vect[cls.line_or_pos_topo_vect[line_id]] == busbar_id, error_msg
+        
+        # line ex
+        line_id = 0
+        busbar_id = 3
+        backend.reset(self.get_path(), self.get_casefile())
+        action = type(backend)._complete_action_class()
+        action.update({"set_bus": {"lines_ex_id": [(line_id, busbar_id)]}})
+        bk_act = type(backend).my_bk_act_class()
+        bk_act += action
+        backend.apply_action(bk_act)
+        res = backend.runpf(is_dc=False)  
+        assert res[0],  f"Your backend diverged in AC after setting a line (ex side) on busbar 3, error was {res[1]}"    
+        topo_vect = self._aux_check_topo_vect(backend)
+        error_msg = (f"Line {line_id} (ex. side) has been moved to busbar {busbar_id}, yet according to 'topo_vect' "
+                     f"is still connected (ext side) to busbar {topo_vect[cls.line_ex_pos_topo_vect[line_id]]}")
+        assert topo_vect[cls.line_ex_pos_topo_vect[line_id]] == busbar_id, error_msg
+        
+        # load
+        backend.reset(self.get_path(), self.get_casefile())
+        busbar_id = 3
+        nb_el = cls.n_load
+        el_to_subid = cls.load_to_subid
+        el_nm = "load"
+        el_key = "loads_id"
+        el_pos_topo_vect = cls.load_pos_topo_vect
+        self._aux_check_el_generic(backend, busbar_id, nb_el, el_to_subid, 
+                                   el_nm, el_key, el_pos_topo_vect)
+        
+        # generator
+        backend.reset(self.get_path(), self.get_casefile())
+        busbar_id = 3
+        nb_el = cls.n_gen
+        el_to_subid = cls.gen_to_subid
+        el_nm = "generator"
+        el_key = "generators_id"
+        el_pos_topo_vect = cls.gen_pos_topo_vect
+        self._aux_check_el_generic(backend, busbar_id, nb_el, el_to_subid, 
+                                   el_nm, el_key, el_pos_topo_vect)
+        
+        # storage
+        if cls.n_storage > 0:
+            backend.reset(self.get_path(), self.get_casefile())
+            busbar_id = 3
+            nb_el = cls.n_storage
+            el_to_subid = cls.storage_to_subid
+            el_nm = "storage"
+            el_key = "storages_id"
+            el_pos_topo_vect = cls.storage_pos_topo_vect
+            self._aux_check_el_generic(backend, busbar_id, nb_el, el_to_subid, 
+                                       el_nm, el_key, el_pos_topo_vect)
+        else:
+             warnings.warn(f"{type(self).__name__} test_30_n_busbar_per_sub_ok: This test is not performed in depth as your backend does not support storage units (or there are none on the grid)")
+        
