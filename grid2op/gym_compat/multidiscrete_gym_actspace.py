@@ -70,10 +70,10 @@ class __AuxMultiDiscreteActSpace:
     - "one_sub_change": 1 single dimension. Same as above.
     - "one_line_set": 1 single dimension. In this type of representation, you have one dimension with `1 + 2 * n_line`
       elements: first is "do nothing", then next elements control the force connection or disconnection
-      of the powerlines (new in version 1.9.9)
+      of the powerlines (new in version 1.10.0)
     - "one_line_change": 1 single dimension. In this type of representation, you have `1 + n_line` possibility
       for this element. First one is "do nothing" then it controls the change of status of 
-      any given line (new in version 1.9.9).
+      any given line (new in version 1.10.0).
 
     .. warning::
 

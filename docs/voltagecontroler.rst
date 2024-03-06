@@ -1,5 +1,8 @@
 .. currentmodule:: grid2op.VoltageControler
 
+.. _voltage-controler-module:
+
+
 Voltage Controler
 ===================================
 

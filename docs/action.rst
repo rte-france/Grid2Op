@@ -416,7 +416,7 @@ As we explained in the previous paragraph, some action on one end of a powerline
 powerline or disconnect it. This means they modify the bus of **both** the extremity of the powerline.
 
 Here is a table summarizing how the buses are impacted. We denoted by "`PREVIOUS_OR`" the last bus at which
-the origin end of the powerline was connected and "`PREVIOUS_EX`" the last bus at which the extremity end of the
+the origin side of the powerline was connected and "`PREVIOUS_EX`" the last bus at which the extremity side of the
 powerline was connected. Note that for clarity when something is not modified by the action we decided to write on
 the table "not modified" (this entails that after this action, if the powerline is connected then "new origin bus" is
 "`PREVIOUS_OR`" and "new extremity bus" is "`PREVIOUS_EX`"). We remind the reader that "-1" encode for a
@@ -459,14 +459,18 @@ package that was formerly "openAI gym").
 
 This includes:
 
-- :class:`grid2op.gym_compat.GymActionSpace` which "represents" actions as a gymnasium `Dict`
-- :class:`grid2op.gym_compat.BoxGymActSpace` which represents actions as gymnasium `Box` 
+- :class:`grid2op.gym_compat.GymActionSpace` which "represents" actions as a gymnasium 
+  `Dict <https://gymnasium.farama.org/api/spaces/composite/#dict>`_
+- :class:`grid2op.gym_compat.BoxGymActSpace` which represents actions as gymnasium 
+  `Box <https://gymnasium.farama.org/api/spaces/fundamental/#box>`_ 
   (actions are numpy arrays). This is especially suited for continuous attributes
   such as redispatching, storage or curtailment.
-- :class:`grid2op.gym_compat.DiscreteActSpace` which represents actions as gymnasium `Discrete`
+- :class:`grid2op.gym_compat.DiscreteActSpace` which represents actions as gymnasium 
+  `Discrete <https://gymnasium.farama.org/api/spaces/fundamental/#discrete>`_
   (actions are integer). This is especially suited for discrete actions such as 
   setting line status or topologies at substation.
-- :class:`grid2op.gym_compat.MultiDiscreteActSpace` which represents actions as gymnasium `Discrete`
+- :class:`grid2op.gym_compat.MultiDiscreteActSpace` which represents actions as gymnasium 
+  `MultiDiscrete <https://gymnasium.farama.org/api/spaces/fundamental/#multidiscrete>`_
   (actions are integer). This is also especially suited for discrete actions such as 
   setting line status or topologies at substation.
 

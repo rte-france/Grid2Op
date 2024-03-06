@@ -155,7 +155,7 @@ class TestAuxFunctions(unittest.TestCase):
     
     def test_topo_vect_element(self):
         """
-        .. newinversion:: 1.9.9
+        .. newinversion:: 1.10.0
             Test this utilitary function 
         """
         with warnings.catch_warnings():

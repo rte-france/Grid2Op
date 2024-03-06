@@ -171,16 +171,16 @@ class Backend(GridObjects, ABC):
         for k, v in kwargs.items():
             self._my_kwargs[k] = v
         
-        #: .. versionadded:: 1.9.9
+        #: .. versionadded:: 1.10.0
         #:
         #: A flag to indicate whether the :func:`Backend.cannot_handle_more_than_2_busbar`
         #: or the :func:`Backend.cannot_handle_more_than_2_busbar`
         #: has been called when :func:`Backend.load_grid` was called.
-        #: Starting from grid2op 1.9.9 this is a requirement (to 
+        #: Starting from grid2op 1.10.0 this is a requirement (to 
         #: ensure backward compatibility)
         self._missing_two_busbars_support_info: bool = True
         
-        #: .. versionadded:: 1.9.9
+        #: .. versionadded:: 1.10.0
         #: 
         #: There is a difference between this and the class attribute.
         #: You should not worry about the class attribute of the backend in :func:`Backend.apply_action`
@@ -188,9 +188,9 @@ class Backend(GridObjects, ABC):
     
     def can_handle_more_than_2_busbar(self):
         """
-        .. versionadded:: 1.9.9
+        .. versionadded:: 1.10.0
         
-        This function should be called once in `load_grid` if your backend is able
+        This function should be called once in :func:`Backend.load_grid` if your backend is able
         to handle more than 2 busbars per substation.
         
         If not called, then the `environment` will not be able to use more than 2 busbars per substations.
@@ -199,7 +199,7 @@ class Backend(GridObjects, ABC):
             :func:`Backend.cannot_handle_more_than_2_busbar`
 
         .. note::
-            From grid2op 1.9.9 it is preferable that your backend calls one of
+            From grid2op 1.10.0 it is preferable that your backend calls one of
             :func:`Backend.can_handle_more_than_2_busbar` or 
             :func:`Backend.cannot_handle_more_than_2_busbar`.
             
@@ -216,9 +216,9 @@ class Backend(GridObjects, ABC):
     
     def cannot_handle_more_than_2_busbar(self):
         """
-        .. versionadded:: 1.9.9
+        .. versionadded:: 1.10.0
         
-        This function should be called once in `load_grid` if your backend is **NOT** able
+        This function should be called once in :func:`Backend.load_grid` if your backend is **NOT** able
         to handle more than 2 busbars per substation.
         
         If not called, then the `environment` will not be able to use more than 2 busbars per substations.
@@ -227,7 +227,7 @@ class Backend(GridObjects, ABC):
             :func:`Backend.cnot_handle_more_than_2_busbar`
 
         .. note::
-            From grid2op 1.9.9 it is preferable that your backend calls one of
+            From grid2op 1.10.0 it is preferable that your backend calls one of
             :func:`Backend.can_handle_more_than_2_busbar` or 
             :func:`Backend.cannot_handle_more_than_2_busbar`.
             
@@ -241,7 +241,10 @@ class Backend(GridObjects, ABC):
         """
         self._missing_two_busbars_support_info = False
         if type(self).n_busbar_per_sub != DEFAULT_N_BUSBAR_PER_SUB:
-            warnings.warn("You asked in `make` function to pass ")
+            warnings.warn("You asked in `make` function to have more than 2 busbar per substation. It is "
+                          f"not possible with a backend of type {type(self)}. To "
+                          "'fix' this issue, you need to change the implementation of your backend or "
+                          "upgrade it to a newer version.")
         self.n_busbar_per_sub = DEFAULT_N_BUSBAR_PER_SUB
     
     def make_complete_path(self,
@@ -493,7 +496,7 @@ class Backend(GridObjects, ABC):
         .. note::
             It is called after the solver has been ran, only in case of success (convergence).
             
-        It returns the information extracted from the _grid at the origin end of each powerline.
+        It returns the information extracted from the _grid at the origin side of each powerline.
 
         For assumption about the order of the powerline flows return in this vector, see the help of the
         :func:`Backend.get_line_status` method.
@@ -526,7 +529,7 @@ class Backend(GridObjects, ABC):
         .. note::
             It is called after the solver has been ran, only in case of success (convergence).
             
-        It returns the information extracted from the _grid at the extremity end of each powerline.
+        It returns the information extracted from the _grid at the extremity side of each powerline.
 
         For assumption about the order of the powerline flows return in this vector, see the help of the
         :func:`Backend.get_line_status` method.
@@ -683,10 +686,10 @@ class Backend(GridObjects, ABC):
             It is called after the solver has been ran, only in case of success (convergence).
             
         If the AC mod is used, this shall return the current flow on the end of the powerline where there is a protection.
-        For example, if there is a protection on "origin end" of powerline "l2" then this method shall return the current
-        flow of at the "origin end" of powerline l2.
+        For example, if there is a protection on "origin side" of powerline "l2" then this method shall return the current
+        flow of at the "origin side" of powerline l2.
 
-        Note that in general, there is no loss of generality in supposing all protections are set on the "origin end" of
+        Note that in general, there is no loss of generality in supposing all protections are set on the "origin side" of
         the powerline. So this method will return all origin line flows.
         It is also possible, for a specific application, to return the maximum current flow between both ends of a power
         _grid for more complex scenario.
@@ -1943,7 +1946,7 @@ class Backend(GridObjects, ABC):
 
         if self._missing_two_busbars_support_info:
             warnings.warn("The backend implementation you are using is probably too old to take advantage of the "
-                          "new feature added in grid2op 1.9.9: the possibility "
+                          "new feature added in grid2op 1.10.0: the possibility "
                           "to have more than 2 busbars per substations (or not). "
                           "To silence this warning, you can modify the `load_grid` implementation "
                           "of your backend and either call:\n"

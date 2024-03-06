@@ -32,7 +32,7 @@ Change Log
 - [???] properly model interconnecting powerlines
 
 
-[1.9.9] - 2024-xx-yy
+[1.10.0] - 2024-03-06
 ----------------------
 - [BREAKING] the order of the actions in `env.action_space.get_all_unitary_line_set` and 
   `env.action_space.get_all_unitary_topologies_set` might have changed (this is caused 
@@ -75,6 +75,7 @@ Change Log
 - [IMPROVED] type hints for the `gym_compat` module (more work still required in this area)
 - [IMPROVED] the `MultiDiscreteActSpace` to have one "dimension" controling all powerlines
   (see "one_line_set" and "one_line_change")
+- [IMPROVED] doc at different places, including the addition of the MDP implemented by grid2op.
 
 [1.9.8] - 2024-01-26
 ----------------------

@@ -112,38 +112,38 @@ class BaseObservation(GridObjects):
         voltage angles (see :attr:`BaseObservation.support_theta`).
 
     p_or: :class:`numpy.ndarray`, dtype:float
-        The active power flow at the origin end of each powerline (expressed in MW).
+        The active power flow at the origin side of each powerline (expressed in MW).
 
     q_or: :class:`numpy.ndarray`, dtype:float
-        The reactive power flow at the origin end of each powerline (expressed in MVar).
+        The reactive power flow at the origin side of each powerline (expressed in MVar).
 
     v_or: :class:`numpy.ndarray`, dtype:float
-        The voltage magnitude at the bus to which the origin end of each powerline is connected (expressed in kV).
+        The voltage magnitude at the bus to which the origin side of each powerline is connected (expressed in kV).
 
     theta_or: :class:`numpy.ndarray`, dtype:float
-        The voltage angle at the bus to which the origin end of each powerline
+        The voltage angle at the bus to which the origin side of each powerline
         is connected (expressed in degree). Only availble if the backend supports the retrieval of
         voltage angles (see :attr:`BaseObservation.support_theta`).
 
     a_or: :class:`numpy.ndarray`, dtype:float
-        The current flow at the origin end of each powerline (expressed in A).
+        The current flow at the origin side of each powerline (expressed in A).
 
     p_ex: :class:`numpy.ndarray`, dtype:float
-        The active power flow at the extremity end of each powerline (expressed in MW).
+        The active power flow at the extremity side of each powerline (expressed in MW).
 
     q_ex: :class:`numpy.ndarray`, dtype:float
-        The reactive power flow at the extremity end of each powerline (expressed in MVar).
+        The reactive power flow at the extremity side of each powerline (expressed in MVar).
 
     v_ex: :class:`numpy.ndarray`, dtype:float
-        The voltage magnitude at the bus to which the extremity end of each powerline is connected (expressed in kV).
+        The voltage magnitude at the bus to which the extremity side of each powerline is connected (expressed in kV).
 
     theta_ex: :class:`numpy.ndarray`, dtype:float
-        The voltage angle at the bus to which the extremity end of each powerline
+        The voltage angle at the bus to which the extremity side of each powerline
         is connected (expressed in degree). Only availble if the backend supports the retrieval of
         voltage angles (see :attr:`BaseObservation.support_theta`).
 
     a_ex: :class:`numpy.ndarray`, dtype:float
-        The current flow at the extremity end of each powerline (expressed in A).
+        The current flow at the extremity side of each powerline (expressed in A).
 
     rho: :class:`numpy.ndarray`, dtype:float
         The capacity of each powerline. It is defined at the observed current flow divided by the thermal limit of each
@@ -1863,9 +1863,9 @@ class BaseObservation(GridObjects):
         optional: 
         
         - `lor_bus` : for each powerline, it gives the id (row / column of the matrix) 
-          of the bus of the matrix to which its origin end is connected         
+          of the bus of the matrix to which its origin side is connected         
         - `lex_bus` : for each powerline, it gives the id (row / column of the matrix) 
-          of the bus of the matrix to which its extremity end is connected         
+          of the bus of the matrix to which its extremity side is connected         
 
         Notes
         ------
@@ -2257,7 +2257,7 @@ class BaseObservation(GridObjects):
         Convert this observation as a networkx graph. This graph is the graph "seen" by
         "the electron" / "the energy" of the power grid.
 
-        .. versionchanged:: 1.9.9
+        .. versionchanged:: 1.10.0
             Addition of the attribute `local_bus_id` and `global_bus_id` for the nodes of the returned graph.
             
             `local_bus_id` give the local bus id (from 1 to `obs.n_busbar_per_sub`) id of the 
@@ -2266,7 +2266,6 @@ class BaseObservation(GridObjects):
             `global_bus_id` give the global bus id (from 0 to `obs.n_busbar_per_sub * obs.n_sub - 1`) id of the 
             bus represented by this node.
             
-        .. versionchanged:: 1.9.9
             Addition of the attribute `global_bus_or` and `global_bus_ex` for the edges of the returned graph.
             
             These provides the global id of the `origin` / `ext` side to which powerline(s) represented by
@@ -2291,10 +2290,10 @@ class BaseObservation(GridObjects):
             - `cooldown`: how much longer you need to wait before being able to merge / split or change this node
             - 'sub_id': the id of the substation to which it is connected (typically between `0` and `obs.n_sub - 1`)
             - 'local_bus_id': the local bus id (from 1 to `obs.n_busbar_per_sub`) of the bus represented by this node
-              (new in version 1.9.9)
+              (new in version 1.10.0)
             - 'global_bus_id': the global bus id (from 0 to `obs.n_busbar_per_sub * obs.n_sub - 1`) 
               of the bus represented by this node
-              (new in version 1.9.9)
+              (new in version 1.10.0)
             - `cooldown` : the time you need to wait (in number of steps) before being able to act on the
               substation to which this bus is connected.
             - (optional) `theta`: the voltage angle (in degree) at this nodes
@@ -2329,11 +2328,11 @@ class BaseObservation(GridObjects):
             - 'global_bus_or': the global bus id (from 0 to `obs.n_busbar_per_sub * obs.n_sub - 1`) 
               of the bus to which the origin side of the line(s) represented by this edge
               is (are) connected
-              (new in version 1.9.9)
+              (new in version 1.10.0)
             - 'global_bus_ex': the global bus id (from 0 to `obs.n_busbar_per_sub * obs.n_sub - 1`) 
               of the bus to which the ext side of the line(s) represented by this edge
               is (are) connected
-              (new in version 1.9.9)
+              (new in version 1.10.0)
             - (optional) `theta_or`: voltage angle at the "or" bus (in deg)
             - (optional) `theta_ex`: voltage angle at the "ex" bus (in deg)
 
@@ -3377,7 +3376,7 @@ class BaseObservation(GridObjects):
     @property
     def line_or_bus(self) -> np.ndarray:
         """
-        Retrieve the busbar at which each origin end of powerline is connected.
+        Retrieve the busbar at which each origin side of powerline is connected.
 
         The result follow grid2op convention:
 
@@ -3399,7 +3398,7 @@ class BaseObservation(GridObjects):
     @property
     def line_ex_bus(self) -> np.ndarray:
         """
-        Retrieve the busbar at which each extremity end of powerline is connected.
+        Retrieve the busbar at which each extremity side of powerline is connected.
 
         The result follow grid2op convention:
 
@@ -4749,7 +4748,7 @@ class BaseObservation(GridObjects):
         to busbar 1, no redispatching, no curtailment)
         
         
-        .. versionadded:: 1.9.9
+        .. versionadded:: 1.10.0
         
         This function uses the method of the underlying action_space used 
         for the forecasts.

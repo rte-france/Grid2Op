@@ -1,5 +1,7 @@
 .. currentmodule:: grid2op.Rules
 
+.. _rule-module:
+
 Rules of the Game
 ===================================
 

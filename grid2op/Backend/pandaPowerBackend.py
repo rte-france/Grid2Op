@@ -64,31 +64,31 @@ class PandaPowerBackend(Backend):
         The ratio that allow the conversion from pair-unit to kv for the loads
 
     lines_or_pu_to_kv: :class:`numpy.array`, dtype:float
-        The ratio that allow the conversion from pair-unit to kv for the origin end of the powerlines
+        The ratio that allow the conversion from pair-unit to kv for the origin side of the powerlines
 
     lines_ex_pu_to_kv: :class:`numpy.array`, dtype:float
-        The ratio that allow the conversion from pair-unit to kv for the extremity end of the powerlines
+        The ratio that allow the conversion from pair-unit to kv for the extremity side of the powerlines
 
     p_or: :class:`numpy.array`, dtype:float
-        The active power flowing at the origin end of each powerline
+        The active power flowing at the origin side of each powerline
 
     q_or: :class:`numpy.array`, dtype:float
-        The reactive power flowing at the origin end of each powerline
+        The reactive power flowing at the origin side of each powerline
 
     v_or: :class:`numpy.array`, dtype:float
         The voltage magnitude at the origin bus of the powerline
 
     a_or: :class:`numpy.array`, dtype:float
-        The current flowing at the origin end of each powerline
+        The current flowing at the origin side of each powerline
 
     p_ex: :class:`numpy.array`, dtype:float
-        The active power flowing at the extremity end of each powerline
+        The active power flowing at the extremity side of each powerline
 
     q_ex: :class:`numpy.array`, dtype:float
-        The reactive power flowing at the extremity end of each powerline
+        The reactive power flowing at the extremity side of each powerline
 
     a_ex: :class:`numpy.array`, dtype:float
-        The current flowing at the extremity end of each powerline
+        The current flowing at the extremity side of each powerline
 
     v_ex: :class:`numpy.array`, dtype:float
         The voltage magnitude at the extremity bus of the powerline
