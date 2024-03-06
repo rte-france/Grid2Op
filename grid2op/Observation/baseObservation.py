@@ -2257,7 +2257,7 @@ class BaseObservation(GridObjects):
         Convert this observation as a networkx graph. This graph is the graph "seen" by
         "the electron" / "the energy" of the power grid.
 
-        .. versionchanged:: 1.9.9
+        .. versionchanged:: 1.10.0
             Addition of the attribute `local_bus_id` and `global_bus_id` for the nodes of the returned graph.
             
             `local_bus_id` give the local bus id (from 1 to `obs.n_busbar_per_sub`) id of the 
@@ -2266,7 +2266,6 @@ class BaseObservation(GridObjects):
             `global_bus_id` give the global bus id (from 0 to `obs.n_busbar_per_sub * obs.n_sub - 1`) id of the 
             bus represented by this node.
             
-        .. versionchanged:: 1.9.9
             Addition of the attribute `global_bus_or` and `global_bus_ex` for the edges of the returned graph.
             
             These provides the global id of the `origin` / `ext` side to which powerline(s) represented by
@@ -2291,10 +2290,10 @@ class BaseObservation(GridObjects):
             - `cooldown`: how much longer you need to wait before being able to merge / split or change this node
             - 'sub_id': the id of the substation to which it is connected (typically between `0` and `obs.n_sub - 1`)
             - 'local_bus_id': the local bus id (from 1 to `obs.n_busbar_per_sub`) of the bus represented by this node
-              (new in version 1.9.9)
+              (new in version 1.10.0)
             - 'global_bus_id': the global bus id (from 0 to `obs.n_busbar_per_sub * obs.n_sub - 1`) 
               of the bus represented by this node
-              (new in version 1.9.9)
+              (new in version 1.10.0)
             - `cooldown` : the time you need to wait (in number of steps) before being able to act on the
               substation to which this bus is connected.
             - (optional) `theta`: the voltage angle (in degree) at this nodes
@@ -2329,11 +2328,11 @@ class BaseObservation(GridObjects):
             - 'global_bus_or': the global bus id (from 0 to `obs.n_busbar_per_sub * obs.n_sub - 1`) 
               of the bus to which the origin side of the line(s) represented by this edge
               is (are) connected
-              (new in version 1.9.9)
+              (new in version 1.10.0)
             - 'global_bus_ex': the global bus id (from 0 to `obs.n_busbar_per_sub * obs.n_sub - 1`) 
               of the bus to which the ext side of the line(s) represented by this edge
               is (are) connected
-              (new in version 1.9.9)
+              (new in version 1.10.0)
             - (optional) `theta_or`: voltage angle at the "or" bus (in deg)
             - (optional) `theta_ex`: voltage angle at the "ex" bus (in deg)
 
@@ -4749,7 +4748,7 @@ class BaseObservation(GridObjects):
         to busbar 1, no redispatching, no curtailment)
         
         
-        .. versionadded:: 1.9.9
+        .. versionadded:: 1.10.0
         
         This function uses the method of the underlying action_space used 
         for the forecasts.

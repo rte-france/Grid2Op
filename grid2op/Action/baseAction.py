@@ -82,8 +82,8 @@ class BaseAction(GridObjects):
         - -1 -> disconnect the object.
         - 1 -> connect to bus 1
         - 2 -> connect to bus 2
-        - 3 -> connect to bus 3 (added in version 1.9.9)
-        - etc.  (added in version 1.9.9)
+        - 3 -> connect to bus 3 (added in version 1.10.0)
+        - etc.  (added in version 1.10.0)
 
     - the fifth element changes the buses to which the object is connected. It's a boolean vector interpreted as:
 
@@ -828,7 +828,7 @@ class BaseAction(GridObjects):
             cls.dim_alerts = 0
 
         if (cls.n_busbar_per_sub >= 3) or (cls.n_busbar_per_sub == 1):
-            # only relevant for grid2op >= 1.9.9
+            # only relevant for grid2op >= 1.10.0
             # remove "change_bus" if it's there more than 3 buses (no sense: where to change it ???)
             # or if there are only one busbar (cannot change anything)
             # if there are only one busbar, the "set_bus" action can still be used
@@ -2179,7 +2179,7 @@ class BaseAction(GridObjects):
                 - 0 -> don't change anything
                 - +1 -> set to bus 1,
                 - +2 -> set to bus 2
-                - +3 -> set to bus 3 (grid2op >= 1.9.9)
+                - +3 -> set to bus 3 (grid2op >= 1.10.0)
                 - etc.
                 - -1: You can use this method to disconnect an object by setting the value to -1.
 
@@ -2187,7 +2187,7 @@ class BaseAction(GridObjects):
               True will
               change it (eg switch it from bus 1 to bus 2 or from bus 2 to bus 1). NB this is only active if the system
               has only 2 buses per substation.
-              .. versionchanged:: 1.9.9
+              .. versionchanged:: 1.10.0
                 This feature is deactivated if `act.n_busbar_per_sub >= 3` or `act.n_busbar_per_sub == 1`
 
             - "redispatch": the best use of this is to specify either the numpy array of the redispatch vector you want
@@ -4060,8 +4060,8 @@ class BaseAction(GridObjects):
         """
         Allows to retrieve (and affect) the busbars at which the action **set** the loads.
 
-        .. versionchanged:: 1.9.9
-            From grid2op version 1.9.9 it is possible (under some cirumstances, depending on how
+        .. versionchanged:: 1.10.0
+            From grid2op version 1.10.0 it is possible (under some cirumstances, depending on how
             the environment is created) to set the busbar to a number >= 3, depending on the value
             of `type(act).n_busbar_per_sub`.
             
@@ -4075,8 +4075,8 @@ class BaseAction(GridObjects):
             * -1 the action disconnect the load
             * 1 the action set the load to busbar 1
             * 2 the action set the load to busbar 2
-            * 3 the action set the load to busbar 3 (grid2op >= 1.9.9)
-            * etc. (grid2op >= 1.9.9)
+            * 3 the action set the load to busbar 3 (grid2op >= 1.10.0)
+            * etc. (grid2op >= 1.10.0)
 
         Examples
         --------
@@ -4131,8 +4131,8 @@ class BaseAction(GridObjects):
         """
         Allows to retrieve (and affect) the busbars at which the action **set** the generator units.
 
-        .. versionchanged:: 1.9.9
-            From grid2op version 1.9.9 it is possible (under some cirumstances, depending on how
+        .. versionchanged:: 1.10.0
+            From grid2op version 1.10.0 it is possible (under some cirumstances, depending on how
             the environment is created) to set the busbar to a number >= 3, depending on the value
             of `type(act).n_busbar_per_sub`.
             
@@ -4146,8 +4146,8 @@ class BaseAction(GridObjects):
             * -1 the action disconnect the generator
             * 1 the action set the generator to busbar 1
             * 2 the action set the generator to busbar 2
-            * 3 the action set the generator to busbar 3 (grid2op >= 1.9.9)
-            * etc. (grid2op >= 1.9.9)
+            * 3 the action set the generator to busbar 3 (grid2op >= 1.10.0)
+            * etc. (grid2op >= 1.10.0)
 
         Examples
         --------
@@ -4271,8 +4271,8 @@ class BaseAction(GridObjects):
         """
         Allows to retrieve (and affect) the busbars at which the action **set** the storage units.
 
-        .. versionchanged:: 1.9.9
-            From grid2op version 1.9.9 it is possible (under some cirumstances, depending on how
+        .. versionchanged:: 1.10.0
+            From grid2op version 1.10.0 it is possible (under some cirumstances, depending on how
             the environment is created) to set the busbar to a number >= 3, depending on the value
             of `type(act).n_busbar_per_sub`.
             
@@ -4286,8 +4286,8 @@ class BaseAction(GridObjects):
             * -1 the action disconnect the storage unit
             * 1 the action set the storage unit to busbar 1
             * 2 the action set the storage unit to busbar 2
-            * 3 the action set the storage unit to busbar 3 (grid2op >= 1.9.9)
-            * etc. (grid2op >= 1.9.9)
+            * 3 the action set the storage unit to busbar 3 (grid2op >= 1.10.0)
+            * etc. (grid2op >= 1.10.0)
 
         Examples
         --------
@@ -4345,8 +4345,8 @@ class BaseAction(GridObjects):
         """
         Allows to retrieve (and affect) the busbars at which the action **set** the lines (origin side).
 
-        .. versionchanged:: 1.9.9
-            From grid2op version 1.9.9 it is possible (under some cirumstances, depending on how
+        .. versionchanged:: 1.10.0
+            From grid2op version 1.10.0 it is possible (under some cirumstances, depending on how
             the environment is created) to set the busbar to a number >= 3, depending on the value
             of `type(act).n_busbar_per_sub`.
             
@@ -4360,7 +4360,7 @@ class BaseAction(GridObjects):
             * -1 the action disconnect the line (origin side)
             * 1 the action set the line (origin side) to busbar 1
             * 2 the action set the line (origin side) to busbar 2
-            * 3 the action set the line (origin side) to busbar 3 (grid2op >= 1.9.9)
+            * 3 the action set the line (origin side) to busbar 3 (grid2op >= 1.10.0)
             * etc.
 
         Examples

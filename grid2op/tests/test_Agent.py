@@ -143,7 +143,7 @@ class TestAgent(HelperTests, unittest.TestCase):
         expected_reward = dt_float(12277.632)
         expected_reward = dt_float(12076.35644531 / 12.)
         # 1006.363037109375
-        #: Breaking change in 1.9.9: topology are not in the same order
+        #: Breaking change in 1.10.0: topology are not in the same order
         expected_reward = dt_float(1006.34924)  
         assert (
             np.abs(cum_reward - expected_reward) <= self.tol_one

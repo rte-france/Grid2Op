@@ -198,8 +198,9 @@ There are 4 **__main__** types of method you need to implement if you want to us
 
 .. _grid-description:
 
-Grid description
-------------------
+load_grid: Grid description
+----------------------------
+
 In this section we explicit what attributes need to be implemented to have a valid backend instance. We focus on
 the attribute of the `Backend` you have to set. But don't forget you also need to load a powergrid and store
 it in the `_grid` attribute.
@@ -210,18 +211,16 @@ Basically the `load_grid` function would look something like:
 
     def load_grid(self, path=None, filename=None):
         # simply handles different way of inputing the data
-        if path is None and filename is None:
-            raise RuntimeError("You must provide at least one of path or file to load a powergrid.")
-        if path is None:
-            full_path = filename
-        elif filename is None:
-            full_path = path
-        else:
-            full_path = os.path.join(path, filename)
-        if not os.path.exists(full_path):
-            raise RuntimeError("There is no powergrid at \"{}\"".format(full_path))
+        full_path = self.make_complete_path(path, filename)
 
-        # load the grid in your favorite format:
+        # from grid2op 1.10.0 you need to call one of
+        self.can_handle_more_than_2_busbar()  # see doc for more information
+        OR
+        self.cannot_handle_more_than_2_busbar()  # see doc for more information
+        # It is important you include it at the top of this method, otherwise you
+        # will not have access to self.n_busbar_per_sub
+
+        # load the grid in your favorite format, located at `full_path`:
         self._grid = ... # the way you do that depends on the "solver" you use
 
         # and now initialize the attributes (see list bellow)
@@ -516,7 +515,7 @@ of your implementation of `load_grid` function)
 
 .. _backend-action-create-backend:
 
-BackendAction: modification
+apply_action: underlying grid modification
 ----------------------------------------------
 In this section we detail step by step how to understand the specific format used by grid2op to "inform" the backend
 on how to modify its internal state before computing a powerflow.
@@ -698,8 +697,8 @@ And of course you do the same for generators and both ends of each powerline.
 
 .. _vector-orders-create-backend:
 
-Read back the results (flows, voltages etc.)
------------------------------------------------
+***_infos() : Read back the results (flows, voltages etc.)
+--------------------------------------------------------------
 This last "technical" part concerns what can be refer to as "getters" from the backend. These functions allow to
 read back the state of the grid and expose its results to grid2op in a standardize manner.
 
