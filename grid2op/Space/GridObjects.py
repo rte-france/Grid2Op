@@ -2810,7 +2810,7 @@ class GridObjects:
             cls.alertable_line_names = []
             cls.alertable_line_ids = []
             
-        if glop_ver < version.parse("1.10.0"):
+        if glop_ver < version.parse("1.10.0.dev0"):
             # this feature did not exists before
             # I need to set it to the default if set elsewhere
             cls.n_busbar_per_sub = DEFAULT_N_BUSBAR_PER_SUB
