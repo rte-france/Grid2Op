@@ -594,7 +594,7 @@ class AAATestBackendAPI(MakeBackend):
         assert len(topo_vect) == dim_topo, (f"backend.get_topo_vect() should return a vector of size 'dim_topo' "
                                             f"({dim_topo}) but found size is {len(topo_vect)}. "
                                             f"Remember: shunt are not part of the topo_vect")
-        assert np.all(topo_vect <= 2), (f"For simple environment, we suppose there are 2 buses per substation / voltage levels. "
+        assert np.all(topo_vect <= type(backend).n_busbar_per_sub), (f"For simple environment, we suppose there are 2 buses per substation / voltage levels. "
                                         f"topo_vect is supposed to give the id of the busbar (in the substation) to "
                                         f"which the element is connected. This cannot be {np.max(topo_vect)}."
                                         f"NB: this test is expected to fail if you test on a grid where more "
