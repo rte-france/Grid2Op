@@ -29,6 +29,7 @@ from grid2op.Space.space_utils import save_to_dict
 
 def _get_action_grid_class():
     GridObjects.env_name = "test_action_env"
+    GridObjects.n_busbar_per_sub = 2
     GridObjects.n_gen = 5
     GridObjects.name_gen = np.array(["gen_{}".format(i) for i in range(5)])
     GridObjects.n_load = 11
@@ -104,6 +105,7 @@ def _get_action_grid_class():
 
     json_ = {
         "glop_version": grid2op.__version__,
+        "n_busbar_per_sub": "2",
         "name_gen": ["gen_0", "gen_1", "gen_2", "gen_3", "gen_4"],
         "name_load": [
             "load_0",
@@ -872,7 +874,7 @@ class TestActionBase(ABC):
             tmp[-action.n_gen :] = -1
 
         # compute the "set_bus" vect
-        id_set = np.where(np.array(type(action).attr_list_vect) == "_set_topo_vect")[0][0]
+        id_set = np.nonzero(np.array(type(action).attr_list_vect) == "_set_topo_vect")[0][0]
         size_before = 0
         for el in type(action).attr_list_vect[:id_set]:
             arr_ = action._get_array_from_attr_name(el)
@@ -939,7 +941,7 @@ class TestActionBase(ABC):
                 0,
             ]
         )
-        id_change = np.where(np.array(type(action).attr_list_vect) == "_change_bus_vect")[0][
+        id_change = np.nonzero(np.array(type(action).attr_list_vect) == "_change_bus_vect")[0][
             0
         ]
         size_before = 0

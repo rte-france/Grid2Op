@@ -93,7 +93,7 @@ class ObservationSpace(SerializableObservationSpace):
             self.logger.disabled = True
         else:
             self.logger: logging.Logger = logger.getChild("grid2op_ObsSpace")
-            
+        self._init_observationClass = observationClass
         SerializableObservationSpace.__init__(
             self, gridobj, observationClass=observationClass
         )
@@ -283,7 +283,7 @@ class ObservationSpace(SerializableObservationSpace):
             if self.obs_env is not None :
                 self.obs_env.close()
                 self.obs_env = None
-            self._create_obs_env(env)
+            self._create_obs_env(env, self._init_observationClass)
         
         self.set_real_env_kwargs(env)
         self.with_forecast = True
@@ -386,8 +386,8 @@ class ObservationSpace(SerializableObservationSpace):
                 self.obs_env._reward_helper.change_reward(reward_func)
             else:
                 raise EnvError("Impossible to change the reward of the simulate "
-                            "function when you cannot simulate (because the "
-                            "backend could not be copied)")
+                               "function when you cannot simulate (because the "
+                               "backend could not be copied)")
 
     def set_thermal_limit(self, thermal_limit_a):
         if self.obs_env is not None:
@@ -463,6 +463,7 @@ class ObservationSpace(SerializableObservationSpace):
         super()._custom_deepcopy_for_copy(new_obj)
 
         # now fill my class
+        new_obj._init_observationClass = self._init_observationClass
         new_obj.with_forecast = self.with_forecast
         new_obj._simulate_parameters = copy.deepcopy(self._simulate_parameters)
         new_obj._reward_func = copy.deepcopy(self._reward_func)

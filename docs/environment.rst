@@ -1,4 +1,5 @@
 .. currentmodule:: grid2op.Environment
+
 .. _environment-module:
 
 Environment
@@ -105,10 +106,10 @@ impact then you might consult the :ref:`environment-module-data-pipeline` page o
 
 .. _environment-module-chronics-info:
 
-Chronics Customization
-+++++++++++++++++++++++
+Time series Customization
+++++++++++++++++++++++++++
 
-Study always the same chronics
+Study always the same time serie
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 If you spotted a particularly interesting chronics, or if you want, for some reason
 your agent to see only one chronics, you can do this rather easily with grid2op.

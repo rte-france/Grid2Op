@@ -26,7 +26,7 @@ class IdToAct(Converter):
     A "unary action" is an action that consists only in acting on one "concept" it includes:
 
     - disconnecting a single powerline
-    - reconnecting a single powerline and connect it to bus xxx on its origin end and yyy on its extremity end
+    - reconnecting a single powerline and connect it to bus xxx on its origin side and yyy on its extremity side
     - changing the topology of a single substation
     - performing redispatching on a single generator
     - performing curtailment on a single generator

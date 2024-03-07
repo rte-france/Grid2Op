@@ -84,7 +84,7 @@ if __name__ == "__main__":
                 version))
 
     # TODO re.search(reg_, "0.0.4-rc1").group("prerelease") -> rc1 (if regex_version is the official one)
-    if re.search(f".*\.(rc|pre|dev)[0-9]+$", version) is not None:
+    if re.search(f".*(\\.|-)(rc|pre|dev)[0-9]+$", version) is not None:
         is_prerelease = True
         print("This is a pre release, docker will NOT be pushed, github tag will NOT be made")
         time.sleep(2)

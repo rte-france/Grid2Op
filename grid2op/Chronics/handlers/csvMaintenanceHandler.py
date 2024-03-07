@@ -79,7 +79,7 @@ class CSVMaintenanceHandler(CSVHandler):
             ] = GridValue.get_maintenance_duration_1d(self.array[:, line_id])
 
         # there are _maintenance and hazards only if the value in the file is not 0.
-        self.array = self.array != 0.0
+        self.array = np.abs(self.array) >= 1e-7
         self.array = self.array.astype(dt_bool)
     
     def load_next_maintenance(self) -> Tuple[np.ndarray, np.ndarray]:

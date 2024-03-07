@@ -6,7 +6,7 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-from typing import Tuple
+from typing import Literal, Dict, Tuple, Any, Optional
 import copy
 import warnings
 import numpy as np
@@ -27,6 +27,18 @@ from grid2op.gym_compat.utils import (ALL_ATTR_CONT,
                                       check_gym_version,
                                       GYM_AVAILABLE,
                                       GYMNASIUM_AVAILABLE)
+
+POSSIBLE_KEYS = Literal["redispatch",
+                        "curtail",
+                        "curtail_mw",
+                        "set_storage",
+                        "set_bus",
+                        "change_bus",
+                        "set_line_status",
+                        "change_line_status",
+                        "raise_alert",
+                        "raise_alarm"
+                        ]
 
 
 class __AuxBoxGymActSpace:
@@ -85,9 +97,9 @@ class __AuxBoxGymActSpace:
     .. code-block:: python
 
         gym_env.action_space = BoxGymActSpace(env.action_space,
-                                                   attr_to_keep=['redispatch', "curtail"],
-                                                   multiply={"redispatch": env.gen_max_ramp_up},
-                                                   add={"redispatch": 0.5 * env.gen_max_ramp_up})
+                                              attr_to_keep=['redispatch', "curtail"],
+                                              multiply={"redispatch": env.gen_max_ramp_up},
+                                              add={"redispatch": 0.5 * env.gen_max_ramp_up})
 
     In the above example, the resulting "redispatch" part of the vector will be given by the following
     formula: `grid2op_act = gym_act * multiply + add`
@@ -190,11 +202,21 @@ class __AuxBoxGymActSpace:
 
     def __init__(
         self,
-        grid2op_action_space,
-        attr_to_keep=ALL_ATTR_CONT,
-        add=None,
-        multiply=None,
-        functs=None,
+        grid2op_action_space: ActionSpace,
+        attr_to_keep: Optional[Tuple[Literal["set_line_status"],
+                                     Literal["change_line_status"],
+                                     Literal["set_bus"],
+                                     Literal["change_bus"],
+                                     Literal["redispatch"],
+                                     Literal["set_storage"],
+                                     Literal["curtail"],
+                                     Literal["curtail_mw"],
+                                     Literal["raise_alarm"],
+                                     Literal["raise_alert"],
+                                     ]]=ALL_ATTR_CONT,
+        add: Optional[Dict[str, Any]]=None,
+        multiply: Optional[Dict[str, Any]]=None,
+        functs: Optional[Dict[str, Any]]=None,
     ):
         if not isinstance(grid2op_action_space, ActionSpace):
             raise RuntimeError(
@@ -225,45 +247,45 @@ class __AuxBoxGymActSpace:
         
         self._attr_to_keep = sorted(attr_to_keep)
 
-        act_sp = grid2op_action_space
+        act_sp_cls = type(grid2op_action_space)
         self._act_space = copy.deepcopy(grid2op_action_space)
 
-        low_gen = -1.0 * act_sp.gen_max_ramp_down[act_sp.gen_redispatchable]
-        high_gen = 1.0 * act_sp.gen_max_ramp_up[act_sp.gen_redispatchable]
-        nb_redisp = act_sp.gen_redispatchable.sum()
-        nb_curtail = act_sp.gen_renewable.sum()
+        low_gen = -1.0 * act_sp_cls.gen_max_ramp_down[act_sp_cls.gen_redispatchable]
+        high_gen = 1.0 * act_sp_cls.gen_max_ramp_up[act_sp_cls.gen_redispatchable]
+        nb_redisp = act_sp_cls.gen_redispatchable.sum()
+        nb_curtail = act_sp_cls.gen_renewable.sum()
         curtail = np.full(shape=(nb_curtail,), fill_value=0.0, dtype=dt_float)
         curtail_mw = np.full(shape=(nb_curtail,), fill_value=0.0, dtype=dt_float)
         self._dict_properties = {
             "set_line_status": (
-                np.full(shape=(act_sp.n_line,), fill_value=-1, dtype=dt_int),
-                np.full(shape=(act_sp.n_line,), fill_value=1, dtype=dt_int),
-                (act_sp.n_line,),
+                np.full(shape=(act_sp_cls.n_line,), fill_value=-1, dtype=dt_int),
+                np.full(shape=(act_sp_cls.n_line,), fill_value=1, dtype=dt_int),
+                (act_sp_cls.n_line,),
                 dt_int,
             ),
             "change_line_status": (
-                np.full(shape=(act_sp.n_line,), fill_value=0, dtype=dt_int),
-                np.full(shape=(act_sp.n_line,), fill_value=1, dtype=dt_int),
-                (act_sp.n_line,),
+                np.full(shape=(act_sp_cls.n_line,), fill_value=0, dtype=dt_int),
+                np.full(shape=(act_sp_cls.n_line,), fill_value=1, dtype=dt_int),
+                (act_sp_cls.n_line,),
                 dt_int,
             ),
             "set_bus": (
-                np.full(shape=(act_sp.dim_topo,), fill_value=-1, dtype=dt_int),
-                np.full(shape=(act_sp.dim_topo,), fill_value=1, dtype=dt_int),
-                (act_sp.dim_topo,),
+                np.full(shape=(act_sp_cls.dim_topo,), fill_value=-1, dtype=dt_int),
+                np.full(shape=(act_sp_cls.dim_topo,), fill_value=act_sp_cls.n_busbar_per_sub, dtype=dt_int),
+                (act_sp_cls.dim_topo,),
                 dt_int,
             ),
             "change_bus": (
-                np.full(shape=(act_sp.dim_topo,), fill_value=0, dtype=dt_int),
-                np.full(shape=(act_sp.dim_topo,), fill_value=1, dtype=dt_int),
-                (act_sp.dim_topo,),
+                np.full(shape=(act_sp_cls.dim_topo,), fill_value=0, dtype=dt_int),
+                np.full(shape=(act_sp_cls.dim_topo,), fill_value=1, dtype=dt_int),
+                (act_sp_cls.dim_topo,),
                 dt_int,
             ),
             "redispatch": (low_gen, high_gen, (nb_redisp,), dt_float),
             "set_storage": (
-                -1.0 * act_sp.storage_max_p_prod,
-                1.0 * act_sp.storage_max_p_absorb,
-                (act_sp.n_storage,),
+                -1.0 * act_sp_cls.storage_max_p_prod,
+                1.0 * act_sp_cls.storage_max_p_absorb,
+                (act_sp_cls.n_storage,),
                 dt_float,
             ),
             "curtail": (
@@ -274,20 +296,20 @@ class __AuxBoxGymActSpace:
             ),
             "curtail_mw": (
                 curtail_mw,
-                1.0 * act_sp.gen_pmax[act_sp.gen_renewable],
+                1.0 * act_sp_cls.gen_pmax[act_sp_cls.gen_renewable],
                 (nb_curtail,),
                 dt_float,
             ),
             "raise_alarm": (
-                np.full(shape=(act_sp.dim_alarms,), fill_value=0, dtype=dt_int),
-                np.full(shape=(act_sp.dim_alarms,), fill_value=1, dtype=dt_int),
-                (act_sp.dim_alarms,),
+                np.full(shape=(act_sp_cls.dim_alarms,), fill_value=0, dtype=dt_int),
+                np.full(shape=(act_sp_cls.dim_alarms,), fill_value=1, dtype=dt_int),
+                (act_sp_cls.dim_alarms,),
                 dt_int,
             ),
             "raise_alert": (
-                np.full(shape=(act_sp.dim_alerts,), fill_value=0, dtype=dt_int),
-                np.full(shape=(act_sp.dim_alerts,), fill_value=1, dtype=dt_int),
-                (act_sp.dim_alerts,),
+                np.full(shape=(act_sp_cls.dim_alerts,), fill_value=0, dtype=dt_int),
+                np.full(shape=(act_sp_cls.dim_alerts,), fill_value=1, dtype=dt_int),
+                (act_sp_cls.dim_alerts,),
                 dt_int,
             ),
         }
@@ -449,7 +471,7 @@ class __AuxBoxGymActSpace:
             if el in self._multiply:
                 # special case if a 0 were entered
                 arr_ = 1.0 * self._multiply[el]
-                is_nzero = arr_ != 0.0
+                is_nzero = np.abs(arr_) >= 1e-7
                 
                 low_ =  1.0 * low_.astype(dtype)
                 high_ =  1.0 * high_.astype(dtype)
@@ -520,7 +542,7 @@ class __AuxBoxGymActSpace:
         setattr(res, attr_nm, gym_act_this)
         return res
 
-    def get_indexes(self, key: str) -> Tuple[int, int]:
+    def get_indexes(self, key: POSSIBLE_KEYS) -> Tuple[int, int]:
         """Allows to retrieve the indexes of the gym action that
         are concerned by the attribute name `key` given in input.
 
@@ -563,7 +585,7 @@ class __AuxBoxGymActSpace:
             prev = where_to_put
         raise Grid2OpException(error_msg)
         
-    def from_gym(self, gym_act):
+    def from_gym(self, gym_act: np.ndarray) -> BaseAction:
         """
         This is the function that is called to transform a gym action (in this case a numpy array!)
         sent by the agent
@@ -607,10 +629,14 @@ class __AuxBoxGymActSpace:
             prev = where_to_put
         return res
 
-    def close(self):
+    def close(self) -> None:
+        """If you override this class, this function is called when the GymEnv is deleted.
+        
+        You can use it to free some memory if needed, but there is nothing to do in the general case.
+        """
         pass
 
-    def normalize_attr(self, attr_nm: str):
+    def normalize_attr(self, attr_nm: POSSIBLE_KEYS)-> None:
         """
         This function normalizes the part of the space
         that corresponds to the attribute `attr_nm`.

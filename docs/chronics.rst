@@ -1,7 +1,9 @@
 .. currentmodule:: grid2op.Chronics
 
-Chronics
-===================================
+.. _time-series-module:
+
+Time series (formerly called "chronics")
+=========================================
 
 This page is organized as follow:
 

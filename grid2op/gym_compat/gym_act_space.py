@@ -18,7 +18,7 @@ from grid2op.Environment import (
 from grid2op.Action import BaseAction, ActionSpace
 from grid2op.dtypes import dt_int, dt_bool, dt_float
 from grid2op.Converter.Converters import Converter
-from grid2op.gym_compat.utils import GYM_AVAILABLE, GYMNASIUM_AVAILABLE
+from grid2op.gym_compat.utils import GYM_AVAILABLE, GYMNASIUM_AVAILABLE, ActType
 
 
 class __AuxGymActionSpace:
@@ -248,7 +248,9 @@ class __AuxGymActionSpace:
                 if attr_nm == "_set_line_status":
                     my_type = type(self)._BoxType(low=-1, high=1, shape=shape, dtype=dt)
                 elif attr_nm == "_set_topo_vect":
-                    my_type = type(self)._BoxType(low=-1, high=2, shape=shape, dtype=dt)
+                    my_type = type(self)._BoxType(low=-1,
+                                                  high=type(action_space).n_busbar_per_sub,
+                                                  shape=shape, dtype=dt)
             elif dt == dt_bool:
                 # boolean observation space
                 my_type = self._boolean_type(sh)

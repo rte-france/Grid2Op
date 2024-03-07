@@ -1034,7 +1034,8 @@ Substations
 
 Description
 ~~~~~~~~~~~~~~~~~~
-A "substation" is a place where "elements" (side of a powerline, a load, a generator or
+A "substation" is a place (that exists, you can touch it) 
+where "elements" (side of a powerline, a load, a generator or
 a storage unit) belonging to the powergrid are connected all together.
 
 Substations are connected to other substation with powerlines (this is why powerline have two "sides": one for
@@ -1042,11 +1043,39 @@ each substation they are connecting).
 
 In most powergrid around the world, substations are made of multiple "busbars". In grid2op we supposes that
 every "elements" connected to a substation can be connected to every busbars in the substation. This is mainly
-done for simplicity, for real powergrid it might not be the case. We also, for simplicity, assume that
-each substations counts exactly 2 distincts busbars.
+done for simplicity, for real powergrid it might not be the case.
 
-At the initial step, for all environment available at the time of writing (february 2021) every objects
-were connected to the busbar 1 of their substation. This is not a requirement of grid2op, but it was the case
+In earlier grid2op versions, we also assumed that, for simplicity,
+each substations counts exactly 2 distincts busbars. Starting from grid2op 1.9.9, it is possible
+when you create an environment, to specify how many busbars are available in each substation. You can 
+customize it with:
+
+.. code-block:: python
+
+    import grid2op
+    env_name = "l2rpn_case14_sandbox"
+
+    env_2_busbars = grid2op.make(env_name)  # default
+    env_2_busbars_bis = grid2op.make(env_name, n_busbar=2)  # same as above
+
+    # one busbar
+    env_1_busbar = grid2op.make(env_name, n_busbar=1)
+    #NB: topological action on substation (set_bus, change_bus) are not possible in this case !
+
+    # 3 busbars
+    env_3_busbars = grid2op.make(env_name, n_busbar=3)
+    #NB: "change_bus" type of actions are not possible (it would be ambiguous - non unique-
+    #    on which busbar you want to change them)
+
+    # 10 busbars
+    env_10_busbars = grid2op.make(env_name, n_busbar=10)
+    #NB: "change_bus" type of actions are not possible (it would be ambiguous - non unique-
+    #    on which busbar you want to change them)
+
+
+At the initial step (right after `env.reset()`), for all environment available 
+at the time of writing (february 2021) every objects were connected to the busbar 1 
+of their substation. This is not a requirement of grid2op, but it was the case
 for every environments created.
 
 .. _topology-pb-explained:
