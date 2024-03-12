@@ -133,7 +133,7 @@ class TestEpisodeData(unittest.TestCase):
 
                 # test that the right seeds are assigned to the agent
                 res = runner.run(nb_episode=1, max_iter=self.max_iter, path_save=f)
-            episode_data = EpisodeData.from_disk(agent_path=f, ep_id=res[0][1])
+            episode_data = EpisodeData.from_disk(agent_path=f, name=res[0][1])
         assert int(episode_data.meta["chronics_max_timestep"]) == self.max_iter
         assert len(episode_data.actions) == self.max_iter
         assert len(episode_data.observations) == self.max_iter + 1
@@ -148,7 +148,7 @@ class TestEpisodeData(unittest.TestCase):
             timestep,
             max_ts
         ) = self.runner.run_one_episode(path_save=f)
-        episode_data = EpisodeData.from_disk(agent_path=f, ep_id=episode_name)
+        episode_data = EpisodeData.from_disk(agent_path=f, name=episode_name)
         assert int(episode_data.meta["chronics_max_timestep"]) == self.max_iter
         assert len(episode_data.other_rewards) == self.max_iter
         for other, real in zip(episode_data.other_rewards, episode_data.rewards):
@@ -191,14 +191,14 @@ class TestEpisodeData(unittest.TestCase):
             timestep,
             max_ts
         ) = self.runner.run_one_episode(path_save=f)
-        episode_data = EpisodeData.from_disk(agent_path=f, ep_id=episode_name)
+        episode_data = EpisodeData.from_disk(agent_path=f, name=episode_name)
         len(episode_data)
 
     def test_3_episode_with_saving(self):
         f = tempfile.mkdtemp()
         res = self.runner._run_sequential(nb_episode=3, path_save=f)
         for i, episode_name, cum_reward, timestep, total_ts in res:
-            episode_data = EpisodeData.from_disk(agent_path=f, ep_id=episode_name)
+            episode_data = EpisodeData.from_disk(agent_path=f, name=episode_name)
             assert int(episode_data.meta["chronics_max_timestep"]) == self.max_iter
             assert (
                 np.abs(
@@ -215,7 +215,7 @@ class TestEpisodeData(unittest.TestCase):
         )
         assert len(res) == nb_episode
         for i, episode_name, cum_reward, timestep, total_ts in res:
-            episode_data = EpisodeData.from_disk(agent_path=f, ep_id=episode_name)
+            episode_data = EpisodeData.from_disk(agent_path=f, name=episode_name)
             assert int(episode_data.meta["chronics_max_timestep"]) == self.max_iter
             assert (
                 np.abs(
@@ -263,7 +263,7 @@ class TestEpisodeData(unittest.TestCase):
             path_save=f,
         )
 
-        episode_data = EpisodeData.from_disk(agent_path=f, ep_id=res[0][1])
+        episode_data = EpisodeData.from_disk(agent_path=f, name=res[0][1])
         lines_impacted, subs_impacted = episode_data.attacks[0].get_topological_impact()
         assert lines_impacted[3]
 
