@@ -18,7 +18,7 @@ from grid2op.Chronics import Multifolder
 from grid2op.Reward import L2RPNReward
 from grid2op.Backend import PandaPowerBackend
 from grid2op.Runner import Runner
-from grid2op.Episode import EpisodeData
+from grid2op.Episode import CompactEpisodeData, EpisodeData
 from grid2op.dtypes import dt_float
 from grid2op.Agent import BaseAgent
 from grid2op.Action import TopologyAction
@@ -33,7 +33,7 @@ PATH_ADN_CHRONICS_FOLDER = os.path.abspath(
 )
 
 
-class TestEpisodeData(unittest.TestCase):
+class TestCompactEpisodeData(unittest.TestCase):
     def setUp(self):
         """
         The case file is a representation of the case14 as found in the ieee14 powergrid.
@@ -42,7 +42,6 @@ class TestEpisodeData(unittest.TestCase):
         self.tolvect = dt_float(1e-2)
         self.tol_one = dt_float(1e-5)
         self.max_iter = 10
-        # self.real_reward = dt_float(199.99800)
         self.real_reward = dt_float(179.99818)
 
         self.init_grid_path = os.path.join(PATH_DATA_TEST_PP, "test_case14.json")
@@ -106,6 +105,7 @@ class TestEpisodeData(unittest.TestCase):
             other_rewards={"test": L2RPNReward},
             max_iter=self.max_iter,
             name_env="test_episodedata_env",
+            use_compact_episode_data=True,
         )
 
     def test_load_ambiguous(self):
@@ -128,12 +128,13 @@ class TestEpisodeData(unittest.TestCase):
                 runner = Runner(
                     **env.get_params_for_runner(),
                     agentClass=None,
-                    agentInstance=my_agent
+                    agentInstance=my_agent,
+                    use_compact_episode_data=True,
                 )
 
                 # test that the right seeds are assigned to the agent
                 res = runner.run(nb_episode=1, max_iter=self.max_iter, path_save=f)
-            episode_data = EpisodeData.from_disk(agent_path=f, ep_id=res[0][1])
+            episode_data = CompactEpisodeData.from_disk(path=f, ep_id=res[0][1])
         assert int(episode_data.meta["chronics_max_timestep"]) == self.max_iter
         assert len(episode_data.actions) == self.max_iter
         assert len(episode_data.observations) == self.max_iter + 1
@@ -148,15 +149,15 @@ class TestEpisodeData(unittest.TestCase):
             timestep,
             max_ts
         ) = self.runner.run_one_episode(path_save=f)
-        episode_data = EpisodeData.from_disk(agent_path=f, ep_id=episode_name)
+        episode_data = CompactEpisodeData.from_disk(path=f, ep_id=episode_name)
         assert int(episode_data.meta["chronics_max_timestep"]) == self.max_iter
         assert len(episode_data.other_rewards) == self.max_iter
-        for other, real in zip(episode_data.other_rewards, episode_data.rewards):
-            assert dt_float(np.abs(other["test"] - real)) <= self.tol_one
-        assert (
-            np.abs(dt_float(episode_data.meta["cumulative_reward"]) - self.real_reward)
-            <= self.tol_one
-        )
+        print("\n\nOther Rewards:", episode_data.other_reward_names)
+        other_reward_idx = episode_data.other_reward_names.index("test")
+        other_reward = episode_data.other_rewards[:, other_reward_idx]
+        assert np.all(np.abs(other_reward - episode_data.rewards) <= self.tol_one)
+        assert np.abs(episode_data.meta["cumulative_reward"] - self.real_reward) <= self.tol_one
+
 
     def test_collection_wrapper_after_run(self):
         OneChange = OneChangeThenNothing.gen_next(
@@ -175,12 +176,13 @@ class TestEpisodeData(unittest.TestCase):
             max_iter=self.max_iter,
             name_env="test_episodedata_env",
             agentClass=OneChange,
+            use_compact_episode_data=True,
         )
         _, cum_reward, timestep, max_ts, episode_data = runner.run_one_episode(
             max_iter=self.max_iter, detailed_output=True
         )
         # Check that the type of first action is set bus
-        assert episode_data.actions[0].get_types()[2]
+        assert episode_data.action_space.from_vect(episode_data.actions[0]).get_types()[2]
 
     def test_len(self):
         """test i can use the function "len" of the episode data"""
@@ -191,38 +193,29 @@ class TestEpisodeData(unittest.TestCase):
             timestep,
             max_ts
         ) = self.runner.run_one_episode(path_save=f)
-        episode_data = EpisodeData.from_disk(agent_path=f, ep_id=episode_name)
+        episode_data = CompactEpisodeData.from_disk(path=f, ep_id=episode_name)
         len(episode_data)
 
     def test_3_episode_with_saving(self):
         f = tempfile.mkdtemp()
         res = self.runner._run_sequential(nb_episode=3, path_save=f)
         for i, episode_name, cum_reward, timestep, total_ts in res:
-            episode_data = EpisodeData.from_disk(agent_path=f, ep_id=episode_name)
+            episode_data = CompactEpisodeData.from_disk(path=f, ep_id=episode_name)
             assert int(episode_data.meta["chronics_max_timestep"]) == self.max_iter
-            assert (
-                np.abs(
-                    dt_float(episode_data.meta["cumulative_reward"]) - self.real_reward
-                )
-                <= self.tol_one
-            )
+            assert np.abs(episode_data.meta["cumulative_reward"] - self.real_reward) <= self.tol_one
 
     def test_3_episode_3process_with_saving(self):
         f = tempfile.mkdtemp()
         nb_episode = 2
         res = self.runner._run_parrallel(
-            nb_episode=nb_episode, nb_process=2, path_save=f
+            nb_episode=nb_episode, nb_process=2, path_save=f,
         )
         assert len(res) == nb_episode
+        print(f"\n\n{f}\n",'\n'.join([str(elt) for elt in Path(f).glob('*')]))
         for i, episode_name, cum_reward, timestep, total_ts in res:
-            episode_data = EpisodeData.from_disk(agent_path=f, ep_id=episode_name)
+            episode_data = CompactEpisodeData.from_disk(path=f, ep_id=episode_name)
             assert int(episode_data.meta["chronics_max_timestep"]) == self.max_iter
-            assert (
-                np.abs(
-                    dt_float(episode_data.meta["cumulative_reward"]) - self.real_reward
-                )
-                <= self.tol_one
-            )
+            assert np.abs(episode_data.meta["cumulative_reward"] - self.real_reward) <= self.tol_one
 
     def test_with_opponent(self):
         init_budget = 1000
@@ -252,7 +245,7 @@ class TestEpisodeData(unittest.TestCase):
                 _add_to_name=type(self).__name__,
             )
         env.seed(0)
-        runner = Runner(**env.get_params_for_runner())
+        runner = Runner(**env.get_params_for_runner(), use_compact_episode_data=True)
 
         f = tempfile.mkdtemp()
         res = runner.run(
@@ -263,8 +256,8 @@ class TestEpisodeData(unittest.TestCase):
             path_save=f,
         )
 
-        episode_data = EpisodeData.from_disk(agent_path=f, ep_id=res[0][1])
-        lines_impacted, subs_impacted = episode_data.attacks[0].get_topological_impact()
+        episode_data = CompactEpisodeData.from_disk(path=f, ep_id=res[0][1])
+        lines_impacted, subs_impacted = episode_data.attack_space.from_vect(episode_data.attacks[0]).get_topological_impact()
         assert lines_impacted[3]
 
 

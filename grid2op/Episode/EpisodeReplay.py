@@ -15,7 +15,7 @@ import argparse
 from grid2op.Exceptions import Grid2OpException
 from grid2op.PlotGrid.PlotMatplot import PlotMatplot
 from grid2op.Episode.EpisodeData import EpisodeData
-
+from grid2op.Episode.CompactEpisodeData import CompactEpisodeData
 
 class EpisodeReplay(object):
     """
