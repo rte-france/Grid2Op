@@ -243,6 +243,7 @@ class Runner(object):
         init_env_path: str,
         init_grid_path: str,
         path_chron,  # path where chronics of injections are stored
+        n_busbar=2,
         name_env="unknown",
         parameters_path=None,
         names_chronics_to_backend=None,
@@ -351,6 +352,7 @@ class Runner(object):
         # TODO documentation on the opponent
         # TOOD doc for the attention budget
         """
+        self._n_busbar = n_busbar
         self.with_forecast = with_forecast
         self.name_env = name_env
         if not isinstance(envClass, type):
@@ -482,7 +484,7 @@ class Runner(object):
             # Test if we can copy the agent for parallel runs
             try:
                 copy.copy(self.agent)
-            except:
+            except Exception as exc_:
                 self.__can_copy_agent = False
         else:
             raise RuntimeError(
@@ -621,6 +623,7 @@ class Runner(object):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             res = self.envClass.init_obj_from_kwargs(
+                n_busbar=self._n_busbar,
                 other_env_kwargs=self.other_env_kwargs,
                 init_env_path=self.init_env_path,
                 init_grid_path=self.init_grid_path,
@@ -1146,6 +1149,7 @@ class Runner(object):
                 returned list are not necessarily sorted by this value)
               - "cum_reward" the cumulative reward obtained by the :attr:`Runner.Agent` on this episode i
               - "nb_time_step": the number of time steps played in this episode.
+              - "total_step": the total number of time steps possible in this episode.
               - "episode_data" : [Optional] The :class:`EpisodeData` corresponding to this episode run only
                 if `add_detailed_output=True`
               - "add_nb_highres_sim": [Optional] The estimated number of calls to high resolution simulator made

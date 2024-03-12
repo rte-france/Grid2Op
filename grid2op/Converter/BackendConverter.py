@@ -206,13 +206,13 @@ class BackendConverter(Backend):
                 == sorted(self.target_backend.name_sub)
             ):
                 for id_source, nm_source in enumerate(self.source_backend.name_sub):
-                    id_target = np.where(self.target_backend.name_sub == nm_source)[0]
+                    id_target = np.nonzero(self.target_backend.name_sub == nm_source)[0]
                     self._sub_tg2sr[id_source] = id_target
                     self._sub_sr2tg[id_target] = id_source
         else:
             for id_source, nm_source in enumerate(self.source_backend.name_sub):
                 nm_target = self.sub_source_target[nm_source]
-                id_target = np.where(self.target_backend.name_sub == nm_target)[0]
+                id_target = np.nonzero(self.target_backend.name_sub == nm_target)[0]
                 self._sub_tg2sr[id_source] = id_target
                 self._sub_sr2tg[id_target] = id_source
 
@@ -268,12 +268,18 @@ class BackendConverter(Backend):
                 nm="storage",
             )
 
+        if type(self.source_backend).shunts_data_available and not type(self.target_backend).shunts_data_available:
+            raise Grid2OpException("Source backend supports shunts and not target backend. This is not handled")
+        elif type(self.target_backend).shunts_data_available and not type(self.source_backend).shunts_data_available:
+            raise Grid2OpException("Target backend supports shunts and not source backend. This is not handled")
+        
+        # TODO shunts data available
         # shunt are available if both source and target provide it
-        self.shunts_data_available = (
-            self.source_backend.shunts_data_available
-            and self.target_backend.shunts_data_available
+        type(self).shunts_data_available = (
+            type(self.source_backend).shunts_data_available
+            and type(self.target_backend).shunts_data_available
         )
-        if self.shunts_data_available:
+        if type(self).shunts_data_available:
             self._shunt_tg2sr = np.full(self.n_shunt, fill_value=-1, dtype=dt_int)
             self._shunt_sr2tg = np.full(self.n_shunt, fill_value=-1, dtype=dt_int)
             # automatic mode
@@ -294,7 +300,7 @@ class BackendConverter(Backend):
     def _get_possible_target_ids(self, id_source, source_2_id_sub, target_2_id_sub, nm):
         id_sub_source = source_2_id_sub[id_source]
         id_sub_target = self._sub_tg2sr[id_sub_source]
-        ids_target = np.where(target_2_id_sub == id_sub_target)[0]
+        ids_target = np.nonzero(target_2_id_sub == id_sub_target)[0]
         if ids_target.shape[0] == 0:
             raise RuntimeError(
                 ERROR_ELEMENT_CONNECTED.format(nm, id_sub_target, id_sub_source)
@@ -340,7 +346,7 @@ class BackendConverter(Backend):
             idor_sub_target = self._sub_tg2sr[idor_sub_source]
             idex_sub_source = source_ex_2_id_sub[id_source]
             idex_sub_target = self._sub_tg2sr[idex_sub_source]
-            ids_target = np.where(
+            ids_target = np.nonzero(
                 (target_or_2_id_sub == idor_sub_target)
                 & (target_ex_2_id_sub == idex_sub_target)
             )[0]
@@ -408,11 +414,17 @@ class BackendConverter(Backend):
         sr_cls.set_env_name(env_name)
 
         # handle specifc case of shunt data:
-        if not self.target_backend.shunts_data_available:
+        if not type(self.target_backend).shunts_data_available:
+            if type(self.source_backend).shunts_data_available:
+                raise Grid2OpException("Impossible to use a converter when one of the backend "
+                                       "supports shunt and the other not at the moment.")
+            # TODO shunts_data_available: you need ideally to create a different class
+            # for the backend that does not support it.
+            
             # disable the shunt data in grid2op.
-            self.source_backend.shunts_data_available = False
-            self.source_backend.n_shunt = None
-            self.source_backend.name_shunt = np.empty(0, dtype=str)
+            # type(self.source_backend).shunts_data_available = False
+            # type(self.source_backend).n_shunt = None
+            # type(self.source_backend).name_shunt = np.empty(0, dtype=str)
 
         self._init_class_attr(obj=self.source_backend)
         if self.path_redisp is not None:
@@ -494,7 +506,7 @@ class BackendConverter(Backend):
             assert np.all(sorted(self._topo_tg2sr[topo_sr2tg_without_storage]) == target_without_storage)
             self._topo_sr2tg = topo_sr2tg_without_storage
 
-        if self.shunts_data_available:
+        if type(self).shunts_data_available:
             self._check_both_consistent(self._shunt_tg2sr, self._shunt_sr2tg)
 
         # finally check that powergrids are identical (up to the env name)
@@ -716,7 +728,7 @@ class BackendConverter(Backend):
         act._set_line_status[:] = act._set_line_status[line_vect]
         act._switch_line_status[:] = act._switch_line_status[line_vect]
 
-        if act.shunt_added and act.shunts_data_available:
+        if act.shunt_added and type(act).shunts_data_available:
             shunt_vect = self._shunt_sr2tg
             act.shunt_p[:] = act.shunt_p[shunt_vect]
             act.shunt_q[:] = act.shunt_q[shunt_vect]

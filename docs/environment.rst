@@ -1,4 +1,5 @@
 .. currentmodule:: grid2op.Environment
+
 .. _environment-module:
 
 Environment
@@ -101,14 +102,14 @@ be equivalent to starting into the "middle" of a video game. If that is the case
 Finally, you might have noticed that each call to "env.reset" might take a while. This can dramatically
 increase the training time, especially at the beginning. This is due to the fact that each time
 `env.reset` is called, the whole chronics is read from the hard drive. If you want to lower this
-impact then you might consult the `Optimize the data pipeline`_ section.
+impact then you might consult the :ref:`environment-module-data-pipeline` page of the doc.
 
 .. _environment-module-chronics-info:
 
-Chronics Customization
-+++++++++++++++++++++++
+Time series Customization
+++++++++++++++++++++++++++
 
-Study always the same chronics
+Study always the same time serie
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 If you spotted a particularly interesting chronics, or if you want, for some reason
 your agent to see only one chronics, you can do this rather easily with grid2op.

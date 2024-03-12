@@ -25,17 +25,15 @@ except ImportError:
 from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Exceptions import (
     EnvError,
-    DivergingPowerFlow,
     IncorrectNumberOfElements,
     IncorrectNumberOfLoads,
-)
-from grid2op.Exceptions import (
     IncorrectNumberOfGenerators,
     BackendError,
     IncorrectNumberOfLines,
+    DivergingPowerflow,
+    Grid2OpException,
 )
-from grid2op.Space import GridObjects
-from grid2op.Exceptions import Grid2OpException
+from grid2op.Space import GridObjects, DEFAULT_N_BUSBAR_PER_SUB
 
 
 # TODO method to get V and theta at each bus, could be in the same shape as check_kirchoff
@@ -173,6 +171,82 @@ class Backend(GridObjects, ABC):
         for k, v in kwargs.items():
             self._my_kwargs[k] = v
         
+        #: .. versionadded:: 1.10.0
+        #:
+        #: A flag to indicate whether the :func:`Backend.cannot_handle_more_than_2_busbar`
+        #: or the :func:`Backend.cannot_handle_more_than_2_busbar`
+        #: has been called when :func:`Backend.load_grid` was called.
+        #: Starting from grid2op 1.10.0 this is a requirement (to 
+        #: ensure backward compatibility)
+        self._missing_two_busbars_support_info: bool = True
+        
+        #: .. versionadded:: 1.10.0
+        #: 
+        #: There is a difference between this and the class attribute.
+        #: You should not worry about the class attribute of the backend in :func:`Backend.apply_action`
+        self.n_busbar_per_sub: int = DEFAULT_N_BUSBAR_PER_SUB
+    
+    def can_handle_more_than_2_busbar(self):
+        """
+        .. versionadded:: 1.10.0
+        
+        This function should be called once in :func:`Backend.load_grid` if your backend is able
+        to handle more than 2 busbars per substation.
+        
+        If not called, then the `environment` will not be able to use more than 2 busbars per substations.
+        
+        .. seealso::
+            :func:`Backend.cannot_handle_more_than_2_busbar`
+
+        .. note::
+            From grid2op 1.10.0 it is preferable that your backend calls one of
+            :func:`Backend.can_handle_more_than_2_busbar` or 
+            :func:`Backend.cannot_handle_more_than_2_busbar`.
+            
+            If not, then the environments created with your backend will not be able to 
+            "operate" grid with more than 2 busbars per substation. 
+            
+        .. danger::
+            We highly recommend you do not try to override this function. 
+            
+            At least, at time of writing I can't find any good reason to do so.
+        """
+        self._missing_two_busbars_support_info = False
+        self.n_busbar_per_sub = type(self).n_busbar_per_sub
+    
+    def cannot_handle_more_than_2_busbar(self):
+        """
+        .. versionadded:: 1.10.0
+        
+        This function should be called once in :func:`Backend.load_grid` if your backend is **NOT** able
+        to handle more than 2 busbars per substation.
+        
+        If not called, then the `environment` will not be able to use more than 2 busbars per substations.
+        
+        .. seealso::
+            :func:`Backend.cnot_handle_more_than_2_busbar`
+
+        .. note::
+            From grid2op 1.10.0 it is preferable that your backend calls one of
+            :func:`Backend.can_handle_more_than_2_busbar` or 
+            :func:`Backend.cannot_handle_more_than_2_busbar`.
+            
+            If not, then the environments created with your backend will not be able to 
+            "operate" grid with more than 2 busbars per substation. 
+            
+        .. danger::
+            We highly recommend you do not try to override this function. 
+            
+            Atleast, at time of writing I can't find any good reason to do so.
+        """
+        self._missing_two_busbars_support_info = False
+        if type(self).n_busbar_per_sub != DEFAULT_N_BUSBAR_PER_SUB:
+            warnings.warn("You asked in `make` function to have more than 2 busbar per substation. It is "
+                          f"not possible with a backend of type {type(self)}. To "
+                          "'fix' this issue, you need to change the implementation of your backend or "
+                          "upgrade it to a newer version.")
+        self.n_busbar_per_sub = DEFAULT_N_BUSBAR_PER_SUB
+    
     def make_complete_path(self,
                            path : Union[os.PathLike, str],
                            filename : Optional[Union[os.PathLike, str]]=None) -> str:
@@ -422,7 +496,7 @@ class Backend(GridObjects, ABC):
         .. note::
             It is called after the solver has been ran, only in case of success (convergence).
             
-        It returns the information extracted from the _grid at the origin end of each powerline.
+        It returns the information extracted from the _grid at the origin side of each powerline.
 
         For assumption about the order of the powerline flows return in this vector, see the help of the
         :func:`Backend.get_line_status` method.
@@ -455,7 +529,7 @@ class Backend(GridObjects, ABC):
         .. note::
             It is called after the solver has been ran, only in case of success (convergence).
             
-        It returns the information extracted from the _grid at the extremity end of each powerline.
+        It returns the information extracted from the _grid at the extremity side of each powerline.
 
         For assumption about the order of the powerline flows return in this vector, see the help of the
         :func:`Backend.get_line_status` method.
@@ -612,10 +686,10 @@ class Backend(GridObjects, ABC):
             It is called after the solver has been ran, only in case of success (convergence).
             
         If the AC mod is used, this shall return the current flow on the end of the powerline where there is a protection.
-        For example, if there is a protection on "origin end" of powerline "l2" then this method shall return the current
-        flow of at the "origin end" of powerline l2.
+        For example, if there is a protection on "origin side" of powerline "l2" then this method shall return the current
+        flow of at the "origin side" of powerline l2.
 
-        Note that in general, there is no loss of generality in supposing all protections are set on the "origin end" of
+        Note that in general, there is no loss of generality in supposing all protections are set on the "origin side" of
         the powerline. So this method will return all origin line flows.
         It is also possible, for a specific application, to return the maximum current flow between both ends of a power
         _grid for more complex scenario.
@@ -675,11 +749,11 @@ class Backend(GridObjects, ABC):
                 if el in limits:
                     try:
                         tmp = dt_float(limits[el])
-                    except:
+                    except Exception as exc_:
                         raise BackendError(
                             'Impossible to convert data ({}) for powerline named "{}" into float '
                             "values".format(limits[el], el)
-                        )
+                        ) from exc_
                     if tmp <= 0:
                         raise BackendError(
                             'New thermal limit for powerlines "{}" is not positive ({})'
@@ -941,7 +1015,7 @@ class Backend(GridObjects, ABC):
 
         Raises
         ------
-        exc_: :class:`grid2op.Exceptions.DivergingPowerFlow`
+        exc_: :class:`grid2op.Exceptions.DivergingPowerflow`
             In case of divergence of the powerflow
 
         """
@@ -951,14 +1025,14 @@ class Backend(GridObjects, ABC):
             conv, exc_me = self.runpf(is_dc=is_dc)  # run powerflow
         except Grid2OpException as exc_:
             exc_me = exc_
-        except Exception as exc_:
-            exc_me = DivergingPowerFlow(
-                f" An unexpected error occurred during the computation of the powerflow."
-                f"The error is: \n {exc_} \n. This is game over"
-            )
+        # except Exception as exc_:
+        #     exc_me = DivergingPowerflow(
+        #         f" An unexpected error occurred during the computation of the powerflow."
+        #         f"The error is: \n {exc_} \n. This is game over"
+        #     )
 
         if not conv and exc_me is None:
-            exc_me = DivergingPowerFlow(
+            exc_me = DivergingPowerflow(
                 "GAME OVER: Powerflow has diverged during computation "
                 "or a load has been disconnected or a generator has been disconnected."
             )
@@ -1025,10 +1099,12 @@ class Backend(GridObjects, ABC):
             ] = True
 
             # disconnect the current power lines
-            if to_disc[lines_status].sum() == 0:
-                # no powerlines have been disconnected at this time step, i stop the computation there
+            if to_disc[lines_status].any() == 0:
+                # no powerlines have been disconnected at this time step, 
+                # i stop the computation there
                 break
             disconnected_during_cf[to_disc] = ts
+            
             # perform the disconnection action
             for i, el in enumerate(to_disc):
                 if el:
@@ -1126,18 +1202,19 @@ class Backend(GridObjects, ABC):
         p_ex, q_ex, v_ex, *_ = self.lines_ex_info()
         p_gen, q_gen, v_gen = self.generators_info()
         p_load, q_load, v_load = self.loads_info()
-        if self.n_storage > 0:
+        cls = type(self)
+        if cls.n_storage > 0:
             p_storage, q_storage, v_storage = self.storages_info()
 
         # fist check the "substation law" : nothing is created at any substation
-        p_subs = np.zeros(self.n_sub, dtype=dt_float)
-        q_subs = np.zeros(self.n_sub, dtype=dt_float)
+        p_subs = np.zeros(cls.n_sub, dtype=dt_float)
+        q_subs = np.zeros(cls.n_sub, dtype=dt_float)
 
         # check for each bus
-        p_bus = np.zeros((self.n_sub, 2), dtype=dt_float)
-        q_bus = np.zeros((self.n_sub, 2), dtype=dt_float)
+        p_bus = np.zeros((cls.n_sub, cls.n_busbar_per_sub), dtype=dt_float)
+        q_bus = np.zeros((cls.n_sub, cls.n_busbar_per_sub), dtype=dt_float)
         v_bus = (
-            np.zeros((self.n_sub, 2, 2), dtype=dt_float) - 1.0
+            np.zeros((cls.n_sub, cls.n_busbar_per_sub, 2), dtype=dt_float) - 1.0
         )  # sub, busbar, [min,max]
         topo_vect = self.get_topo_vect()
 
@@ -1145,11 +1222,15 @@ class Backend(GridObjects, ABC):
         # for example, if two powerlines are such that line_or_to_subid is equal (eg both connected to substation 0)
         # then numpy do not guarantee that `p_subs[self.line_or_to_subid] += p_or` will add the two "corresponding p_or"
         # TODO this can be vectorized with matrix product, see example in obs.flow_bus_matrix (BaseObervation.py)
-        for i in range(self.n_line):
-            sub_or_id = self.line_or_to_subid[i]
-            sub_ex_id = self.line_ex_to_subid[i]
-            loc_bus_or = topo_vect[self.line_or_pos_topo_vect[i]] - 1
-            loc_bus_ex = topo_vect[self.line_ex_pos_topo_vect[i]] - 1
+        for i in range(cls.n_line):
+            sub_or_id = cls.line_or_to_subid[i]
+            sub_ex_id = cls.line_ex_to_subid[i]
+            if (topo_vect[cls.line_or_pos_topo_vect[i]] == -1 or
+                topo_vect[cls.line_ex_pos_topo_vect[i]] == -1):
+                # line is disconnected
+                continue
+            loc_bus_or = topo_vect[cls.line_or_pos_topo_vect[i]] - 1
+            loc_bus_ex = topo_vect[cls.line_ex_pos_topo_vect[i]] - 1
             
             # for substations
             p_subs[sub_or_id] += p_or[i]
@@ -1166,150 +1247,174 @@ class Backend(GridObjects, ABC):
             q_bus[sub_ex_id, loc_bus_ex] += q_ex[i]
 
             # fill the min / max voltage per bus (initialization)
-            if (v_bus[sub_or_id,loc_bus_or,][0] == -1):
-                v_bus[sub_or_id,loc_bus_or,][0] = v_or[i]
-            if (v_bus[sub_ex_id,loc_bus_ex,][0] == -1):
-                v_bus[sub_ex_id,loc_bus_ex,][0] = v_ex[i]
+            if (v_bus[sub_or_id, loc_bus_or,][0] == -1):
+                v_bus[sub_or_id, loc_bus_or,][0] = v_or[i]
+            if (v_bus[sub_ex_id, loc_bus_ex,][0] == -1):
+                v_bus[sub_ex_id, loc_bus_ex,][0] = v_ex[i]
             if (v_bus[sub_or_id, loc_bus_or,][1]== -1):
-                v_bus[sub_or_id,loc_bus_or,][1] = v_or[i]
-            if (v_bus[sub_ex_id,loc_bus_ex,][1]== -1):
-                v_bus[sub_ex_id,loc_bus_ex,][1] = v_ex[i]
+                v_bus[sub_or_id, loc_bus_or,][1] = v_or[i]
+            if (v_bus[sub_ex_id, loc_bus_ex,][1]== -1):
+                v_bus[sub_ex_id, loc_bus_ex,][1] = v_ex[i]
 
             # now compute the correct stuff
             if v_or[i] > 0.0:
                 # line is connected
-                v_bus[sub_or_id,loc_bus_or,][0] = min(v_bus[sub_or_id,loc_bus_or,][0],v_or[i],)
-                v_bus[sub_or_id,loc_bus_or,][1] = max(v_bus[sub_or_id,loc_bus_or,][1],v_or[i],)
+                v_bus[sub_or_id, loc_bus_or,][0] = min(v_bus[sub_or_id, loc_bus_or,][0],v_or[i],)
+                v_bus[sub_or_id, loc_bus_or,][1] = max(v_bus[sub_or_id, loc_bus_or,][1],v_or[i],)
                 
             if v_ex[i] > 0:
                 # line is connected
-                v_bus[sub_ex_id,loc_bus_ex,][0] = min(v_bus[sub_ex_id,loc_bus_ex,][0],v_ex[i],)
-                v_bus[sub_ex_id,loc_bus_ex,][1] = max(v_bus[sub_ex_id,loc_bus_ex,][1],v_ex[i],)
+                v_bus[sub_ex_id, loc_bus_ex,][0] = min(v_bus[sub_ex_id, loc_bus_ex,][0],v_ex[i],)
+                v_bus[sub_ex_id, loc_bus_ex,][1] = max(v_bus[sub_ex_id, loc_bus_ex,][1],v_ex[i],)
         
-        for i in range(self.n_gen):
+        for i in range(cls.n_gen):
+            gptv = cls.gen_pos_topo_vect[i]
+            
+            if topo_vect[gptv] == -1:
+                # gen is disconnected
+                continue
+            
             # for substations
-            p_subs[self.gen_to_subid[i]] -= p_gen[i]
-            q_subs[self.gen_to_subid[i]] -= q_gen[i]
+            p_subs[cls.gen_to_subid[i]] -= p_gen[i]
+            q_subs[cls.gen_to_subid[i]] -= q_gen[i]
 
+            loc_bus = topo_vect[gptv] - 1
             # for bus
             p_bus[
-                self.gen_to_subid[i], topo_vect[self.gen_pos_topo_vect[i]] - 1
+                cls.gen_to_subid[i], loc_bus
             ] -= p_gen[i]
             q_bus[
-                self.gen_to_subid[i], topo_vect[self.gen_pos_topo_vect[i]] - 1
+                cls.gen_to_subid[i], loc_bus
             ] -= q_gen[i]
 
             # compute max and min values
             if v_gen[i]:
                 # but only if gen is connected
-                v_bus[self.gen_to_subid[i], topo_vect[self.gen_pos_topo_vect[i]] - 1][
+                v_bus[cls.gen_to_subid[i], loc_bus][
                     0
                 ] = min(
                     v_bus[
-                        self.gen_to_subid[i], topo_vect[self.gen_pos_topo_vect[i]] - 1
+                        cls.gen_to_subid[i], loc_bus
                     ][0],
                     v_gen[i],
                 )
-                v_bus[self.gen_to_subid[i], topo_vect[self.gen_pos_topo_vect[i]] - 1][
+                v_bus[cls.gen_to_subid[i], loc_bus][
                     1
                 ] = max(
                     v_bus[
-                        self.gen_to_subid[i], topo_vect[self.gen_pos_topo_vect[i]] - 1
+                        cls.gen_to_subid[i], loc_bus
                     ][1],
                     v_gen[i],
                 )
 
-        for i in range(self.n_load):
+        for i in range(cls.n_load):
+            gptv = cls.load_pos_topo_vect[i]
+            
+            if topo_vect[gptv] == -1:
+                # load is disconnected
+                continue
+            loc_bus = topo_vect[gptv] - 1
+            
             # for substations
-            p_subs[self.load_to_subid[i]] += p_load[i]
-            q_subs[self.load_to_subid[i]] += q_load[i]
+            p_subs[cls.load_to_subid[i]] += p_load[i]
+            q_subs[cls.load_to_subid[i]] += q_load[i]
 
             # for buses
             p_bus[
-                self.load_to_subid[i], topo_vect[self.load_pos_topo_vect[i]] - 1
+                cls.load_to_subid[i], loc_bus
             ] += p_load[i]
             q_bus[
-                self.load_to_subid[i], topo_vect[self.load_pos_topo_vect[i]] - 1
+                cls.load_to_subid[i], loc_bus
             ] += q_load[i]
 
             # compute max and min values
             if v_load[i]:
                 # but only if load is connected
-                v_bus[self.load_to_subid[i], topo_vect[self.load_pos_topo_vect[i]] - 1][
+                v_bus[cls.load_to_subid[i], loc_bus][
                     0
                 ] = min(
                     v_bus[
-                        self.load_to_subid[i], topo_vect[self.load_pos_topo_vect[i]] - 1
+                        cls.load_to_subid[i], loc_bus
                     ][0],
                     v_load[i],
                 )
-                v_bus[self.load_to_subid[i], topo_vect[self.load_pos_topo_vect[i]] - 1][
+                v_bus[cls.load_to_subid[i], loc_bus][
                     1
                 ] = max(
                     v_bus[
-                        self.load_to_subid[i], topo_vect[self.load_pos_topo_vect[i]] - 1
+                        cls.load_to_subid[i], loc_bus
                     ][1],
                     v_load[i],
                 )
 
-        for i in range(self.n_storage):
-            p_subs[self.storage_to_subid[i]] += p_storage[i]
-            q_subs[self.storage_to_subid[i]] += q_storage[i]
+        for i in range(cls.n_storage):
+            gptv = cls.storage_pos_topo_vect[i]
+            if topo_vect[gptv] == -1:
+                # storage is disconnected
+                continue
+            loc_bus = topo_vect[gptv] - 1
+            
+            p_subs[cls.storage_to_subid[i]] += p_storage[i]
+            q_subs[cls.storage_to_subid[i]] += q_storage[i]
             p_bus[
-                self.storage_to_subid[i], topo_vect[self.storage_pos_topo_vect[i]] - 1
+                cls.storage_to_subid[i], loc_bus
             ] += p_storage[i]
             q_bus[
-                self.storage_to_subid[i], topo_vect[self.storage_pos_topo_vect[i]] - 1
+                cls.storage_to_subid[i], loc_bus
             ] += q_storage[i]
 
             # compute max and min values
             if v_storage[i] > 0:
                 # the storage unit is connected
                 v_bus[
-                    self.storage_to_subid[i],
-                    topo_vect[self.storage_pos_topo_vect[i]] - 1,
+                    cls.storage_to_subid[i],
+                    loc_bus,
                 ][0] = min(
                     v_bus[
-                        self.storage_to_subid[i],
-                        topo_vect[self.storage_pos_topo_vect[i]] - 1,
+                        cls.storage_to_subid[i],
+                        loc_bus,
                     ][0],
                     v_storage[i],
                 )
                 v_bus[
                     self.storage_to_subid[i],
-                    topo_vect[self.storage_pos_topo_vect[i]] - 1,
+                    loc_bus,
                 ][1] = max(
                     v_bus[
-                        self.storage_to_subid[i],
-                        topo_vect[self.storage_pos_topo_vect[i]] - 1,
+                        cls.storage_to_subid[i],
+                        loc_bus,
                     ][1],
                     v_storage[i],
                 )
 
-        if type(self).shunts_data_available:
+        if cls.shunts_data_available:
             p_s, q_s, v_s, bus_s = self.shunt_info()
-            for i in range(self.n_shunt):
+            for i in range(cls.n_shunt):
+                if bus_s[i] == -1:
+                    # shunt is disconnected
+                    continue
+                
                 # for substations
-                p_subs[self.shunt_to_subid[i]] += p_s[i]
-                q_subs[self.shunt_to_subid[i]] += q_s[i]
+                p_subs[cls.shunt_to_subid[i]] += p_s[i]
+                q_subs[cls.shunt_to_subid[i]] += q_s[i]
 
                 # for buses
-                p_bus[self.shunt_to_subid[i], bus_s[i] - 1] += p_s[i]
-                q_bus[self.shunt_to_subid[i], bus_s[i] - 1] += q_s[i]
+                p_bus[cls.shunt_to_subid[i], bus_s[i] - 1] += p_s[i]
+                q_bus[cls.shunt_to_subid[i], bus_s[i] - 1] += q_s[i]
 
                 # compute max and min values
-                v_bus[self.shunt_to_subid[i], bus_s[i] - 1][0] = min(
-                    v_bus[self.shunt_to_subid[i], bus_s[i] - 1][0], v_s[i]
+                v_bus[cls.shunt_to_subid[i], bus_s[i] - 1][0] = min(
+                    v_bus[cls.shunt_to_subid[i], bus_s[i] - 1][0], v_s[i]
                 )
-                v_bus[self.shunt_to_subid[i], bus_s[i] - 1][1] = max(
-                    v_bus[self.shunt_to_subid[i], bus_s[i] - 1][1], v_s[i]
+                v_bus[cls.shunt_to_subid[i], bus_s[i] - 1][1] = max(
+                    v_bus[cls.shunt_to_subid[i], bus_s[i] - 1][1], v_s[i]
                 )
         else:
             warnings.warn(
                 "Backend.check_kirchoff Impossible to get shunt information. Reactive information might be "
                 "incorrect."
             )
-        diff_v_bus = np.zeros((self.n_sub, 2), dtype=dt_float)
+        diff_v_bus = np.zeros((cls.n_sub, cls.n_busbar_per_sub), dtype=dt_float)
         diff_v_bus[:, :] = v_bus[:, :, 1] - v_bus[:, :, 0]
         return p_subs, q_subs, p_bus, q_bus, diff_v_bus
 
@@ -1820,7 +1925,9 @@ class Backend(GridObjects, ABC):
                 sh_q[~shunt_co] = np.NaN
                 dict_["shunt"]["shunt_p"] = sh_p
                 dict_["shunt"]["shunt_q"] = sh_q
-            act.update(dict_)
+        elif type(self).shunts_data_available and not type(obs).shunts_data_available:
+            warnings.warn("Backend supports shunt but not the observation. This behaviour is non standard.")
+        act.update(dict_)
         backend_action += act
         self.apply_action(backend_action)
 
@@ -1831,11 +1938,28 @@ class Backend(GridObjects, ABC):
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
             This is done as it should be by the Environment
+            
         """
         # lazy loading
         from grid2op.Action import CompleteAction
         from grid2op.Action._backendAction import _BackendAction
 
+        if self._missing_two_busbars_support_info:
+            warnings.warn("The backend implementation you are using is probably too old to take advantage of the "
+                          "new feature added in grid2op 1.10.0: the possibility "
+                          "to have more than 2 busbars per substations (or not). "
+                          "To silence this warning, you can modify the `load_grid` implementation "
+                          "of your backend and either call:\n"
+                          "- self.can_handle_more_than_2_busbar if the current implementation "
+                          "   can handle more than 2 busbsars OR\n"
+                          "- self.cannot_handle_more_than_2_busbar if not."
+                          "\nAnd of course, ideally, if the current implementation "
+                          "of your backend cannot "
+                          "handle more than 2 busbars per substation, then change it :-)\n"
+                          "Your backend will behave as if it did not support it.")
+            self._missing_two_busbars_support_info = False
+            self.n_busbar_per_sub = DEFAULT_N_BUSBAR_PER_SUB
+            
         orig_type = type(self)
         if orig_type.my_bk_act_class is None:
             # class is already initialized
@@ -1854,8 +1978,9 @@ class Backend(GridObjects, ABC):
             )
             # reset the attribute of the grid2op.Backend.Backend class
             # that can be messed up with depending on the initialization of the backend
-            Backend._clear_class_attribute()
-            orig_type._clear_class_attribute()
+            Backend._clear_class_attribute()  # reset totally the grid2op Backend type
+            # orig_type._clear_class_attribute()
+            orig_type._clear_grid_dependant_class_attributes()  # only reset the attributes that could be modified by user
 
         my_cls = type(self)
         my_cls.my_bk_act_class = _BackendAction.init_grid(my_cls)

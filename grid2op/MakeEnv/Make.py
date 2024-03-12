@@ -247,6 +247,7 @@ def _aux_make_multimix(
     dataset_path,
     test=False,
     experimental_read_from_local_dir=False,
+    n_busbar=2,
     _add_to_name="",
     _compat_glop_version=None,
     logger=None,
@@ -258,6 +259,7 @@ def _aux_make_multimix(
     return MultiMixEnvironment(
         dataset_path,
         experimental_read_from_local_dir=experimental_read_from_local_dir,
+        n_busbar=n_busbar,
         _test=test,
         _add_to_name=_add_to_name,
         _compat_glop_version=_compat_glop_version,
@@ -272,6 +274,7 @@ def make(
     test : bool=False,
     logger: Optional[logging.Logger]=None,
     experimental_read_from_local_dir : bool=False,
+    n_busbar=2,
     _add_to_name : str="",
     _compat_glop_version : Optional[str]=None,
     **kwargs
@@ -286,6 +289,9 @@ def make(
 
     .. versionchanged:: 1.9.3
         Remove the possibility to use this function with arguments (force kwargs)
+    
+    .. versionadded:: 1.10.0
+        The `n_busbar` parameters
         
     Parameters
     ----------
@@ -307,6 +313,9 @@ def make(
         it might not be easily usable. If you encounter issues with pickle or multi
         processing, you can set this flag to ``True``. See the doc of 
         :func:`grid2op.Environment.BaseEnv.generate_classes` for more information.
+        
+    n_busbar: ``int``
+        Number of independant busbars allowed per substations. By default it's 2.
         
     kwargs:
         Other keyword argument to give more control on the environment you are creating. See
@@ -350,7 +359,15 @@ def make(
         raise Grid2OpException("Impossible to create an environment without its name. Please call something like: \n"
                                "> env = grid2op.make('l2rpn_case14_sandbox') \nor\n"
                                "> env = grid2op.make('rte_case14_realistic')")
+    try:
+        n_busbar_int = int(n_busbar)
+    except Exception as exc_:
+        raise Grid2OpException("n_busbar parameters should be convertible to integer") from exc_
 
+    if n_busbar != n_busbar_int:
+        raise Grid2OpException(f"n_busbar parameters should be convertible to integer, but we have "
+                               f"int(n_busbar) = {n_busbar_int} != {n_busbar}")
+        
     accepted_kwargs = ERR_MSG_KWARGS.keys() | {"dataset", "test"}
     for el in kwargs:
         if el not in accepted_kwargs:
@@ -402,6 +419,7 @@ def make(
             dataset_path=dataset,
             _add_to_name=_add_to_name_tmp,
             _compat_glop_version=_compat_glop_version_tmp,
+            n_busbar=n_busbar,
             **kwargs
         )
 
@@ -441,6 +459,7 @@ def make(
         return make_from_path_fn(
             dataset_path=ds_path,
             logger=logger,
+            n_busbar=n_busbar,
             _add_to_name=_add_to_name,
             _compat_glop_version=_compat_glop_version,
             experimental_read_from_local_dir=experimental_read_from_local_dir,
@@ -454,6 +473,7 @@ def make(
         return make_from_path_fn(
             real_ds_path,
             logger=logger,
+            n_busbar=n_busbar,
             experimental_read_from_local_dir=experimental_read_from_local_dir,
             **kwargs
         )
@@ -472,6 +492,7 @@ def make(
     return make_from_path_fn(
         dataset_path=real_ds_path,
         logger=logger,
+        n_busbar=n_busbar,
         experimental_read_from_local_dir=experimental_read_from_local_dir,
         **kwargs
     )

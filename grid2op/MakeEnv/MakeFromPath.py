@@ -115,6 +115,7 @@ def make_from_dataset_path(
     dataset_path="/",
     logger=None,
     experimental_read_from_local_dir=False,
+    n_busbar=2,
     _add_to_name="",
     _compat_glop_version=None,
     **kwargs,
@@ -150,6 +151,9 @@ def make_from_dataset_path(
     backend: ``grid2op.Backend.Backend``, optional
         The backend to use for the computation. If provided, it must be an instance of :class:`grid2op.Backend.Backend`.
 
+    n_busbar: ``int``
+        Number of independant busbars allowed per substations. By default it's 2.
+        
     action_class: ``type``, optional
         Type of BaseAction the BaseAgent will be able to perform.
         If provided, it must be a subclass of :class:`grid2op.BaseAction.BaseAction`
@@ -462,7 +466,7 @@ def make_from_dataset_path(
                         try:
                             int_ = int(el)
                             available_parameters_int[int_] = el
-                        except:
+                        except Exception as exc_:
                             pass
                     max_ = np.max(list(available_parameters_int.keys()))
                     keys_ = available_parameters_int[max_]
@@ -885,6 +889,7 @@ def make_from_dataset_path(
         attention_budget_cls=attention_budget_class,
         kwargs_attention_budget=kwargs_attention_budget,
         logger=logger,
+        n_busbar=n_busbar,
         _compat_glop_version=_compat_glop_version,
         _read_from_local_dir=experimental_read_from_local_dir,
         kwargs_observation=kwargs_observation,

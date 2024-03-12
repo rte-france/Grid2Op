@@ -10,6 +10,7 @@ import copy
 import warnings
 import numpy as np
 import re
+from typing import Union, Any, Dict, Literal
 
 import grid2op
 from grid2op.Opponent import OpponentSpace
@@ -31,12 +32,21 @@ from grid2op.VoltageControler import ControlVoltageFromFile, BaseVoltageControll
 from grid2op.Environment.baseEnv import BaseEnv
 from grid2op.Opponent import BaseOpponent, NeverAttackBudget
 from grid2op.operator_attention import LinearAttentionBudget
+from grid2op.Space import DEFAULT_N_BUSBAR_PER_SUB
 
 
 class Environment(BaseEnv):
     """
     This class is the grid2op implementation of the "Environment" entity in the RL framework.
 
+    .. danger::
+    
+        Long story short, once a environment is deleted, you cannot use anything it "holds" including,
+        but not limited to the capacity to perform `obs.simulate(...)` even if the `obs` is still
+        referenced.
+        
+        See :ref:`danger-env-ownership` (first danger block). 
+        
     Attributes
     ----------
 
@@ -73,6 +83,7 @@ class Environment(BaseEnv):
         backend,
         parameters,
         name="unknown",
+        n_busbar=DEFAULT_N_BUSBAR_PER_SUB,
         names_chronics_to_backend=None,
         actionClass=TopologyAction,
         observationClass=CompleteObservation,
@@ -139,6 +150,7 @@ class Environment(BaseEnv):
             observation_bk_kwargs=observation_bk_kwargs,
             highres_sim_counter=highres_sim_counter,
             update_obs_after_reward=_update_obs_after_reward,
+            n_busbar=n_busbar,
             _init_obs=_init_obs,
             _is_test=_is_test,  # is this created with "test=True" # TODO not implemented !!
         )
@@ -235,7 +247,8 @@ class Environment(BaseEnv):
                 self.backend._PATH_ENV = self.get_path_env()
             # all the above should be done in this exact order, otherwise some weird behaviour might occur
             # this is due to the class attribute
-            self.backend.set_env_name(self.name)
+            type(self.backend).set_env_name(self.name)
+            type(self.backend).set_n_busbar_per_sub(self._n_busbar)
             self.backend.load_grid(
                 self._init_grid_path
             )  # the real powergrid of the environment
@@ -418,7 +431,7 @@ class Environment(BaseEnv):
             raise Grid2OpException(
                 "Impossible to initialize the powergrid, the powerflow diverge at iteration 0. "
                 "Available information are: {}".format(info)
-            )
+            ) from info["exception"][0]
 
         # test the backend returns object of the proper size
         if need_process_backend:
@@ -511,7 +524,7 @@ class Environment(BaseEnv):
                 # deals with the "sub_pos" vector
                 for sub_id in range(cls_bk.n_sub):
                     if (cls_bk.storage_to_subid == sub_id).any():
-                        stor_ids = np.where(cls_bk.storage_to_subid == sub_id)[0]
+                        stor_ids = np.nonzero(cls_bk.storage_to_subid == sub_id)[0]
                         stor_locs = cls_bk.storage_to_sub_pos[stor_ids]
                         for stor_loc in sorted(stor_locs, reverse=True):
                             for vect, sub_id_me in zip(
@@ -672,7 +685,7 @@ class Environment(BaseEnv):
         """
         return self.get_obs().simulate(action)
 
-    def set_id(self, id_):
+    def set_id(self, id_: Union[int, str]) -> None:
         """
         Set the id that will be used at the next call to :func:`Environment.reset`.
 
@@ -680,6 +693,29 @@ class Environment(BaseEnv):
 
         **NB** The environment need to be **reset** for this to take effect.
 
+        .. versionchanged:: 1.6.4
+            `id_` can now be a string instead of an integer. You can call something like
+            `env.set_id("0000")` or `env.set_id("Scenario_april_000")` 
+            or `env.set_id("2050-01-03_0")` (depending on your environment)
+            to use the right time series.
+        
+        .. seealso::
+            function :func:`Environment.reset` for extra information
+        
+        .. versionchanged:: 1.9.8
+            Starting from version 1.9.8 you can directly set the time serie id when calling
+            reset.
+        
+        .. warning::
+            If the "time serie generator" you use is on standard (*eg* it is random in some sense)
+            and if you want fully reproducible results, you should first call `env.set_id(...)` and
+            then call `env.seed(...)` (and of course `env.reset()`)
+            
+            Calling `env.seed(...)` and then `env.set_id(...)` might not behave the way you want.
+            
+            In this case, it is much better to use the function 
+            `reset(seed=..., options={"time serie id": ...})` directly.
+            
         Parameters
         ----------
         id_: ``int``
@@ -862,7 +898,10 @@ class Environment(BaseEnv):
         self.logger = logger
         return self
 
-    def reset(self) -> BaseObservation:
+    def reset(self, 
+              *,
+              seed: Union[int, None] = None,
+              options: Union[Dict[Union[str, Literal["time serie id"]], Union[int, str]], None] = None) -> BaseObservation:
         """
         Reset the environment to a clean state.
         It will reload the next chronics if any. And reset the grid to a clean state.
@@ -881,17 +920,59 @@ class Environment(BaseEnv):
             import grid2op
 
             # create the environment
-            env = grid2op.make("l2rpn_case14_sandbox")
+            env_name = "l2rpn_case14_sandbox"
+            env = grid2op.make(env_name)
 
-            # and now you can "render" (plot) the state of the grid
+            # start a new episode
             obs = env.reset()
             done = False
             reward = env.reward_range[0]
             while not done:
                 action = agent.act(obs, reward, done)
                 obs, reward, done, info = env.step(action)
+                
+        .. versionadded:: 1.9.8
+            It is now possible to set the seed and the time series you want to use at the new
+            episode by calling `env.reset(seed=..., options={"time serie id": ...})`
+
+        Before version 1.9.8, if you wanted to use a fixed seed, you would need to (see 
+        doc of :func:`Environment.seed` ):
+        
+        .. code-block:: python
+
+            seed = ...
+            env.seed(seed)
+            obs = env.reset()
+            ...
+            
+        Starting from version 1.9.8 you can do this in one call:
+        
+        .. code-block:: python
+
+            seed = ...
+            obs = env.reset(seed=seed)  
+            
+        For the "time series id" it is the same concept. Before you would need to do (see
+        doc of :func:`Environment.set_id` for more information ):
+        
+        .. code-block:: python
+
+            time_serie_id = ...
+            env.set_id(time_serie_id)
+            obs = env.reset()
+            ...        
+            
+        And now (from version 1.9.8) you can more simply do:
+        
+        .. code-block:: python
+
+            time_serie_id = ...
+            obs = env.reset(options={"time serie id": time_serie_id})
+            ... 
+        
         """
-        super().reset()
+        super().reset(seed=seed, options=options)
+            
         self.chronics_handler.next_chronics()
         self.chronics_handler.initialize(
             self.backend.name_load,
@@ -1059,6 +1140,7 @@ class Environment(BaseEnv):
 
         """
         res = {}
+        res["n_busbar"] = self._n_busbar
         res["init_env_path"] = self._init_env_path
         res["init_grid_path"] = self._init_grid_path
         if with_chronics_handler:
@@ -1697,6 +1779,7 @@ class Environment(BaseEnv):
         res["other_rewards"] = {k: v.rewardClass for k, v in self.other_rewards.items()}
         res["grid_layout"] = self.grid_layout
         res["name_env"] = self.name
+        res["n_busbar"] = self._n_busbar
 
         res["opponent_space_type"] = self._opponent_space_type
         res["opponent_action_class"] = self._opponent_action_class
@@ -1721,6 +1804,7 @@ class Environment(BaseEnv):
 
     @classmethod
     def init_obj_from_kwargs(cls,
+                             *,
                              other_env_kwargs,
                              init_env_path,
                              init_grid_path,
@@ -1753,39 +1837,41 @@ class Environment(BaseEnv):
                              observation_bk_class,
                              observation_bk_kwargs,
                              _raw_backend_class,
-                             _read_from_local_dir):
-        res = Environment(init_env_path=init_env_path,
-                          init_grid_path=init_grid_path,
-                          chronics_handler=chronics_handler,
-                          backend=backend,
-                          parameters=parameters,
-                          name=name,
-                          names_chronics_to_backend=names_chronics_to_backend,
-                          actionClass=actionClass,
-                          observationClass=observationClass,
-                          rewardClass=rewardClass,
-                          legalActClass=legalActClass,
-                          voltagecontrolerClass=voltagecontrolerClass,
-                          other_rewards=other_rewards,
-                          opponent_space_type=opponent_space_type,
-                          opponent_action_class=opponent_action_class,
-                          opponent_class=opponent_class,
-                          opponent_init_budget=opponent_init_budget,
-                          opponent_budget_per_ts=opponent_budget_per_ts,
-                          opponent_budget_class=opponent_budget_class,
-                          opponent_attack_duration=opponent_attack_duration,
-                          opponent_attack_cooldown=opponent_attack_cooldown,
-                          kwargs_opponent=kwargs_opponent,
-                          with_forecast=with_forecast,
-                          attention_budget_cls=attention_budget_cls,
-                          kwargs_attention_budget=kwargs_attention_budget,
-                          has_attention_budget=has_attention_budget,
-                          logger=logger,
-                          kwargs_observation=kwargs_observation,
-                          observation_bk_class=observation_bk_class,
-                          observation_bk_kwargs=observation_bk_kwargs,
-                          _raw_backend_class=_raw_backend_class,
-                          _read_from_local_dir=_read_from_local_dir)
+                             _read_from_local_dir,
+                             n_busbar=DEFAULT_N_BUSBAR_PER_SUB):
+        res = cls(init_env_path=init_env_path,
+                  init_grid_path=init_grid_path,
+                  chronics_handler=chronics_handler,
+                  backend=backend,
+                  parameters=parameters,
+                  name=name,
+                  names_chronics_to_backend=names_chronics_to_backend,
+                  actionClass=actionClass,
+                  observationClass=observationClass,
+                  rewardClass=rewardClass,
+                  legalActClass=legalActClass,
+                  voltagecontrolerClass=voltagecontrolerClass,
+                  other_rewards=other_rewards,
+                  opponent_space_type=opponent_space_type,
+                  opponent_action_class=opponent_action_class,
+                  opponent_class=opponent_class,
+                  opponent_init_budget=opponent_init_budget,
+                  opponent_budget_per_ts=opponent_budget_per_ts,
+                  opponent_budget_class=opponent_budget_class,
+                  opponent_attack_duration=opponent_attack_duration,
+                  opponent_attack_cooldown=opponent_attack_cooldown,
+                  kwargs_opponent=kwargs_opponent,
+                  with_forecast=with_forecast,
+                  attention_budget_cls=attention_budget_cls,
+                  kwargs_attention_budget=kwargs_attention_budget,
+                  has_attention_budget=has_attention_budget,
+                  logger=logger,
+                  kwargs_observation=kwargs_observation,
+                  observation_bk_class=observation_bk_class,
+                  observation_bk_kwargs=observation_bk_kwargs,
+                  n_busbar=int(n_busbar),
+                  _raw_backend_class=_raw_backend_class,
+                  _read_from_local_dir=_read_from_local_dir)
         return res
     
     def generate_data(self, nb_year=1, nb_core=1, seed=None, **kwargs):
@@ -1795,8 +1881,7 @@ class Environment(BaseEnv):
 
         I also requires the lightsim2grid simulator.
 
-        This is only available for some environment (only the environment used for wcci 2022 competition at
-        time of writing).
+        This is only available for some environment (only the environment after 2022).
 
         Generating data takes some time (around 1 - 2 minutes to generate a weekly scenario) and this why we recommend
         to do it "offline" and then use the generated data for training or evaluation.

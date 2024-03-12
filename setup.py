@@ -73,7 +73,7 @@ pkgs = {
                  "numba",
                  "gym>=0.26",
                  "gymnasium",
-                 "stable-baselines3>=2.0",
+                #  "stable-baselines3>=2.0",
                  "nbconvert",
                  "jinja2"
                  ],
@@ -96,7 +96,11 @@ if sys.version_info.minor <= 7:
     
 if sys.version_info.minor == 12:
     # numba is not available for python 3.12 at the moment
-    pkgs["extras"]["test"] = [el for el in  pkgs["extras"]["test"] if not ("numba" in el)]
+    pkgs["extras"]["test"] = [el for el in  pkgs["extras"]["test"] if (not ("numba" in el) and 
+                                                                       not ("gym" in el) and 
+                                                                       not ('stable-baselines3' in el)
+                                                                       )
+                              ]
 
 setup(description='An gymnasium compatible environment to model sequential decision making  for powersystems',
       long_description=long_description,

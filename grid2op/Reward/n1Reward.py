@@ -13,7 +13,11 @@ from grid2op.Action._backendAction import _BackendAction
 
 class N1Reward(BaseReward):
     """
-    This class implements the "n-1" reward, which returns the maximum flows after a powerline
+    This class implements a reward that is inspired
+    by the "n-1" criterion widely used in power system.
+    
+    More specifically it returns the maximum flows (on all the powerlines) after a given (as input) a powerline
+    has been disconnected.
 
     Examples
     --------
@@ -26,8 +30,8 @@ class N1Reward(BaseReward):
         from grid2op.Reward import N1Reward
         L_ID = 0
         env = grid2op.make("l2rpn_case14_sandbox",
-                    reward_class=N1Reward(l_id=L_ID)
-                    )
+                           reward_class=N1Reward(l_id=L_ID)
+                          )
         obs = env.reset()
         obs, reward, *_ = env.step(env.action_space())
         print(f"reward: {reward:.3f}")

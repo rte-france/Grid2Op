@@ -18,50 +18,48 @@ class ActionWCCI2020(PlayableAction):
         "redispatch",
         }
 
-    attr_list_vect = [
-        "_set_line_status",
-        "_switch_line_status",
-        "_set_topo_vect",
-        "_change_bus_vect",
-        '_redispatch'
-        ]
+    attr_list_vect = ['_set_line_status',
+                      '_set_topo_vect',
+                      '_change_bus_vect',
+                      '_switch_line_status',
+                      '_redispatch']
     attr_list_set = set(attr_list_vect)
     pass
     
     
 class ObservationWCCI2020(CompleteObservation):
     attr_list_vect = [
-        'year',
-        'month',
-        'day',
-        'hour_of_day',
-        'minute_of_hour',
-        'day_of_week',
-        "gen_p",
-        "gen_q",
-        "gen_v",
-        'load_p',
-        'load_q',
-        'load_v',
-        'p_or',
-        'q_or',
-        'v_or',
-        'a_or', 
-        'p_ex',
-        'q_ex',
-        'v_ex',
-        'a_ex',
-        'rho',
-        'line_status',
-        'timestep_overflow',
-        'topo_vect',
-        'time_before_cooldown_line',
-        'time_before_cooldown_sub',
-        'time_next_maintenance',
-        'duration_next_maintenance',
-        'target_dispatch',
-        'actual_dispatch'
-    ]
+            "year",
+            "month",
+            "day",
+            "hour_of_day",
+            "minute_of_hour",
+            "day_of_week",
+            "gen_p",
+            "gen_q",
+            "gen_v",
+            "load_p",
+            "load_q",
+            "load_v",
+            "p_or",
+            "q_or",
+            "v_or",
+            "a_or",
+            "p_ex",
+            "q_ex",
+            "v_ex",
+            "a_ex",
+            "rho",
+            "line_status",
+            "timestep_overflow",
+            "topo_vect",
+            "time_before_cooldown_line",
+            "time_before_cooldown_sub",
+            "time_next_maintenance",
+            "duration_next_maintenance",
+            "target_dispatch",
+            "actual_dispatch"
+        ]
     attr_list_json = [
         "storage_charge",
         "storage_power_target",

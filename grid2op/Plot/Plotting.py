@@ -11,7 +11,7 @@ from grid2op.Plot.PlotPlotly import PlotPlotly
 from grid2op.Plot.PlotMatplotlib import PlotMatplotlib
 from grid2op.Plot.PlotPyGame import PlotPyGame
 
-from grid2op.Exceptions.PlotExceptions import PyGameQuit
+from grid2op.Exceptions.plotExceptions import PyGameQuit
 
 
 class Plotting:

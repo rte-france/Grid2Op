@@ -32,8 +32,94 @@ Change Log
 - [???] properly model interconnecting powerlines
 
 
-[1.9.7] - 20xx-yy-zz
+[1.10.0] - 2024-03-06
 ----------------------
+- [BREAKING] the order of the actions in `env.action_space.get_all_unitary_line_set` and 
+  `env.action_space.get_all_unitary_topologies_set` might have changed (this is caused 
+  by a rewriting of these functions in case there is not 2 busbars per substation)
+- [FIXED] github CI did not upload the source files
+- [FIXED] `l2rpn_utils` module did not stored correctly the order
+  of actions and observation for wcci_2020
+- [FIXED] 2 bugs detected by static code analysis (thanks sonar cloud)
+- [FIXED] a bug in `act.get_gen_modif` (vector of wrong size was used, could lead
+  to some crashes if `n_gen >= n_load`)
+- [FIXED] a bug in `act.as_dict` when shunts were modified
+- [FIXED] a bug affecting shunts: sometimes it was not possible to modify their p / q 
+  values for certain values of p or q (an AmbiguousAction exception was raised wrongly)
+- [FIXED] a bug in the `_BackendAction`: the "last known topoolgy" was not properly computed
+  in some cases (especially at the time where a line was reconnected)
+- [FIXED] `MultiDiscreteActSpace` and `DiscreteActSpace` could be the same classes
+  on some cases (typo in the code).
+- [FIXED] a bug in `MultiDiscreteActSpace` : the "do nothing" action could not be done if `one_sub_set` (or `one_sub_change`)
+  was selected in `attr_to_keep`
+- [ADDED] a method `gridobj.topo_vect_element()` that does the opposite of `gridobj.xxx_pos_topo_vect`
+- [ADDED] a mthod `gridobj.get_powerline_id(sub_id)` that gives the
+  id of all powerlines connected to a given substation
+- [ADDED] a convenience function `obs.get_back_to_ref_state(...)`
+  for the observation and not only the action_space.
+- [IMPROVED] handling of "compatibility" grid2op version
+  (by calling the relevant things done in the base class 
+  in `BaseAction` and `BaseObservation`) and by using the `from packaging import version`
+  to check version (instead of comparing strings)
+- [IMPROVED] slightly the code of `check_kirchoff` to make it slightly clearer
+- [IMRPOVED] typing and doc for some of the main classes of the `Action` module
+- [IMRPOVED] typing and doc for some of the main classes of the `Observation` module
+- [IMPROVED] methods `gridobj.get_lines_id`, `gridobj.get_generators_id`, `gridobj.get_loads_id`
+  `gridobj.get_storages_id` are now class methods and can be used with `type(env).get_lines_id(...)`
+  or `act.get_lines_id(...)` for example.
+- [IMPROVED] `obs.get_energy_graph()` by giving the "local_bus_id" and the "global_bus_id"
+  of the bus that represents each node of this graph.
+- [IMPROVED] `obs.get_elements_graph()` by giving access to the bus id (local, global and 
+  id of the node) where each element is connected.
+- [IMPROVED] description of the different graph of the grid in the documentation.
+- [IMPROVED] type hints for the `gym_compat` module (more work still required in this area)
+- [IMPROVED] the `MultiDiscreteActSpace` to have one "dimension" controling all powerlines
+  (see "one_line_set" and "one_line_change")
+- [IMPROVED] doc at different places, including the addition of the MDP implemented by grid2op.
+
+[1.9.8] - 2024-01-26
+----------------------
+- [FIXED] the `backend.check_kirchoff` function was not correct when some elements were disconnected 
+  (the wrong columns of the p_bus and q_bus was set in case of disconnected elements)
+- [FIXED] `PandapowerBackend`, when no slack was present
+- [FIXED] the "BaseBackendTest" class did not correctly detect divergence in most cases (which lead 
+  to weird bugs in failing tests)
+- [FIXED] an issue with imageio having deprecated the `fps` kwargs (see https://github.com/rte-france/Grid2Op/issues/569)
+- [FIXED] adding the "`loads_charac.csv`" in the package data
+- [FIXED] a bug when using grid2op, not "utils.py" script could be used (see 
+  https://github.com/rte-france/Grid2Op/issues/577). This was caused by the modification of
+  `sys.path` when importing the grid2op test suite.
+- [ADDED] A type of environment that does not perform the "emulation of the protections"
+  for some part of the grid (`MaskedEnvironment`) see https://github.com/rte-france/Grid2Op/issues/571
+- [ADDED] a "gym like" API for reset allowing to set the seed and the time serie id directly when calling
+  `env.reset(seed=.., options={"time serie id": ...})`
+- [IMPROVED] the CI speed: by not testing every possible numpy version but only most ancient and most recent
+- [IMPROVED] Runner now test grid2op version 1.9.6 and 1.9.7
+- [IMPROVED] refacto `gridobj_cls._clear_class_attribute` and `gridobj_cls._clear_grid_dependant_class_attributes`
+- [IMPROVED] the bahviour of the generic class `MakeBackend` used for the test suite.
+- [IMPROVED] re introducing python 12 testing
+- [IMPROVED] error messages in the automatic test suite (`AAATestBackendAPI`)
+
+[1.9.7] - 2023-12-01
+----------------------
+- [BREAKING] removal of the `grid2op/Exceptions/PowerflowExceptions.py` file and move the
+  `DivergingPowerflow` as part of the BackendException. If you imported (to be avoided)
+  with `from grid2op.Exceptions.PowerflowExceptions import PowerflowExceptions`
+  simply do `from grid2op.Exceptions import PowerflowExceptions` and nothing
+  will change.
+- [BREAKING] rename with filename starting with lowercase all the files in the "`Exceptions`", 
+  module. This is both consistent with python practice but allows also to make the 
+  difference between the files in the 
+  module and the class imported. This should have little to no impact on all codes but to "upgrade"
+  instead of `from grid2op.Exceptions.XXX import PowerflowExceptions` (which you should not have done in the first place) 
+  just do `from grid2op.Exceptions import PowerflowExceptions`. Expect other changes like this for other grid2op modules
+  in the near future.
+- [BREAKING] change the `gridobj_cls.shape()` and `gridobj_cls.dtype()` to `gridobj_cls.shapes()` and `gridobj_cls.dtypes()`
+  to be more clear when dealing with action_space and observation_space (where `shape` and `dtype` are attribute and not functions)
+  This change means you can still use `act.shape()` and `act.dtype()` but that `act_space.shape` and `act_space.dtype` are now
+  clearly properties (and NOT attribute). For the old function `gridobj_cls.dtype()` you can now use `gridobj_cls.dtypes()`
+- [FIXED] issue https://github.com/rte-france/Grid2Op/issues/561 (indent issue)
+- [FIXED] issue https://github.com/rte-france/Grid2Op/issues/550 : issue with `shunts_data_available` now better handled
 - [IMPROVED] the function to check the backend interface now also check that
   the `topo_vect` returns value between 1 and 2.
 - [IMPROVED] the function to check backend now also check the `topo_vect`
