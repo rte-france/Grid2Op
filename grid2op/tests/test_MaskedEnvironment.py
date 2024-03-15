@@ -210,7 +210,6 @@ class TestMaskedEnvironmentGym(unittest.TestCase):
         act = 0
         self._aux_run_envs(act, env_gym_in, env_gym_out)
         
-    
     def test_gym_multidiscrete(self):
         """test I can create the gym env with multi discrete act space"""
         env_gym_in = GymEnv(self.env_in)

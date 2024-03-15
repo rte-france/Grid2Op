@@ -1945,21 +1945,28 @@ class Backend(GridObjects, ABC):
         from grid2op.Action import CompleteAction
         from grid2op.Action._backendAction import _BackendAction
 
-        if self._missing_two_busbars_support_info:
-            warnings.warn("The backend implementation you are using is probably too old to take advantage of the "
-                          "new feature added in grid2op 1.10.0: the possibility "
-                          "to have more than 2 busbars per substations (or not). "
-                          "To silence this warning, you can modify the `load_grid` implementation "
-                          "of your backend and either call:\n"
-                          "- self.can_handle_more_than_2_busbar if the current implementation "
-                          "   can handle more than 2 busbsars OR\n"
-                          "- self.cannot_handle_more_than_2_busbar if not."
-                          "\nAnd of course, ideally, if the current implementation "
-                          "of your backend cannot "
-                          "handle more than 2 busbars per substation, then change it :-)\n"
-                          "Your backend will behave as if it did not support it.")
+        if hasattr(self, "_missing_two_busbars_support_info"):
+            if self._missing_two_busbars_support_info:
+                warnings.warn("The backend implementation you are using is probably too old to take advantage of the "
+                            "new feature added in grid2op 1.10.0: the possibility "
+                            "to have more than 2 busbars per substations (or not). "
+                            "To silence this warning, you can modify the `load_grid` implementation "
+                            "of your backend and either call:\n"
+                            "- self.can_handle_more_than_2_busbar if the current implementation "
+                            "   can handle more than 2 busbsars OR\n"
+                            "- self.cannot_handle_more_than_2_busbar if not."
+                            "\nAnd of course, ideally, if the current implementation "
+                            "of your backend cannot "
+                            "handle more than 2 busbars per substation, then change it :-)\n"
+                            "Your backend will behave as if it did not support it.")
+                self._missing_two_busbars_support_info = False
+                self.n_busbar_per_sub = DEFAULT_N_BUSBAR_PER_SUB
+        else:
             self._missing_two_busbars_support_info = False
             self.n_busbar_per_sub = DEFAULT_N_BUSBAR_PER_SUB
+            warnings.warn("Your backend is missing the `_missing_two_busbars_support_info` "
+                          "attribute. This is known issue in lightims2grid <= 0.7.5. Please "
+                          "upgrade your backend. This will raise an error in the future.")
             
         orig_type = type(self)
         if orig_type.my_bk_act_class is None:
