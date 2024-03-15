@@ -1844,8 +1844,9 @@ class Backend(GridObjects, ABC):
             p_s, q_s, sh_v, bus_s = self.shunt_info()
             dict_["shunt"] = {"shunt_bus": bus_s}
             if (bus_s >= 1).sum():
-                p_s *= (self._sh_vnkv / sh_v) ** 2
-                q_s *= (self._sh_vnkv / sh_v) ** 2
+                sh_conn = bus_s > 0
+                p_s[sh_conn] *= (self._sh_vnkv[sh_conn] / sh_v[sh_conn]) ** 2
+                q_s[sh_conn] *= (self._sh_vnkv[sh_conn] / sh_v[sh_conn]) ** 2
                 p_s[bus_s == -1] = np.NaN
                 q_s[bus_s == -1] = np.NaN
                 dict_["shunt"]["shunt_p"] = p_s

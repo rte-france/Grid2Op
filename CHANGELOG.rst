@@ -32,6 +32,11 @@ Change Log
 - [???] properly model interconnecting powerlines
 
 
+[1.10.1] - 2024-03-xx
+----------------------
+- [IMPROVED] the "`train_val_split`" functions, now more names (for the folders)
+  can be used
+
 [1.10.0] - 2024-03-06
 ----------------------
 - [BREAKING] the order of the actions in `env.action_space.get_all_unitary_line_set` and 
