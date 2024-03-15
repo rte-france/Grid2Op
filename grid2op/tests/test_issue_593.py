@@ -1,4 +1,4 @@
-# Copyright (c) 2023, RTE (https://www.rte-france.com)
+# Copyright (c) 2024, RTE (https://www.rte-france.com)
 # See AUTHORS.txt
 # This Source Code Form is subject to the terms of the Mozilla Public License, version 2.0.
 # If a copy of the Mozilla Public License, version 2.0 was not distributed with this file,
