@@ -31,6 +31,14 @@ Change Log
 - [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
 
+[1.10.1] - 2024-03-xx
+----------------------
+- [FIXED] issue https://github.com/rte-france/Grid2Op/issues/593
+- [FIXED] backward compatibility issues with "oldest" lightsim2grid versions
+  (now tested in basic settings)
+- [ADDED] a "compact" way to store the data in the Runner
+- [IMPROVED] the "`train_val_split`" functions, now more names (for the folders)
+  can be used
 
 [1.10.0] - 2024-03-06
 ----------------------

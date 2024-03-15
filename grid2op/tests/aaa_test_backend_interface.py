@@ -1593,9 +1593,10 @@ class AAATestBackendAPI(MakeBackend):
         
         """    
         self.skip_if_needed()
-        backend = self.aux_make_backend(n_busbar=3)
+        n_busbar = 3
+        backend = self.aux_make_backend(n_busbar=n_busbar)
         cls = type(backend)
-        if cls.n_busbar_per_sub != 3:
+        if cls.n_busbar_per_sub != n_busbar:
             self.skipTest("Your backend does not support more than 2 busbars.")
         
         res = backend.runpf(is_dc=False)
@@ -1604,11 +1605,11 @@ class AAATestBackendAPI(MakeBackend):
         
         # line or
         line_id = 0
-        busbar_id = 3
+        busbar_id = n_busbar
         backend.reset(self.get_path(), self.get_casefile())
-        action = type(backend)._complete_action_class()
+        action = cls._complete_action_class()
         action.update({"set_bus": {"lines_or_id": [(line_id, busbar_id)]}})
-        bk_act = type(backend).my_bk_act_class()
+        bk_act = cls.my_bk_act_class()
         bk_act += action
         backend.apply_action(bk_act)
         res = backend.runpf(is_dc=False)  
@@ -1620,11 +1621,11 @@ class AAATestBackendAPI(MakeBackend):
         
         # line ex
         line_id = 0
-        busbar_id = 3
+        busbar_id = n_busbar
         backend.reset(self.get_path(), self.get_casefile())
-        action = type(backend)._complete_action_class()
+        action = cls._complete_action_class()
         action.update({"set_bus": {"lines_ex_id": [(line_id, busbar_id)]}})
-        bk_act = type(backend).my_bk_act_class()
+        bk_act = cls.my_bk_act_class()
         bk_act += action
         backend.apply_action(bk_act)
         res = backend.runpf(is_dc=False)  
@@ -1636,7 +1637,7 @@ class AAATestBackendAPI(MakeBackend):
         
         # load
         backend.reset(self.get_path(), self.get_casefile())
-        busbar_id = 3
+        busbar_id = n_busbar
         nb_el = cls.n_load
         el_to_subid = cls.load_to_subid
         el_nm = "load"
@@ -1647,7 +1648,7 @@ class AAATestBackendAPI(MakeBackend):
         
         # generator
         backend.reset(self.get_path(), self.get_casefile())
-        busbar_id = 3
+        busbar_id = n_busbar
         nb_el = cls.n_gen
         el_to_subid = cls.gen_to_subid
         el_nm = "generator"
@@ -1659,7 +1660,7 @@ class AAATestBackendAPI(MakeBackend):
         # storage
         if cls.n_storage > 0:
             backend.reset(self.get_path(), self.get_casefile())
-            busbar_id = 3
+            busbar_id = n_busbar
             nb_el = cls.n_storage
             el_to_subid = cls.storage_to_subid
             el_nm = "storage"
