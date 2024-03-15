@@ -615,12 +615,32 @@ class Runner(object):
 
         self.__used = False
 
+    def _make_new_backend(self):
+        try:
+            res = self.backendClass(**self._backend_kwargs)
+        except TypeError:
+            # for backward compatibility, some backend might not
+            # handle full kwargs (that might be added later)
+            import inspect
+            possible_params = inspect.signature(self.backendClass.__init__).parameters
+            this_kwargs = {}
+            for el in self._backend_kwargs:
+                if el in possible_params:
+                    this_kwargs[el] = self._backend_kwargs[el]
+                else:
+                    warnings.warn("Runner: your backend does not support the kwargs "
+                                  f"`{el}={self._backend_kwargs[el]}`. This usually "
+                                  "means it is outdated. Please upgrade it.")
+            res = self.backendClass(**this_kwargs)
+        return res
+    
     def _new_env(self, chronics_handler, parameters) -> Tuple[BaseEnv, BaseAgent]:
         # the same chronics_handler is used for all the environments.
         # make sure to "reset" it properly
         # (this is handled elsewhere in case of "multi chronics")
         if not self.chronics_handler.chronicsClass.MULTI_CHRONICS:
             self.chronics_handler.next_chronics()  
+        backend = self._make_new_backend()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             res = self.envClass.init_obj_from_kwargs(
@@ -629,7 +649,7 @@ class Runner(object):
                 init_env_path=self.init_env_path,
                 init_grid_path=self.init_grid_path,
                 chronics_handler=chronics_handler,
-                backend=self.backendClass(**self._backend_kwargs),
+                backend=backend,
                 parameters=parameters,
                 name=self.name_env,
                 names_chronics_to_backend=self.names_chronics_to_backend,

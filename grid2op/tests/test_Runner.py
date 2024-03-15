@@ -11,6 +11,8 @@ import tempfile
 import json
 import unittest
 import pdb
+import packaging
+from packaging import version
 
 from grid2op.tests.helper_path_test import *
 
@@ -456,8 +458,15 @@ class TestRunner(HelperTests, unittest.TestCase):
                 )
             except Exception as exc_:
                 raise exc_
-
-            if g2op_version <= "1.4.0":
+            g2op_ver = ""
+            try:
+                g2op_ver = version.parse(g2op_version)
+            except packaging.version.InvalidVersion:
+                if g2op_version != "test_version":
+                    g2op_ver = version.parse("0.0.1")
+                else:
+                    g2op_ver = version.parse("1.4.1")
+            if g2op_ver <= version.parse("1.4.0"):
                 assert (
                     EpisodeData.get_grid2op_version(full_episode_path) == "<=1.4.0"
                 ), "wrong grid2op version stored (grid2op version <= 1.4.0)"
@@ -507,6 +516,8 @@ class TestRunner(HelperTests, unittest.TestCase):
             "1.9.5",
             "1.9.6",
             "1.9.7",
+            "1.9.8",
+            "1.10.0",
         ]
         curr_version = "test_version"
         assert (
