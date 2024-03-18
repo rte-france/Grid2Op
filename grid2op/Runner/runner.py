@@ -34,7 +34,7 @@ from grid2op.Runner.aux_fun import (
     _aux_one_process_parrallel,
 )
 from grid2op.Runner.basic_logger import DoNothingLog, ConsoleLog
-from grid2op.Episode import EpisodeData
+from grid2op.Episode import EpisodeData, CompactEpisodeData
 
 # on windows if i start using sequential, i need to continue using sequential
 # if i start using parallel i need to continue using parallel
@@ -281,9 +281,11 @@ class Runner(object):
         kwargs_attention_budget=None,
         has_attention_budget=False,
         logger=None,
+        use_compact_episode_data=False,
         kwargs_observation=None,
         observation_bk_class=None,
         observation_bk_kwargs=None,
+        
         # experimental: whether to read from local dir or generate the classes on the fly:
         _read_from_local_dir=False,
         _is_test=False,  # TODO not implemented !!
@@ -343,6 +345,10 @@ class Runner(object):
 
         voltagecontrolerClass: :class:`grid2op.VoltageControler.ControlVoltageFromFile`, optional
             The controler that will change the voltage setpoints of the generators.
+
+        use_compact_episode_data:  ``bool``, optional
+            Whether to use :class:`grid2op.Episode.CompactEpisodeData` instead of :class:`grid2op.Episode.EpisodeData` to store 
+            Episode to disk (allows it to be replayed later). Defaults to False.
 
         # TODO documentation on the opponent
         # TOOD doc for the attention budget
@@ -504,6 +510,8 @@ class Runner(object):
         else:
             self.logger = logger.getChild("grid2op_Runner")
 
+        self.use_compact_episode_data = use_compact_episode_data
+
         # store _parameters
         self.init_env_path = init_env_path
         self.init_grid_path = init_grid_path
@@ -607,12 +615,32 @@ class Runner(object):
 
         self.__used = False
 
+    def _make_new_backend(self):
+        try:
+            res = self.backendClass(**self._backend_kwargs)
+        except TypeError:
+            # for backward compatibility, some backend might not
+            # handle full kwargs (that might be added later)
+            import inspect
+            possible_params = inspect.signature(self.backendClass.__init__).parameters
+            this_kwargs = {}
+            for el in self._backend_kwargs:
+                if el in possible_params:
+                    this_kwargs[el] = self._backend_kwargs[el]
+                else:
+                    warnings.warn("Runner: your backend does not support the kwargs "
+                                  f"`{el}={self._backend_kwargs[el]}`. This usually "
+                                  "means it is outdated. Please upgrade it.")
+            res = self.backendClass(**this_kwargs)
+        return res
+    
     def _new_env(self, chronics_handler, parameters) -> Tuple[BaseEnv, BaseAgent]:
         # the same chronics_handler is used for all the environments.
         # make sure to "reset" it properly
         # (this is handled elsewhere in case of "multi chronics")
         if not self.chronics_handler.chronicsClass.MULTI_CHRONICS:
             self.chronics_handler.next_chronics()  
+        backend = self._make_new_backend()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             res = self.envClass.init_obj_from_kwargs(
@@ -621,7 +649,7 @@ class Runner(object):
                 init_env_path=self.init_env_path,
                 init_grid_path=self.init_grid_path,
                 chronics_handler=chronics_handler,
-                backend=self.backendClass(**self._backend_kwargs),
+                backend=backend,
                 parameters=parameters,
                 name=self.name_env,
                 names_chronics_to_backend=self.names_chronics_to_backend,
@@ -749,6 +777,7 @@ class Runner(object):
                 max_iter=max_iter,
                 agent_seed=agent_seed,
                 detailed_output=detailed_output,
+                use_compact_episode_data = self.use_compact_episode_data,
             )
             if max_iter is not None:
                 env.chronics_handler.set_max_iter(-1)
@@ -1048,6 +1077,7 @@ class Runner(object):
             "kwargs_attention_budget": self._kwargs_attention_budget,
             "has_attention_budget": self._has_attention_budget,
             "logger": self.logger,
+            "use_compact_episode_data": self.use_compact_episode_data,
             "kwargs_observation": self._kwargs_observation,
             "_read_from_local_dir": self._read_from_local_dir,
             "_is_test": self._is_test,

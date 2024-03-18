@@ -556,21 +556,22 @@ def make_from_dataset_path(
     default_chronics_kwargs = {
         "path": chronics_path_abs,
         "chronicsClass": chronics_class_cfg,
-        # "gridvalueClass": grid_value_class_cfg,
     }
 
+    dfkwargs_cfg = {}  # in the config
     if "data_feeding_kwargs" in config_data and config_data["data_feeding_kwargs"] is not None:
         dfkwargs_cfg = config_data["data_feeding_kwargs"]
         for el in dfkwargs_cfg:
             default_chronics_kwargs[el] = dfkwargs_cfg[el]
             
-    data_feeding_kwargs = _get_default_aux(
+    data_feeding_kwargs_user_prov = _get_default_aux(
         "data_feeding_kwargs",
         kwargs,
         defaultClassApp=dict,
         defaultinstance=default_chronics_kwargs,
         msg_error=ERR_MSG_KWARGS["data_feeding_kwargs"],
     )
+    data_feeding_kwargs = data_feeding_kwargs_user_prov.copy()
     for el in default_chronics_kwargs:
         if el not in data_feeding_kwargs:
             data_feeding_kwargs[el] = default_chronics_kwargs[el]
@@ -586,7 +587,9 @@ def make_from_dataset_path(
         isclass=True,
     )
     if (
-        (chronics_class_used != ChangeNothing) and (chronics_class_used != FromNPY) and (chronics_class_used != FromChronix2grid)
+        ((chronics_class_used != ChangeNothing) and 
+         (chronics_class_used != FromNPY) and 
+         (chronics_class_used != FromChronix2grid))
     ) and exc_chronics is not None:
         raise EnvError(
             f"Impossible to find the chronics for your environment. Please make sure to provide "
@@ -599,7 +602,25 @@ def make_from_dataset_path(
         # parameters is not given in the "make" function but present in the config file
         if "gridvalueClass" not in data_feeding_kwargs:
             data_feeding_kwargs["gridvalueClass"] = grid_value_class_cfg
-    
+        
+        
+        # code bellow is added to fix
+        # https://github.com/rte-france/Grid2Op/issues/593
+        import inspect
+        possible_params = inspect.signature(data_feeding_kwargs["gridvalueClass"].__init__).parameters
+        data_feeding_kwargs_res = data_feeding_kwargs.copy()
+        for el in data_feeding_kwargs:
+            if el == "gridvalueClass":
+                continue
+            if el == "chronicsClass":
+                continue
+            if el not in possible_params:
+                # if it's in the config but is not supported by the 
+                # user, then we ignore it
+                # see https://github.com/rte-france/Grid2Op/issues/593
+                if el in dfkwargs_cfg and not el in data_feeding_kwargs_user_prov:
+                    del data_feeding_kwargs_res[el]
+        data_feeding_kwargs = data_feeding_kwargs_res
     # now build the chronics handler
     data_feeding = _get_default_aux(
         "data_feeding",

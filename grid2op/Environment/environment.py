@@ -73,7 +73,7 @@ class Environment(BaseEnv):
 
     """
 
-    REGEX_SPLIT = r"^[a-zA-Z0-9]*$"
+    REGEX_SPLIT = r"^[a-zA-Z0-9_\\.]*$"
 
     def __init__(
         self,
@@ -1362,21 +1362,22 @@ class Environment(BaseEnv):
 
         """
         # define all the locations
-        if re.match(self.REGEX_SPLIT, add_for_train) is None:
+        cls = type(self)
+        if re.match(cls.REGEX_SPLIT, add_for_train) is None:
             raise EnvError(
                 f"The suffixes you can use for training data (add_for_train) "
-                f'should match the regex "{self.REGEX_SPLIT}"'
+                f'should match the regex "{cls.REGEX_SPLIT}"'
             )
-        if re.match(self.REGEX_SPLIT, add_for_val) is None:
+        if re.match(cls.REGEX_SPLIT, add_for_val) is None:
             raise EnvError(
                 f"The suffixes you can use for validation data (add_for_val)"
-                f'should match the regex "{self.REGEX_SPLIT}"'
+                f'should match the regex "{cls.REGEX_SPLIT}"'
             )
         if add_for_test is not None:
-            if re.match(self.REGEX_SPLIT, add_for_test) is None:
+            if re.match(cls.REGEX_SPLIT, add_for_test) is None:
                 raise EnvError(
                     f"The suffixes you can use for test data (add_for_test)"
-                    f'should match the regex "{self.REGEX_SPLIT}"'
+                    f'should match the regex "{cls.REGEX_SPLIT}"'
                 )
 
         if add_for_test is None and test_scen_id is not None:
