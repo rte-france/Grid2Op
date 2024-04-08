@@ -855,7 +855,6 @@ class BaseTestTopoAction(MakeBackend):
             assert (
                 np.max(np.abs(p_bus.flatten())) <= self.tolvect
             ), "problem with active values, at a bus"
-
         if self.backend.shunts_data_available:
             assert (
                 np.max(np.abs(q_subs)) <= self.tolvect

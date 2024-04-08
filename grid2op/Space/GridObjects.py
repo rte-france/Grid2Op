@@ -21,7 +21,7 @@ import warnings
 import copy
 import numpy as np
 from packaging import version
-from typing import Dict, Union, Literal
+from typing import Dict, Union, Literal, Any
     
 import grid2op
 from grid2op.dtypes import dt_int, dt_float, dt_bool
@@ -630,11 +630,11 @@ class GridObjects:
         pass
 
     @classmethod
-    def set_n_busbar_per_sub(cls, n_busbar_per_sub):
+    def set_n_busbar_per_sub(cls, n_busbar_per_sub: int) -> None:
         cls.n_busbar_per_sub = n_busbar_per_sub
         
     @classmethod
-    def tell_dim_alarm(cls, dim_alarms):
+    def tell_dim_alarm(cls, dim_alarms: int) -> None:
         if cls.dim_alarms != 0:
             # number of alarms has already been set, i issue a warning
             warnings.warn(
@@ -649,7 +649,7 @@ class GridObjects:
             cls.assistant_warning_type = "zonal"
 
     @classmethod
-    def tell_dim_alert(cls, dim_alerts):
+    def tell_dim_alert(cls, dim_alerts: int) -> None:
         if cls.dim_alerts != 0:
             # number of alerts has already been set, i issue a warning
             warnings.warn(
@@ -664,7 +664,7 @@ class GridObjects:
             cls.assistant_warning_type = "by_line"
 
     @classmethod
-    def _clear_class_attribute(cls):
+    def _clear_class_attribute(cls) -> None:
         cls.shunts_data_available = False
         cls.n_busbar_per_sub = DEFAULT_N_BUSBAR_PER_SUB
         
@@ -702,7 +702,7 @@ class GridObjects:
         cls._clear_grid_dependant_class_attributes()
         
     @classmethod
-    def _clear_grid_dependant_class_attributes(cls):
+    def _clear_grid_dependant_class_attributes(cls) -> None:
         cls.glop_version = grid2op.__version__
         cls._PATH_ENV = None
 
@@ -816,7 +816,7 @@ class GridObjects:
         cls.alertable_line_ids = []
         
     @classmethod
-    def _update_value_set(cls):
+    def _update_value_set(cls) -> None:
         """
         INTERNAL
 
@@ -826,7 +826,7 @@ class GridObjects:
         """
         cls.attr_list_set = set(cls.attr_list_vect)
 
-    def _raise_error_attr_list_none(self):
+    def _raise_error_attr_list_none(self) -> None:
         """
         INTERNAL
 
@@ -846,7 +846,7 @@ class GridObjects:
                 "nor to know its size, shape or dtype.".format(type(self))
             )
 
-    def _get_array_from_attr_name(self, attr_name):
+    def _get_array_from_attr_name(self, attr_name: str) -> Union[np.ndarray, int, str]:
         """
         INTERNAL
 
@@ -871,7 +871,7 @@ class GridObjects:
         """
         return np.array(getattr(self, attr_name)).flatten()
 
-    def to_vect(self):
+    def to_vect(self) -> np.ndarray:
         """
         Convert this instance of GridObjects to a numpy ndarray.
         The size of the array is always the same and is determined by the :func:`GridObject.size` method.
@@ -916,7 +916,7 @@ class GridObjects:
                 self._vectorized = np.array([], dtype=dt_float)
         return self._vectorized
 
-    def to_json(self, convert=True):
+    def to_json(self, convert : bool=True) -> Dict[str, Any]:
         """
         Convert this instance of GridObjects to a dictionary that can be json serialized.
         
@@ -951,7 +951,7 @@ class GridObjects:
             cls._convert_to_json(res)
         return res
 
-    def from_json(self, dict_):
+    def from_json(self, dict_: Dict[str, Any]) -> None:
         """
         This transform an gridobject (typically an action or an observation) serialized in json format
         to the corresponding grid2op action / observation (subclass of grid2op.Action.BaseAction
@@ -981,7 +981,7 @@ class GridObjects:
                 setattr(self, key, type_(array_[0]))
 
     @classmethod
-    def _convert_to_json(cls, dict_):
+    def _convert_to_json(cls, dict_: Dict[str, Any]) -> None:
         for attr_nm in cls.attr_list_vect + cls.attr_list_json:
             tmp = dict_[attr_nm]
             dtype = tmp.dtype
@@ -998,7 +998,7 @@ class GridObjects:
             elif dtype == bool:
                 dict_[attr_nm] = [bool(el) for el in tmp]
 
-    def shapes(self):
+    def shapes(self) -> np.ndarray:
         """
         The shapes of all the components of the action, mainly used for gym compatibility is the shape of all
         part of the action.
@@ -1044,7 +1044,7 @@ class GridObjects:
         ).astype(dt_int)
         return res
 
-    def dtypes(self):
+    def dtypes(self) -> np.ndarray:
         """
         The types of the components of the GridObjects, mainly used for gym compatibility is the shape of all part
         of the action.
@@ -1164,6 +1164,7 @@ class GridObjects:
             act_cpy = env.action_space.from_vect(act_as_vect)
 
         """
+        cls = type(self)
         if vect.shape[0] != self.size():
             raise IncorrectNumberOfElements(
                 "Incorrect number of elements found while load a GridObjects "
@@ -1182,7 +1183,7 @@ class GridObjects:
 
         self._raise_error_attr_list_none()
         prev_ = 0
-        for attr_nm, sh, dt in zip(type(self).attr_list_vect, self.shapes(), self.dtypes()):
+        for attr_nm, sh, dt in zip(cls.attr_list_vect, self.shapes(), self.dtypes()):
             tmp = vect[prev_ : (prev_ + sh)]
 
             # TODO a flag that says "default Nan" for example for when attributes are initialized with
@@ -1190,10 +1191,20 @@ class GridObjects:
             # if np.any(~np.isfinite(tmp)) and default_nan:
             #     raise NonFiniteElement("None finite number in from_vect detected")
 
-            if attr_nm not in type(self).attr_nan_list_set and (
+            if attr_nm not in cls.attr_nan_list_set and (
                 (~np.isfinite(tmp)).any()
             ):
-                raise NonFiniteElement("None finite number in from_vect detected")
+                attrs_debug = []
+                prev_debug = 0
+                for attr_nm_debug, sh_debug, dt_debug in zip(cls.attr_list_vect, self.shapes(), self.dtypes()):
+                    tmp = vect[prev_debug : (prev_debug + sh_debug)]
+                    if attr_nm not in cls.attr_nan_list_set and (
+                        (~np.isfinite(tmp)).any()):
+                        attrs_debug.append(attr_nm_debug)
+                    prev_debug += sh_debug
+                raise NonFiniteElement(f"None finite number in from_vect "
+                                       f"detected for corresponding to attributes "
+                                       f"{attrs_debug}")
 
             try:
                 tmp = tmp.astype(dt)

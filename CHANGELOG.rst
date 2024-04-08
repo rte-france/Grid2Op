@@ -35,6 +35,15 @@ Change Log
 -------------------------
 - [ADDED] it is now possible to call `change_reward` directly from 
   an observation (no need to do it from the Observation Space)
+- [ADDED] method to change the reward from the observation (observation_space
+  is not needed anymore): you can use `obs.change_reward`
+- [FIXED] a small issue that could lead to having 
+  "redispatching_unit_commitment_availble" flag set even if the redispatching
+  data was not loded correctly
+- [IMPROVED] documentation about `obs.simulate` to make it clearer the 
+  difference between env.step and obs.simulate on some cases
+- [IMPROVED] type hints on some methods of `GridObjects`
+
 
 [1.10.1] - 2024-03-xx
 ----------------------
