@@ -43,7 +43,8 @@ Change Log
 - [IMPROVED] documentation about `obs.simulate` to make it clearer the 
   difference between env.step and obs.simulate on some cases
 - [IMPROVED] type hints on some methods of `GridObjects`
-
+- [IMPROVED] replace `np.nonzero(arr)` calls with `arr.nonzero()` which could
+  save up a bit of computation time.
 
 [1.10.1] - 2024-03-xx
 ----------------------

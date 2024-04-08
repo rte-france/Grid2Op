@@ -288,8 +288,8 @@ class GridValue(RandomObject, ABC):
         a = np.diff(maintenance)
         # +1 is because numpy does the diff `t+1` - `t` so to get index of the initial array
         # I need to "+1"
-        start = np.nonzero(a == 1)[0] + 1  # start of maintenance
-        end = np.nonzero(a == -1)[0] + 1  # end of maintenance
+        start = (a == 1).nonzero()[0] + 1  # start of maintenance
+        end = (a == -1).nonzero()[0] + 1  # end of maintenance
         prev_ = 0
         # it's efficient here as i do a loop only on the number of time there is a maintenance
         # and maintenance are quite rare
@@ -362,8 +362,8 @@ class GridValue(RandomObject, ABC):
         a = np.diff(maintenance)
         # +1 is because numpy does the diff `t+1` - `t` so to get index of the initial array
         # I need to "+1"
-        start = np.nonzero(a == 1)[0] + 1  # start of maintenance
-        end = np.nonzero(a == -1)[0] + 1  # end of maintenance
+        start = (a == 1).nonzero()[0] + 1  # start of maintenance
+        end = (a == -1).nonzero()[0] + 1  # end of maintenance
         prev_ = 0
         # it's efficient here as i do a loop only on the number of time there is a maintenance
         # and maintenance are quite rare
@@ -440,8 +440,8 @@ class GridValue(RandomObject, ABC):
         a = np.diff(hazard)
         # +1 is because numpy does the diff `t+1` - `t` so to get index of the initial array
         # I need to "+1"
-        start = np.nonzero(a == 1)[0] + 1  # start of maintenance
-        end = np.nonzero(a == -1)[0] + 1  # end of maintenance
+        start = (a == 1).nonzero()[0] + 1  # start of maintenance
+        end = (a == -1).nonzero()[0] + 1  # end of maintenance
         prev_ = 0
         # it's efficient here as i do a loop only on the number of time there is a maintenance
         # and maintenance are quite rare

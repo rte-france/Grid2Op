@@ -38,7 +38,7 @@ class PreventReconnection(BaseRules):
         if (env._times_before_line_status_actionable[aff_lines] > 0).any():
             # i tried to act on a powerline too shortly after a previous action
             # or shut down due to an overflow or opponent or hazards or maintenance
-            ids = np.nonzero((env._times_before_line_status_actionable > 0) & aff_lines)[
+            ids = ((env._times_before_line_status_actionable > 0) & aff_lines).nonzero()[
                 0
             ]
             return False, IllegalAction(
@@ -49,7 +49,7 @@ class PreventReconnection(BaseRules):
 
         if (env._times_before_topology_actionable[aff_subs] > 0).any():
             # I tried to act on a topology too shortly after a previous action
-            ids = np.nonzero((env._times_before_topology_actionable > 0) & aff_subs)[0]
+            ids = ((env._times_before_topology_actionable > 0) & aff_subs).nonzero()[0]
             return False, IllegalAction(
                 "Substation with ids {} have been modified illegally (cooldown of {})".format(
                     ids, env._times_before_topology_actionable[ids]

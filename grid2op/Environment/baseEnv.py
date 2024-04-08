@@ -1021,7 +1021,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             alertable_line_names = copy.deepcopy(lines_attacked)
             alertable_line_ids = np.empty(len(alertable_line_names), dtype=dt_int)
             for i, el in enumerate(alertable_line_names): 
-                indx = np.nonzero(self.backend.name_line == el)[0]
+                indx = (self.backend.name_line == el).nonzero()[0]
                 if not len(indx):
                     raise Grid2OpException(f"Attacked line {el} is not found in the grid.")
                 alertable_line_ids[i] = indx[0]
@@ -1750,7 +1750,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                         f"names. We found: {key} which is not a line name. The names of the "
                         f"powerlines are {self.name_line}"
                     )
-                ind_line = np.nonzero(self.name_line == key)[0][0]
+                ind_line = (self.name_line == key).nonzero()[0][0]
                 if np.isfinite(tmp[ind_line]):
                     raise Grid2OpException(
                         f"Humm, there is a really strange bug, some lines are set twice."
@@ -1860,7 +1860,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 "invalid because, even if the sepoint is pmin, this dispatch would set it "
                 "to a number higher than pmax, which is impossible]. Invalid dispatch for "
                 "generator(s): "
-                "{}".format(np.nonzero(cond_invalid)[0])
+                "{}".format((cond_invalid).nonzero()[0])
             )
             self._target_dispatch -= redisp_act_orig
             return valid, except_, info_
@@ -1872,7 +1872,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 "invalid because, even if the sepoint is pmax, this dispatch would set it "
                 "to a number bellow pmin, which is impossible]. Invalid dispatch for "
                 "generator(s): "
-                "{}".format(np.nonzero(cond_invalid)[0])
+                "{}".format((cond_invalid).nonzero()[0])
             )
             self._target_dispatch -= redisp_act_orig
             return valid, except_, info_
@@ -1892,11 +1892,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             if (redisp_act_orig_cut != redisp_act_orig).any():
                 info_.append(
                     {
-                        "INFO: redispatching cut because generator will be turned_off": np.nonzero(
+                        "INFO: redispatching cut because generator will be turned_off": (
                             redisp_act_orig_cut != redisp_act_orig
-                        )[
-                            0
-                        ]
+                        ).nonzero()[0]
                     }
                 )
         return valid, except_, info_
@@ -2352,8 +2350,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 self._gen_downtime[gen_connected_this_timestep]
                 < self.gen_min_downtime[gen_connected_this_timestep]
             )
-            id_gen = np.nonzero(id_gen)[0]
-            id_gen = np.nonzero(gen_connected_this_timestep[id_gen])[0]
+            id_gen = (id_gen).nonzero()[0]
+            id_gen = (gen_connected_this_timestep[id_gen]).nonzero()[0]
             except_ = GeneratorTurnedOnTooSoon(
                 "Some generator has been connected too early ({})".format(id_gen)
             )
@@ -2374,8 +2372,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 self._gen_uptime[gen_disconnected_this]
                 < self.gen_min_uptime[gen_disconnected_this]
             )
-            id_gen = np.nonzero(id_gen)[0]
-            id_gen = np.nonzero(gen_connected_this_timestep[id_gen])[0]
+            id_gen = (id_gen).nonzero()[0]
+            id_gen = (gen_connected_this_timestep[id_gen]).nonzero()[0]
             except_ = GeneratorTurnedOffTooSoon(
                 "Some generator has been disconnected too early ({})".format(id_gen)
             )

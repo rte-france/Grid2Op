@@ -3778,7 +3778,7 @@ class BaseObservation(GridObjects):
             & (res.topo_vect[cls.line_ex_pos_topo_vect] == -1)
         )
         if tmp.any():
-            id_issue_ex = np.nonzero(tmp)[0]
+            id_issue_ex = tmp.nonzero()[0]
             if issue_warn:
                 warnings.warn(error_no_bus_set.format(id_issue_ex))
             if "set_bus" in cls_act.authorized_keys:
@@ -3790,7 +3790,7 @@ class BaseObservation(GridObjects):
             & (res.topo_vect[cls.line_or_pos_topo_vect] == -1)
         )
         if tmp.any():
-            id_issue_or = np.nonzero(tmp)[0]
+            id_issue_or = tmp.nonzero()[0]
             if issue_warn:
                 warnings.warn(error_no_bus_set.format(id_issue_or))
             if "set_bus" in cls_act.authorized_keys:

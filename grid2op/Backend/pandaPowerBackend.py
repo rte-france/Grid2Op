@@ -437,7 +437,7 @@ class PandaPowerBackend(Backend):
                         # TODO here i force the distributed slack bus too, by removing the other from the ext_grid...
                         self._grid.ext_grid = self._grid.ext_grid.iloc[:1]
         else:
-            self.slack_id = np.nonzero(self._grid.gen["slack"])[0]
+            self.slack_id = (self._grid.gen["slack"]).nonzero()[0]
 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -565,9 +565,9 @@ class PandaPowerBackend(Backend):
         self._init_private_attrs()
         
         # do this at the end
-        self._in_service_line_col_id = int(np.nonzero(self._grid.line.columns == "in_service")[0][0])
-        self._in_service_trafo_col_id = int(np.nonzero(self._grid.trafo.columns == "in_service")[0][0])
-        self._in_service_storage_cold_id = int(np.nonzero(self._grid.storage.columns == "in_service")[0][0])
+        self._in_service_line_col_id = int((self._grid.line.columns == "in_service").nonzero()[0][0])
+        self._in_service_trafo_col_id = int((self._grid.trafo.columns == "in_service").nonzero()[0][0])
+        self._in_service_storage_cold_id = int((self._grid.storage.columns == "in_service").nonzero()[0][0])
 
     def _init_private_attrs(self) -> None:
         #  number of elements per substation
@@ -1016,14 +1016,14 @@ class PandaPowerBackend(Backend):
                 raise pp.powerflow.LoadflowNotConverged("Disconnected load: for now grid2op cannot handle properly"
                                                         " disconnected load. If you want to disconnect one, say it"
                                                         " consumes 0. instead. Please check loads: "
-                                                        f"{np.nonzero(~self._grid.load['in_service'])[0]}"
+                                                        f"{(~self._grid.load['in_service']).nonzero()[0]}"
                                                         )
             if (~self._grid.gen["in_service"]).any():
                 # TODO see if there is a better way here -> do not handle this here, but rather in Backend._next_grid_state
                 raise pp.powerflow.LoadflowNotConverged("Disconnected gen: for now grid2op cannot handle properly"
                                                         " disconnected generators. If you want to disconnect one, say it"
                                                         " produces 0. instead. Please check generators: "
-                                                        f"{np.nonzero(~self._grid.gen['in_service'])[0]}"
+                                                        f"{(~self._grid.gen['in_service']).nonzero()[0]}"
                                                         )
             try:
                 if is_dc:
@@ -1105,9 +1105,9 @@ class PandaPowerBackend(Backend):
                 # see https://github.com/e2nIEE/pandapower/issues/1996 for a fix
                 for l_id in range(cls.n_load):
                     if cls.load_to_subid[l_id] in cls.gen_to_subid:
-                        ind_gens = np.nonzero(
+                        ind_gens = (
                             cls.gen_to_subid == cls.load_to_subid[l_id]
-                        )[0]
+                        ).nonzero()[0]
                         for g_id in ind_gens:
                             if (
                                 self._topo_vect[cls.load_pos_topo_vect[l_id]]
