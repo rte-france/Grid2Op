@@ -31,6 +31,11 @@ Change Log
 - [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
 
+[1.10.2] - 2024-xx-yy
+-------------------------
+- [ADDED] it is now possible to call `change_reward` directly from 
+  an observation (no need to do it from the Observation Space)
+
 [1.10.1] - 2024-03-xx
 ----------------------
 - [FIXED] issue https://github.com/rte-france/Grid2Op/issues/593
