@@ -40,11 +40,15 @@ Change Log
 - [FIXED] a small issue that could lead to having 
   "redispatching_unit_commitment_availble" flag set even if the redispatching
   data was not loded correctly
+- [FIXED] EducPandaPowerBackend now properly sends numpy array in the class attributes
+  (instead of pandas series)
 - [IMPROVED] documentation about `obs.simulate` to make it clearer the 
   difference between env.step and obs.simulate on some cases
 - [IMPROVED] type hints on some methods of `GridObjects`
 - [IMPROVED] replace `np.nonzero(arr)` calls with `arr.nonzero()` which could
   save up a bit of computation time.
+- [IMPROVED] force class attributes to be numpy arrays of proper types when the 
+  classes are initialized from the backend.
 
 [1.10.1] - 2024-03-xx
 ----------------------

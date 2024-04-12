@@ -1016,14 +1016,14 @@ class PandaPowerBackend(Backend):
                 raise pp.powerflow.LoadflowNotConverged("Disconnected load: for now grid2op cannot handle properly"
                                                         " disconnected load. If you want to disconnect one, say it"
                                                         " consumes 0. instead. Please check loads: "
-                                                        f"{(~self._grid.load['in_service']).nonzero()[0]}"
+                                                        f"{(~self._grid.load['in_service'].values).nonzero()[0]}"
                                                         )
             if (~self._grid.gen["in_service"]).any():
                 # TODO see if there is a better way here -> do not handle this here, but rather in Backend._next_grid_state
                 raise pp.powerflow.LoadflowNotConverged("Disconnected gen: for now grid2op cannot handle properly"
                                                         " disconnected generators. If you want to disconnect one, say it"
                                                         " produces 0. instead. Please check generators: "
-                                                        f"{(~self._grid.gen['in_service']).nonzero()[0]}"
+                                                        f"{(~self._grid.gen['in_service'].values).nonzero()[0]}"
                                                         )
             try:
                 if is_dc:

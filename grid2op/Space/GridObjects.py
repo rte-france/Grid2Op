@@ -1367,6 +1367,7 @@ class GridObjects:
         ).astype(dt_int)
 
         cls._topo_vect_to_sub = np.repeat(np.arange(cls.n_sub), repeats=cls.sub_info)
+        cls._check_convert_to_np_array(raise_if_none=False)  # there can still be "None" attribute at this stage
         cls.grid_objects_types = np.full(
             shape=(cls.dim_topo, 6), fill_value=-1, dtype=dt_int
         )
@@ -1841,6 +1842,80 @@ class GridObjects:
                 cls.sub_info[s_id] += 1
 
     @classmethod
+    def _assign_attr(cls, attrs_list, tp, tp_nm, raise_if_none=False):
+        for el in attrs_list:
+            arr = getattr(cls, el)
+            if arr is None:
+                if raise_if_none:
+                    raise Grid2OpException(f"class attribute {el} is None, but should not be.")
+                continue
+            try:
+                arr2 = np.array(arr).astype(tp)
+            except ValueError as exc_:
+                raise Grid2OpException(f"Impossible to convert attribute name {el} to {tp_nm}.") from exc_
+            if (arr != arr2).any():
+                mask = arr != arr2
+                raise Grid2OpException(f"Impossible to safely convert attribute name {el} to {tp_nm}: {arr[mask]} vs {arr2[mask]}.")
+            setattr(cls, el, arr2)
+        
+    @classmethod
+    def _check_convert_to_np_array(cls, raise_if_none=True):
+        # convert int to array of ints
+        attrs_int = ["load_pos_topo_vect",
+                     "load_to_subid",
+                     "load_to_sub_pos",
+                     "gen_pos_topo_vect",
+                     "gen_to_subid",
+                     "gen_to_sub_pos",
+                     "storage_pos_topo_vect",
+                     "storage_to_subid",
+                     "storage_to_sub_pos",
+                     "line_or_pos_topo_vect",
+                     "line_or_to_subid",
+                     "line_or_to_sub_pos",
+                     "line_ex_pos_topo_vect",
+                     "line_ex_to_subid",
+                     "line_ex_to_sub_pos",
+                     ]
+        if cls.redispatching_unit_commitment_availble:
+            attrs_int.append("gen_min_uptime")
+            attrs_int.append("gen_min_downtime")
+        cls._assign_attr(attrs_int, dt_int, "int", raise_if_none)
+        
+        # convert str to array of str
+        attrs_str = ["name_load",
+                     "name_gen",
+                     "name_line", 
+                     "name_sub", 
+                     "name_storage",
+                     "storage_type",
+        ]
+        if cls.redispatching_unit_commitment_availble:
+            attrs_str.append("gen_type")
+        cls._assign_attr(attrs_str, str, "str", raise_if_none)
+        
+        # convert float to array of float
+        attrs_float = ["storage_Emax",
+                       "storage_Emin",
+                       "storage_max_p_prod",
+                       "storage_max_p_absorb",
+                       "storage_marginal_cost",
+                       "storage_loss",
+                       "storage_charging_efficiency",
+                       "storage_discharging_efficiency",
+                       ]
+        if cls.redispatching_unit_commitment_availble:
+            attrs_float += ["gen_pmin",
+                            "gen_pmax",
+                            "gen_redispatchable",
+                            "gen_max_ramp_up",
+                            "gen_max_ramp_down",
+                            "gen_cost_per_MW",
+                            "gen_startup_cost",
+                            "gen_shutdown_cost"]
+        cls._assign_attr(attrs_float, dt_float, "float", raise_if_none)
+    
+    @classmethod
     def assert_grid_correct_cls(cls):
         """
         INTERNAL
@@ -1916,7 +1991,9 @@ class GridObjects:
                     f"self.sub_info should be convertible to a numpy array. "
                     f'It fails with error "{exc_}"'
                 )
-
+        # check everything can be converted to numpy array of right types
+        cls._check_convert_to_np_array()
+        
         # to which subtation they are connected
         cls._check_sub_id()
 
@@ -2776,7 +2853,7 @@ class GridObjects:
         res_cls._compute_pos_big_topo_cls()
         res_cls.process_shunt_satic_data()
         res_cls.process_grid2op_compat()
-
+        res_cls._check_convert_to_np_array()  # convert everything to numpy array
         if force_module is not None:
             res_cls.__module__ = force_module  # hack because otherwise it says "abc" which is not the case
             # best would be to have a look at https://docs.python.org/3/library/types.html
@@ -3739,7 +3816,7 @@ class GridObjects:
             The representation of the object as a dictionary that can be json serializable.
         """
         res = {}
-        GridObjects._make_cls_dict(cls, res)
+        cls._make_cls_dict(cls, res)
         return res
 
     @staticmethod

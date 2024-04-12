@@ -178,21 +178,21 @@ class EducPandaPowerBackend(Backend):
 
         # initialize the number of elements per substation
         # now export to grid2op the substation to which objects are connected
-        self.load_to_subid = copy.deepcopy(self._grid.load["bus"])
-        self.gen_to_subid = copy.deepcopy(self._grid.gen["bus"])
+        self.load_to_subid = copy.deepcopy(self._grid.load["bus"].values)
+        self.gen_to_subid = copy.deepcopy(self._grid.gen["bus"].values)
         # here we just decide (but that is a convention we could have done it differently)
         # that "origin side" (grid2op) corresponds to "from_bus" from pandapower line and "hv_bus" for
         # pandapower trafo.
         self.line_or_to_subid = np.concatenate(
             (
-                copy.deepcopy(self._grid.line["from_bus"]),
-                copy.deepcopy(self._grid.trafo["hv_bus"]),
+                copy.deepcopy(self._grid.line["from_bus"].values),
+                copy.deepcopy(self._grid.trafo["hv_bus"].values),
             )
         )
         self.line_ex_to_subid = np.concatenate(
             (
-                copy.deepcopy(self._grid.line["to_bus"]),
-                copy.deepcopy(self._grid.trafo["lv_bus"]),
+                copy.deepcopy(self._grid.line["to_bus"].values),
+                copy.deepcopy(self._grid.trafo["lv_bus"].values),
             )
         )
 
