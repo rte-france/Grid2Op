@@ -1907,7 +1907,6 @@ class GridObjects:
         if cls.redispatching_unit_commitment_availble:
             attrs_float += ["gen_pmin",
                             "gen_pmax",
-                            "gen_redispatchable",
                             "gen_max_ramp_up",
                             "gen_max_ramp_down",
                             "gen_cost_per_MW",
