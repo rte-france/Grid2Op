@@ -437,7 +437,7 @@ class PandaPowerBackend(Backend):
                         # TODO here i force the distributed slack bus too, by removing the other from the ext_grid...
                         self._grid.ext_grid = self._grid.ext_grid.iloc[:1]
         else:
-            self.slack_id = (self._grid.gen["slack"]).nonzero()[0]
+            self.slack_id = (self._grid.gen["slack"].values).nonzero()[0]
 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
