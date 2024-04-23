@@ -202,16 +202,16 @@ jobs:
             - run: python -m pip install virtualenv
             - run: python -m virtualenv venv_test
             - run:
-               command: |
+               command: |  # issue with previous packages versions so I fix some versions
                    export _GRID2OP_FORCE_TEST=1
                    source venv_test/bin/activate
                    python -m pip install -U pip setuptools wheel "numpy>=1.20,<1.21" "pandas<2.2" "scipy==1.10.1" numba
                    python -m pip install "chronix2grid>=1.1.0.post1" "gymnasium==0.26.3" "matplotlib==3.7.5" "xarray==2023.10.0" "scs==3.0.0" "ecos==2.0.0"
                    python -m pip uninstall -y grid2op
             - run:
-               command: |  # issue with previous more simple install, so I fix some versions
+               command: |  
                    source venv_test/bin/activate
-                   python -m pip install -U .[test]
+                   python -m pip install -U "numpy>=1.20,<1.21" "pandas<2.2" "scipy==1.10.1" numba .[test]
                    pip freeze
             - run:
                 command: |
