@@ -42,6 +42,9 @@ Change Log
   data was not loded correctly
 - [FIXED] EducPandaPowerBackend now properly sends numpy array in the class attributes
   (instead of pandas series)
+- [FIXED] an issue when loading back data (with EpisodeData): when there were no storage units
+  on the grid it did not set properly the "storage relevant" class attributes
+- [FIXED] notebook 5 on loading back data.
 - [IMPROVED] documentation about `obs.simulate` to make it clearer the 
   difference between env.step and obs.simulate on some cases
 - [IMPROVED] type hints on some methods of `GridObjects`

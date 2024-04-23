@@ -3994,32 +3994,33 @@ class GridObjects:
                 dict_, "storage_pos_topo_vect", lambda x: np.array(x).astype(dt_int)
             )
             cls.n_storage = len(cls.name_storage)
+            
             # storage static data
-            extract_from_dict(dict_, "storage_type", lambda x: np.array(x).astype(str))
-            extract_from_dict(
+            cls.storage_type = extract_from_dict(dict_, "storage_type", lambda x: np.array(x).astype(str))
+            cls.storage_Emax = extract_from_dict(
                 dict_, "storage_Emax", lambda x: np.array(x).astype(dt_float)
             )
-            extract_from_dict(
+            cls.storage_Emin = extract_from_dict(
                 dict_, "storage_Emin", lambda x: np.array(x).astype(dt_float)
             )
-            extract_from_dict(
+            cls.storage_max_p_prod = extract_from_dict(
                 dict_, "storage_max_p_prod", lambda x: np.array(x).astype(dt_float)
             )
-            extract_from_dict(
+            cls.storage_max_p_absorb = extract_from_dict(
                 dict_, "storage_max_p_absorb", lambda x: np.array(x).astype(dt_float)
             )
-            extract_from_dict(
+            cls.storage_marginal_cost = extract_from_dict(
                 dict_, "storage_marginal_cost", lambda x: np.array(x).astype(dt_float)
             )
-            extract_from_dict(
+            cls.storage_loss = extract_from_dict(
                 dict_, "storage_loss", lambda x: np.array(x).astype(dt_float)
             )
-            extract_from_dict(
+            cls.storage_charging_efficiency = extract_from_dict(
                 dict_,
                 "storage_charging_efficiency",
                 lambda x: np.array(x).astype(dt_float),
             )
-            extract_from_dict(
+            cls.storage_discharging_efficiency = extract_from_dict(
                 dict_,
                 "storage_discharging_efficiency",
                 lambda x: np.array(x).astype(dt_float),
@@ -4068,7 +4069,7 @@ class GridObjects:
         # retrieve the redundant information that are not stored (for efficiency)
         obj_ = cls()
         obj_._compute_pos_big_topo_cls()
-        cls = cls.init_grid(obj_, force=True)
+        cls = cls.init_grid(obj_)  # , force=True
         return cls()
 
     @classmethod
