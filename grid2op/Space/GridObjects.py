@@ -475,7 +475,7 @@ class GridObjects:
 
     BEFORE_COMPAT_VERSION = "neurips_2020_compat"
     glop_version = grid2op.__version__
-    _PATH_ENV = None  # especially do not modify that
+    _PATH_GRID_CLASSES = None  # especially do not modify that
 
     SUB_COL = 0
     LOA_COL = 1
@@ -704,7 +704,7 @@ class GridObjects:
     @classmethod
     def _clear_grid_dependant_class_attributes(cls) -> None:
         cls.glop_version = grid2op.__version__
-        cls._PATH_ENV = None
+        cls._PATH_GRID_CLASSES = None
 
         cls.SUB_COL = 0
         cls.LOA_COL = 1
@@ -2811,10 +2811,10 @@ class GridObjects:
         if gridobj.glop_version != grid2op.__version__:
             name_res += f"_{gridobj.glop_version}"
 
-        if gridobj._PATH_ENV is not None:
+        if gridobj._PATH_GRID_CLASSES is not None:
             # the configuration equires to initialize the classes from the local environment path
             # this might be usefull when using pickle module or multiprocessing on Windows for example
-            my_class = GridObjects._build_cls_from_import(name_res, gridobj._PATH_ENV)
+            my_class = GridObjects._build_cls_from_import(name_res, gridobj._PATH_GRID_CLASSES)
             if my_class is not None:
                 return my_class
         
@@ -3463,7 +3463,7 @@ class GridObjects:
     def _make_cls_dict(cls, res, as_list=True, copy_=True):
         """NB: `cls` can be here a class or an object of a class..."""
         save_to_dict(res, cls, "glop_version", str, copy_)
-        res["_PATH_ENV"] = cls._PATH_ENV  # i do that manually for more control
+        res["_PATH_GRID_CLASSES"] = cls._PATH_GRID_CLASSES  # i do that manually for more control
         save_to_dict(res, cls, "n_busbar_per_sub", str, copy_)
         
         save_to_dict(
@@ -3852,10 +3852,13 @@ class GridObjects:
         else:
             cls.glop_version = cls.BEFORE_COMPAT_VERSION
 
-        if "_PATH_ENV" in dict_:
-            cls._PATH_ENV = str(dict_["_PATH_ENV"])
+        if "_PATH_GRID_CLASSES" in dict_:
+            cls._PATH_GRID_CLASSES = str(dict_["_PATH_GRID_CLASSES"])
+        elif "_PATH_ENV" in dict_:
+            # legacy mode in grid2op <= 1.10.1 this was saved in "PATH_ENV"
+            cls._PATH_GRID_CLASSES = str(dict_["_PATH_ENV"])
         else:
-            cls._PATH_ENV = None
+            cls._PATH_GRID_CLASSES = None
         
         if 'n_busbar_per_sub' in dict_:
             cls.n_busbar_per_sub = int(dict_["n_busbar_per_sub"])
@@ -4127,11 +4130,11 @@ class GridObjects:
 
         # this implementation is 6 times faster than the "cls_to_dict" one below, so i kept it
         me_dict = {}
-        GridObjects._make_cls_dict_extended(cls, me_dict, as_list=False, copy_=False)
+        GridObjects._make_cls_dict_extended(cls, me_dict, as_list=False, copy_=False) # TODO serialize the dict of the class not to build this every time
         other_cls_dict = {}
         GridObjects._make_cls_dict_extended(
             other_cls, other_cls_dict, as_list=False, copy_=False
-        )
+        )  # TODO serialize the dict of the class not to build this every time
 
         if me_dict.keys() - other_cls_dict.keys():
             # one key is in me but not in other
@@ -4186,9 +4189,9 @@ class GridObjects:
         object in the __reduce__ method.
         """
         res_cls = None
-        if "_PATH_ENV" in cls_attr and cls_attr["_PATH_ENV"] is not None:
+        if "_PATH_GRID_CLASSES" in cls_attr and cls_attr["_PATH_GRID_CLASSES"] is not None:
             res_cls = GridObjects._build_cls_from_import(
-                name_res, cls_attr["_PATH_ENV"]
+                name_res, cls_attr["_PATH_GRID_CLASSES"]
             )
 
         # check if the class already exists, if so returns it
@@ -4220,11 +4223,13 @@ class GridObjects:
         """
         It here to avoid issue with pickle.
         But the problem is that it's also used by deepcopy... So its implementation is used a lot
+        
+        see https://docs.python.org/3/library/pickle.html#object.__reduce__
         """
         # TODO this is not really a convenient use of that i'm sure !
         # Try to see if it can be better
         cls_attr_as_dict = {}
-        GridObjects._make_cls_dict_extended(type(self), cls_attr_as_dict, as_list=False)
+        GridObjects._make_cls_dict_extended(type(self), cls_attr_as_dict, as_list=False)  # TODO save that in the class definition
         if hasattr(self, "__getstate__"):
             my_state = self.__getstate__()
         else:
@@ -4398,7 +4403,7 @@ class GridObjects:
 
     @classmethod
     def _get_full_cls_str(cls):
-        _PATH_ENV_str = "None" if cls._PATH_ENV is None else f'"{cls._PATH_ENV}"'
+        _PATH_ENV_str = "None" if cls._PATH_GRID_CLASSES is None else f'"{cls._PATH_GRID_CLASSES}"'
         attr_list_vect_str = None
         attr_list_set_str = "{}"
         if cls.attr_list_vect is not None:
@@ -4584,7 +4589,7 @@ from {cls._INIT_GRID_CLS.__module__} import {cls._INIT_GRID_CLS.__name__}
 class {cls.__name__}({cls._INIT_GRID_CLS.__name__}):
     BEFORE_COMPAT_VERSION = \"{cls.BEFORE_COMPAT_VERSION}\"
     glop_version = grid2op.__version__  # tells it's the installed grid2op version
-    _PATH_ENV = {_PATH_ENV_str}
+    _PATH_GRID_CLASSES = {_PATH_ENV_str}
     _INIT_GRID_CLS = {cls._INIT_GRID_CLS.__name__}
 
     SUB_COL = 0

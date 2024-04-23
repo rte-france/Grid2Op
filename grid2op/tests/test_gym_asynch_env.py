@@ -11,20 +11,26 @@ from gymnasium.spaces import Box, Discrete, MultiDiscrete, Dict
 from gymnasium.vector import AsyncVectorEnv
 import warnings
 import numpy as np
-
+from multiprocessing import set_start_method
 
 import grid2op
 from grid2op.Action import PlayableAction
 from grid2op.gym_compat import GymEnv, BoxGymActSpace, BoxGymObsSpace, DiscreteActSpace, MultiDiscreteActSpace
 
 
-class AsyncGymEnvTester(unittest.TestCase):
+class AsyncGymEnvTester_Fork(unittest.TestCase):
+    def _aux_start_method(self):
+        return "fork"
+    
     def setUp(self) -> None:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             # this needs to be tested with pandapower backend
-            self.env = grid2op.make("educ_case14_storage", test=True, _add_to_name=type(self).__name__,
-                                    action_class=PlayableAction)
+            self.env = grid2op.make("educ_case14_storage",
+                                    test=True,
+                                    _add_to_name=type(self).__name__,
+                                    action_class=PlayableAction,
+                                    experimental_read_from_local_dir=True)
         obs = self.env.reset(seed=0, options={"time serie id": 0})
         return super().setUp()
     
@@ -32,7 +38,8 @@ class AsyncGymEnvTester(unittest.TestCase):
         template_env = GymEnv(self.env)
         template_env.action_space.seed(0)
         obs = template_env.reset(seed=0, options={"time serie id": 0})
-        async_vect_env = AsyncVectorEnv((lambda: GymEnv(self.env), lambda: GymEnv(self.env)))
+        async_vect_env = AsyncVectorEnv((lambda: GymEnv(self.env), lambda: GymEnv(self.env)),
+                                        context=self._aux_start_method())
         assert isinstance(async_vect_env.action_space, Dict)
         assert isinstance(async_vect_env.observation_space, Dict)
         obs, infos = async_vect_env.reset(seed=[0, 1],
@@ -64,7 +71,9 @@ class AsyncGymEnvTester(unittest.TestCase):
         
     def test_space_obs_act_vect(self):
         template_env = self._aux_obs_act_vect(0)
-        async_vect_env = AsyncVectorEnv((lambda: self._aux_obs_act_vect(1), lambda: self._aux_obs_act_vect(2)))
+        async_vect_env = AsyncVectorEnv((lambda: self._aux_obs_act_vect(1),
+                                         lambda: self._aux_obs_act_vect(2)),
+                                        context=self._aux_start_method())
         try:
             assert isinstance(async_vect_env.action_space, Box)
             assert isinstance(async_vect_env.observation_space, Box)
@@ -100,7 +109,9 @@ class AsyncGymEnvTester(unittest.TestCase):
     def test_space_obs_vect_act_discrete(self):
         template_env = self._aux_obs_vect_act_discrete(0)
         assert isinstance(template_env.action_space, Discrete)
-        async_vect_env = AsyncVectorEnv((lambda: self._aux_obs_vect_act_discrete(1), lambda: self._aux_obs_vect_act_discrete(2)))
+        async_vect_env = AsyncVectorEnv((lambda: self._aux_obs_vect_act_discrete(1),
+                                         lambda: self._aux_obs_vect_act_discrete(2)),
+                                        context=self._aux_start_method())
         try:
             assert isinstance(async_vect_env.action_space, MultiDiscrete)  # converted to MultiDiscrete by gymnasium
             assert isinstance(async_vect_env.observation_space, Box)
@@ -135,7 +146,9 @@ class AsyncGymEnvTester(unittest.TestCase):
     def test_space_obs_vect_act_multidiscrete(self):
         template_env = self._aux_obs_vect_act_multidiscrete(0)
         assert isinstance(template_env.action_space, MultiDiscrete)
-        async_vect_env = AsyncVectorEnv((lambda: self._aux_obs_vect_act_multidiscrete(1), lambda: self._aux_obs_vect_act_multidiscrete(2)))
+        async_vect_env = AsyncVectorEnv((lambda: self._aux_obs_vect_act_multidiscrete(1),
+                                         lambda: self._aux_obs_vect_act_multidiscrete(2)),
+                                        context=self._aux_start_method())
         try:
             assert isinstance(async_vect_env.action_space, Box)  # converted to Box by gymnasium
             assert isinstance(async_vect_env.observation_space, Box)
@@ -157,3 +170,12 @@ class AsyncGymEnvTester(unittest.TestCase):
         finally:
             async_vect_env.close()
             template_env.close()
+            
+            
+class AsyncGymEnvTester_Spawn(AsyncGymEnvTester_Fork):
+    def _aux_start_method(self):
+        return "spawn"
+    
+    
+if __name__ == "__main__":
+    unittest.main()

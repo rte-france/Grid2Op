@@ -274,7 +274,7 @@ def make_from_dataset_path(
 
     # Compute env name from directory name
     name_env = os.path.split(dataset_path_abs)[1]
-
+ 
     # Compute and find chronics folder
     chronics_path = _get_default_aux(
         "chronics_path",
@@ -812,24 +812,6 @@ def make_from_dataset_path(
         isclass=False,
     )
 
-    if experimental_read_from_local_dir:
-        sys_path = os.path.join(os.path.split(grid_path_abs)[0], "_grid2op_classes")
-        if not os.path.exists(sys_path):
-            raise RuntimeError(
-                "Attempting to load the grid classes from the env path. Yet the directory "
-                "where they should be placed does not exists. Did you call `env.generate_classes()` "
-                "BEFORE creating an environment with `experimental_read_from_local_dir=True` ?"
-            )
-        if not os.path.isdir(sys_path) or not os.path.exists(
-            os.path.join(sys_path, "__init__.py")
-        ):
-            raise RuntimeError(
-                f"Impossible to load the classes from the env path. There is something that is "
-                f"not a directory and that is called `_grid2op_classes`. "
-                f'Please remove "{sys_path}" and call `env.generate_classes()` where env is an '
-                f"environment created with `experimental_read_from_local_dir=False` (default)"
-            )
-
     # observation key word arguments
     kwargs_observation = _get_default_aux(
         "kwargs_observation",
@@ -881,7 +863,46 @@ def make_from_dataset_path(
     ) 
     if observation_backend_kwargs is observation_backend_kwargs_cfg_:
         observation_backend_kwargs = None
+
+    # new in 1.10.2 :
+    # if experimental_read_from_local_dir:
+    #     sys_path = os.path.join(os.path.split(grid_path_abs)[0], "_grid2op_classes")
+    #     if not os.path.exists(sys_path):
+    #         raise RuntimeError(
+    #             "Attempting to load the grid classes from the env path. Yet the directory "
+    #             "where they should be placed does not exists. Did you call `env.generate_classes()` "
+    #             "BEFORE creating an environment with `experimental_read_from_local_dir=True` ?"
+    #         )
+    #     if not os.path.isdir(sys_path) or not os.path.exists(
+    #         os.path.join(sys_path, "__init__.py")
+    #     ):
+    #         raise RuntimeError(
+    #             f"Impossible to load the classes from the env path. There is something that is "
+    #             f"not a directory and that is called `_grid2op_classes`. "
+    #             f'Please remove "{sys_path}" and call `env.generate_classes()` where env is an '
+    #             f"environment created with `experimental_read_from_local_dir=False` (default)"
+    #         )
+    sys_path = os.path.join(os.path.split(grid_path_abs)[0], "_grid2op_classes")
+    if not os.path.exists(sys_path):
+        try:
+            os.mkdir(sys_path)
+        except FileExistsError:
+            pass
         
+    # TODO: automatic delete the directory if needed
+    # TODO: check the "new" path works
+    # TODO: in the BaseEnv.generate_classes make sure the classes are added to the "__init__" if the file is created
+    # TODO: check the hash thingy is working in baseEnv._aux_gen_classes (currently a pdb)
+    # TODO: check that previous behaviour is working correctly
+    if not experimental_read_from_local_dir:
+        import time
+        import os
+        this_local_dir = f"{time.time()}_{os.getpid()}"
+        env.generate_classes(local_dir_id=this_local_dir)
+        classes_path = os.path.join(sys_path, this_local_dir)
+    else:
+        classes_path = sys_path
+
     # Finally instantiate env from config & overrides
     env = Environment(
         init_env_path=os.path.abspath(dataset_path),
@@ -912,12 +933,12 @@ def make_from_dataset_path(
         logger=logger,
         n_busbar=n_busbar,
         _compat_glop_version=_compat_glop_version,
-        _read_from_local_dir=experimental_read_from_local_dir,
+        _read_from_local_dir=classes_path,
         kwargs_observation=kwargs_observation,
         observation_bk_class=observation_backend_class,
         observation_bk_kwargs=observation_backend_kwargs,
     )
-
+            
     # Update the thermal limit if any
     if thermal_limits is not None:
         env.set_thermal_limit(thermal_limits)

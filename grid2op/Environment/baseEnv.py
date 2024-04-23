@@ -3941,10 +3941,17 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 f.write(res)
             return f"\nfrom .{cls.__name__}_file import {cls.__name__}"
         else:
+            # if the file exists, I check it's the same
+            from grid2op.MakeEnv.UpdateEnv import _aux_hash_file, _aux_update_hash_text
+            hash_saved = _aux_hash_file(output_file)
+            my_hash = _aux_update_hash_text(res)
+            import pdb
+            pdb.set_trace()
+        else:
             # otherwise i do nothing
             return ""
 
-    def generate_classes(self, _guard=None, _is_base_env__=True, sys_path=None):
+    def generate_classes(self, *, local_dir_id=None, _guard=None, _is_base_env__=True, sys_path=None):
         """
         Use with care, but can be incredibly useful !
         
@@ -4029,7 +4036,10 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 raise RuntimeError("Cannot generate file from a \"sub env\" "
                                    "(eg no the top level env) if I don't know the path of "
                                    "the top level environment.")
-            sys_path = os.path.join(self.get_path_env(), "_grid2op_classes")
+            if local_dir_id is not None:
+                sys_path = os.path.join(self.get_path_env(), "_grid2op_classes", local_dir_id)
+            else:
+                sys_path = os.path.join(self.get_path_env(), "_grid2op_classes")
 
         if _is_base_env__:
             if os.path.exists(sys_path):
@@ -4069,7 +4079,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
             init_grid_tmp = self._observation_space.obs_env._init_grid_path
             self._observation_space.obs_env._init_grid_path = self._init_grid_path
-            self._observation_space.obs_env.generate_classes(_is_base_env__=False, sys_path=sys_path)
+            self._observation_space.obs_env.generate_classes(local_dir_id=local_dir_id,
+                                                             _is_base_env__=False,
+                                                             sys_path=sys_path)
             self._observation_space.obs_env._init_grid_path = init_grid_tmp
 
         # now write the __init__ file

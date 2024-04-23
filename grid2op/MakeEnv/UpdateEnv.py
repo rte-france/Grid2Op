@@ -157,6 +157,30 @@ def _update_files(env_name=None, answer_json=None, env_hashes=None):
             )
 
 
+def _aux_update_hash_text(text_, hash_=None):
+    if hash_ is None:
+        # we use this as it is supposedly faster than md5
+        # we don't really care about the "secure" part of it (though it's a nice tool to have)
+        hash_ = hashlib.blake2b()
+    text_ = re.sub("\s", "", text_)
+    hash_.update(text_.encode("utf-8"))
+    
+
+def _aux_hash_file(full_path_file, hash_=None):
+    if hash_ is None:
+        # we use this as it is supposedly faster than md5
+        # we don't really care about the "secure" part of it (though it's a nice tool to have)
+        hash_ = hashlib.blake2b()
+        
+    with open(full_path_file, "r", encoding="utf-8") as f:
+        text_ = f.read()
+        # this is done to ensure a compatibility between platform
+        # sometime git replaces the "\r\n" in windows with "\n" on linux / macos and it messes
+        # up the hash
+        _aux_update_hash_text(text_, hash_)
+    return hash_
+
+
 # TODO make that a method of the environment maybe ?
 def _hash_env(
     path_local_env,
@@ -200,14 +224,7 @@ def _hash_env(
             import re
 
             if os.path.exists(full_path_file):
-                with open(full_path_file, "r", encoding="utf-8") as f:
-                    text_ = f.read()
-                    text_ = re.sub(
-                        "\s", "", text_
-                    )  # this is done to ensure a compatibility between platform
-                    # sometime git replaces the "\r\n" in windows with "\n" on linux / macos and it messes
-                    # up the hash
-                    hash_.update(text_.encode("utf-8"))
+                _aux_hash_file(full_path_file, hash_)
 
         # now I hash the chronics
         # but as i don't want to read every chronics (for time purposes) i will only hash the names
