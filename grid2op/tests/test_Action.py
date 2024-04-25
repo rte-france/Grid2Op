@@ -101,7 +101,7 @@ def _get_action_grid_class():
         np.arange(GridObjects.n_sub), repeats=GridObjects.sub_info
     )
     GridObjects.glop_version = grid2op.__version__
-    GridObjects._PATH_ENV = None
+    GridObjects._PATH_GRID_CLASSES = None
 
     json_ = {
         "glop_version": grid2op.__version__,

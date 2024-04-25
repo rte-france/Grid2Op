@@ -298,7 +298,7 @@ class TestBasisObsBehaviour(unittest.TestCase):
             "alertable_line_names": [],
             "alertable_line_ids": [],
             "assistant_warning_type": None,
-            "_PATH_ENV": None,
+            "_PATH_GRID_CLASSES": None,
         }
 
         self.json_ref = {
