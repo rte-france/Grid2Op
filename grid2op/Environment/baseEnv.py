@@ -3942,13 +3942,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             return f"\nfrom .{cls.__name__}_file import {cls.__name__}"
         else:
             # if the file exists, I check it's the same
-            from grid2op.MakeEnv.UpdateEnv import _aux_hash_file, _aux_update_hash_text
-            hash_saved = _aux_hash_file(output_file)
-            my_hash = _aux_update_hash_text(res)
-            import pdb
-            pdb.set_trace()
-        else:
-            # otherwise i do nothing
+            # from grid2op.MakeEnv.UpdateEnv import _aux_hash_file, _aux_update_hash_text
+            # hash_saved = _aux_hash_file(output_file)
+            # my_hash = _aux_update_hash_text(res)
             return ""
 
     def generate_classes(self, *, local_dir_id=None, _guard=None, _is_base_env__=True, sys_path=None):
