@@ -3929,11 +3929,11 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             raise RuntimeError(f"cls should inherit from GridObjects: {cls}")
         
         from pathlib import Path
-        path_env = cls._PATH_ENV
-        cls._PATH_ENV = str(Path(self.get_path_env()).as_posix())
+        path_env = cls._PATH_GRID_CLASSES
+        cls._PATH_GRID_CLASSES = str(Path(self.get_path_env()).as_posix())
         
         res = cls._get_full_cls_str()
-        cls._PATH_ENV = path_env
+        cls._PATH_GRID_CLASSES = path_env
         output_file = os.path.join(sys_path, f"{cls.__name__}_file.py")
         if not os.path.exists(output_file):
             # if the file is not already saved, i save it and add it to the __init__ file
