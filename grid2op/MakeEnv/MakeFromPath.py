@@ -894,9 +894,46 @@ def make_from_dataset_path(
     # TODO: in the BaseEnv.generate_classes make sure the classes are added to the "__init__" if the file is created
     # TODO: check the hash thingy is working in baseEnv._aux_gen_classes (currently a pdb)
     # TODO: check that previous behaviour is working correctly
+    # TODO: create again the environment with the proper "read from local_dir"
+    # TODO check that it works if the backend changes, if shunt / no_shunt if name of env changes etc.
+    # TODO: make that only if backend can be copied !
     if not experimental_read_from_local_dir:
         import time
         import os
+        env = Environment(
+            init_env_path=os.path.abspath(dataset_path),
+            init_grid_path=grid_path_abs,
+            chronics_handler=data_feeding,
+            backend=backend,
+            parameters=param,
+            name=name_env + _add_to_name,
+            names_chronics_to_backend=names_chronics_to_backend,
+            actionClass=action_class,
+            observationClass=observation_class,
+            rewardClass=reward_class,
+            legalActClass=gamerules_class,
+            voltagecontrolerClass=volagecontroler_class,
+            other_rewards=other_rewards,
+            opponent_space_type=opponent_space_type,
+            opponent_action_class=opponent_action_class,
+            opponent_class=opponent_class,
+            opponent_init_budget=opponent_init_budget,
+            opponent_attack_duration=opponent_attack_duration,
+            opponent_attack_cooldown=opponent_attack_cooldown,
+            opponent_budget_per_ts=opponent_budget_per_ts,
+            opponent_budget_class=opponent_budget_class,
+            kwargs_opponent=kwargs_opponent,
+            has_attention_budget=has_attention_budget,
+            attention_budget_cls=attention_budget_class,
+            kwargs_attention_budget=kwargs_attention_budget,
+            logger=logger,
+            n_busbar=n_busbar,
+            _compat_glop_version=_compat_glop_version,
+            _read_from_local_dir=None,  # first environment to generate the classes and save them
+            kwargs_observation=kwargs_observation,
+            observation_bk_class=observation_backend_class,
+            observation_bk_kwargs=observation_backend_kwargs,
+        )
         this_local_dir = f"{time.time()}_{os.getpid()}"
         env.generate_classes(local_dir_id=this_local_dir)
         classes_path = os.path.join(sys_path, this_local_dir)
