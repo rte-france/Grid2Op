@@ -30,7 +30,7 @@ class AsyncGymEnvTester_Fork(unittest.TestCase):
                                     test=True,
                                     _add_to_name=type(self).__name__,
                                     action_class=PlayableAction,
-                                    experimental_read_from_local_dir=True)
+                                    experimental_read_from_local_dir=False)
         obs = self.env.reset(seed=0, options={"time serie id": 0})
         return super().setUp()
     
