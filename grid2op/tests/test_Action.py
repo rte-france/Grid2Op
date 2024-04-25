@@ -333,7 +333,7 @@ def _get_action_grid_class():
         "dim_alerts": 0,
         "alertable_line_names": [],
         "alertable_line_ids": [],
-        "_PATH_ENV": None,
+        "_PATH_GRID_CLASSES": None,
         "assistant_warning_type": None
     }
     GridObjects.shunts_data_available = False
