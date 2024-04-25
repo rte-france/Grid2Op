@@ -4020,10 +4020,10 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         if _guard is not None:
             raise RuntimeError("use `env.generate_classes()` with no arguments !")
 
-        if type(self)._PATH_ENV is not None:
+        if type(self)._PATH_GRID_CLASSES is not None:
             raise RuntimeError(
                 "This function should only be called ONCE without specifying that the classes "
-                "need to be read from disk (class attribute type(self)._PATH_ENV should be None)"
+                "need to be read from disk (class attribute type(self)._PATH_GRID_CLASSES should be None)"
             )
         import shutil
 
