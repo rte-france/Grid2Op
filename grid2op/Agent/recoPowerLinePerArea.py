@@ -57,7 +57,7 @@ class RecoPowerlinePerArea(BaseAgent):
             return self.action_space()
         area_used = np.full(self.nb_area, fill_value=False, dtype=bool)
         reco_ids = []
-        for l_id in np.nonzero(can_be_reco)[0]:
+        for l_id in can_be_reco.nonzero()[0]:
             if not area_used[self.lines_to_area_id[l_id]]:
                 reco_ids.append(l_id)
                 area_used[self.lines_to_area_id[l_id]] = True

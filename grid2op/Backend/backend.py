@@ -1510,7 +1510,6 @@ class Backend(GridObjects, ABC):
                 "min_up_time": row["min_up_time"],
                 "min_down_time": row["min_down_time"],
             }
-        self.redispatching_unit_commitment_availble = True
 
         self.gen_type = np.full(self.n_gen, fill_value="aaaaaaaaaa")
         self.gen_pmin = np.full(self.n_gen, fill_value=1.0, dtype=dt_float)

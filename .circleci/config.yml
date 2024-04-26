@@ -205,13 +205,13 @@ jobs:
                command: |
                    export _GRID2OP_FORCE_TEST=1
                    source venv_test/bin/activate
-                   python -m pip install -U pip setuptools wheel
-                   python -m pip install chronix2grid>="1.1.0.post1"
+                   python -m pip install -U pip setuptools wheel "numpy>=1.20,<1.21" "pandas<2.2" "scipy==1.10.1" numba
+                   python -m pip install "chronix2grid>=1.1.0.post1" "gymnasium==0.26.3" "matplotlib==3.7.5" "xarray==2023.10.0" "scs==3.0.0" "ecos==2.0.0"
                    python -m pip uninstall -y grid2op
             - run:
-               command: |
+               command: |  # issue with previous more simple install, so I fix some versions
                    source venv_test/bin/activate
-                   python -m pip install -U "numpy>=1.20,<1.21" "pandas<2.2" "scipy<1.12" numba .[test]
+                   python -m pip install "numpy>=1.20,<1.21" "pandas<2.2" "scipy==1.10.1" numba .
                    pip freeze
             - run:
                 command: |
@@ -222,7 +222,7 @@ jobs:
             - run:
                command: |
                    source venv_test/bin/activate
-                   python -m pip install -U "numpy>=1.26,<1.27" "pandas<2.2" "scipy<1.12" numba .[test]
+                   python -m pip install "numpy>=1.26,<1.27" "pandas<2.2" "scipy<1.12" numba
                    pip freeze
             - run:
                 command: |
@@ -250,7 +250,7 @@ jobs:
             - run:
                command: |
                    source venv_test/bin/activate
-                   python -m pip install -U "numpy>=1.21,<1.22" "pandas<2.2" "scipy<1.12" numba .[test]
+                   python -m pip install -U "numpy>=1.21,<1.22" "pandas<2.2" "scipy<1.12" numba .
                    pip freeze
             - run:
                 command: |
@@ -261,7 +261,7 @@ jobs:
             - run:
                command: |
                    source venv_test/bin/activate
-                   python -m pip install -U "numpy>=1.26,<1.27" "pandas<2.2" "scipy<1.12" numba .[test]
+                   python -m pip install -U "numpy>=1.26,<1.27" "pandas<2.2" "scipy<1.12" numba
                    pip freeze
             - run:
                 command: |
@@ -288,7 +288,7 @@ jobs:
             - run:
                command: |
                    source venv_test/bin/activate
-                   python -m pip install -U "numpy>=1.23,<1.24" "pandas<2.2" "scipy<1.12" numba .[test]
+                   python -m pip install -U "numpy>=1.23,<1.24" "pandas<2.2" "scipy<1.12" numba .
                    pip freeze
             - run:
                 command: |
@@ -299,7 +299,7 @@ jobs:
             - run:
                command: |
                    source venv_test/bin/activate
-                   python -m pip install -U "numpy>=1.26,<1.27" "pandas<2.2" "scipy<1.12" numba .[test]
+                   python -m pip install -U "numpy>=1.26,<1.27" "pandas<2.2" "scipy<1.12" numba
                    pip freeze
             - run:
                 command: |
@@ -326,7 +326,7 @@ jobs:
             - run:
                command: |
                    source venv_test/bin/activate
-                   python -m pip install -U "numpy>=1.26,<1.27" "pandas<2.2" "scipy<1.12" .[test]
+                   python -m pip install -U "numpy>=1.26,<1.27" "pandas<2.2" "scipy<1.12" .
                    pip freeze
             - run:
                 command: |

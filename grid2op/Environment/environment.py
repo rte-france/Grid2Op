@@ -116,7 +116,7 @@ class Environment(BaseEnv):
         _init_obs=None,
         _raw_backend_class=None,
         _compat_glop_version=None,
-        _read_from_local_dir=True,  # TODO runner and all here !
+        _read_from_local_dir=True,
         _is_test=False,
     ):
         BaseEnv.__init__(
@@ -242,7 +242,7 @@ class Environment(BaseEnv):
             # usual case: the backend is not loaded
             # NB it is loaded when the backend comes from an observation for
             # example
-            if self._read_from_local_dir:
+            if self._read_from_local_dir is not None:
                 # test to support pickle conveniently
                 self.backend._PATH_ENV = self.get_path_env()
             # all the above should be done in this exact order, otherwise some weird behaviour might occur
@@ -524,7 +524,7 @@ class Environment(BaseEnv):
                 # deals with the "sub_pos" vector
                 for sub_id in range(cls_bk.n_sub):
                     if (cls_bk.storage_to_subid == sub_id).any():
-                        stor_ids = np.nonzero(cls_bk.storage_to_subid == sub_id)[0]
+                        stor_ids = (cls_bk.storage_to_subid == sub_id).nonzero()[0]
                         stor_locs = cls_bk.storage_to_sub_pos[stor_ids]
                         for stor_loc in sorted(stor_locs, reverse=True):
                             for vect, sub_id_me in zip(

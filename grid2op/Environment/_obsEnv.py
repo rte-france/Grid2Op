@@ -9,8 +9,11 @@
 import copy
 import numpy as np
 import warnings
-from grid2op.Exceptions.envExceptions import EnvError
+from typing import Dict, Union, Tuple, List, Optional, Any, Literal
 
+import grid2op
+from grid2op.Exceptions.envExceptions import EnvError
+from grid2op.typing_variables import STEP_INFO_TYPING
 from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Environment.baseEnv import BaseEnv
 from grid2op.Chronics import ChangeNothing
@@ -362,7 +365,8 @@ class _ObsEnv(BaseEnv):
         )
         self._backend_action_set += new_state_action
         # for storage unit
-        self._backend_action_set.storage_power.values[:] = 0.0
+        if time_step > 0:
+            self._backend_action_set.storage_power.values[:] = 0.0
         self._backend_action_set.all_changed()
         self._backend_action = copy.deepcopy(self._backend_action_set)
         
@@ -397,7 +401,7 @@ class _ObsEnv(BaseEnv):
         super().reset()
         self.current_obs = self.current_obs_init
 
-    def simulate(self, action):
+    def simulate(self, action : "grid2op.Action.BaseAction") -> Tuple["grid2op.Observation.BaseObservation", float, bool, STEP_INFO_TYPING]:
         """
         INTERNAL
 
@@ -416,12 +420,12 @@ class _ObsEnv(BaseEnv):
 
         Parameters
         ----------
-        action: :class:`grid2op.Action.Action`
+        action: :class:`grid2op.Action.BaseAction`
             The action to test
 
         Returns
         -------
-        observation: :class:`grid2op.Observation.Observation`
+        observation: :class:`grid2op.Observation.BaseObservation`
             agent's observation of the current environment
 
         reward: ``float``
@@ -431,13 +435,9 @@ class _ObsEnv(BaseEnv):
             whether the episode has ended, in which case further step() calls will return undefined results
 
         info: ``dict``
-            contains auxiliary diagnostic information (helpful for debugging, and sometimes learning). It is a
-            dictionary with keys:
-
-                - "disc_lines": a numpy array (or ``None``) saying, for each powerline if it has been disconnected
-                    due to overflow
-                - "is_illegal" (``bool``) whether the action given as input was illegal
-                - "is_ambiguous" (``bool``) whether the action given as input was ambiguous.
+            contains auxiliary diagnostic information (helpful for debugging, and sometimes learning). See 
+            description of :func:`grid2op.Environment.BaseEnv.step` for more information about the
+            keys of this dictionary.
 
         """
         if self.__unusable:

@@ -28,6 +28,6 @@ class RecoPowerlineAgent(GreedyAgent):
         if can_be_reco.any():
             res = [
                 self.action_space({"set_line_status": [(id_, +1)]})
-                for id_ in np.nonzero(can_be_reco)[0]
+                for id_ in (can_be_reco).nonzero()[0]
             ]
         return res

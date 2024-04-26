@@ -108,10 +108,11 @@ class __AuxGymEnv(Generic[ObsType, ActType]):
                  env_init: Environment,
                  shuffle_chronics:Optional[bool]=True,
                  render_mode: Literal["rgb_array"]="rgb_array"):
-        check_gym_version(type(self)._gymnasium)
+        cls = type(self)
+        check_gym_version(cls._gymnasium)
         self.init_env = env_init.copy()
-        self.action_space = type(self)._ActionSpaceType(self.init_env)
-        self.observation_space = type(self)._ObservationSpaceType(self.init_env)
+        self.action_space = cls._ActionSpaceType(self.init_env)
+        self.observation_space = cls._ObservationSpaceType(self.init_env)
         self.reward_range = self.init_env.reward_range
         self.metadata = self.init_env.metadata
         self.init_env.render_mode = render_mode

@@ -9,8 +9,8 @@
 import os
 import warnings
 import copy
-from multiprocessing import Pool
-from typing import Tuple, Optional, List, Union
+from multiprocessing import get_start_method, get_context, Pool
+from typing import Tuple, List, Union
 
 from grid2op.Environment import BaseEnv
 from grid2op.Action import BaseAction, TopologyAction, DontAct
@@ -18,7 +18,7 @@ from grid2op.Exceptions import Grid2OpException, EnvError
 from grid2op.Observation import CompleteObservation, BaseObservation
 from grid2op.Opponent.opponentSpace import OpponentSpace
 from grid2op.Reward import FlatReward, BaseReward
-from grid2op.Rules import AlwaysLegal, BaseRules
+from grid2op.Rules import AlwaysLegal
 from grid2op.Environment import Environment
 from grid2op.Chronics import ChronicsHandler, GridStateFromFile, GridValue
 from grid2op.Backend import Backend, PandaPowerBackend
@@ -34,7 +34,7 @@ from grid2op.Runner.aux_fun import (
     _aux_one_process_parrallel,
 )
 from grid2op.Runner.basic_logger import DoNothingLog, ConsoleLog
-from grid2op.Episode import EpisodeData, CompactEpisodeData
+from grid2op.Episode import EpisodeData
 
 # on windows if i start using sequential, i need to continue using sequential
 # if i start using parallel i need to continue using parallel
@@ -1032,8 +1032,13 @@ class Runner(object):
                             add_detailed_output,
                             add_nb_highres_sim)
                 
-            with Pool(nb_process) as p:
-                tmp = p.starmap(_aux_one_process_parrallel, lists)
+            if get_start_method() == 'spawn':
+                # https://github.com/rte-france/Grid2Op/issues/600
+                with get_context("spawn").Pool(nb_process) as p:
+                    tmp = p.starmap(_aux_one_process_parrallel, lists)
+            else:            
+                with Pool(nb_process) as p:
+                    tmp = p.starmap(_aux_one_process_parrallel, lists)
             for el in tmp:
                 res += el
         return res
