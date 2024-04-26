@@ -77,8 +77,10 @@ class Backend(GridObjects, ABC):
 
     And optionally:
 
+    - :func:`Backend.reset`  will reload the powergrid from the hard drive by default. This is rather slow and we
+      recommend to overload it.
     - :func:`Backend.close` (this is mandatory if your backend implementation (`self._grid`) is relying on some
-      c / c++ code that do not free memory automatically.
+      c / c++ code that do not free memory automatically.)
     - :func:`Backend.copy` (not that this is mandatory if your backend implementation (in `self._grid`) cannot be
       deep copied using the python copy.deepcopy function) [as of grid2op >= 1.7.1 it is no more
       required. If not implemented, you won't be able to use some of grid2op feature however]
@@ -88,8 +90,6 @@ class Backend(GridObjects, ABC):
       at the "origin" side and just return the "a_or" vector. You want to do something smarter here.
     - :func:`Backend._disconnect_line`: has a default slow implementation using "apply_action" that might
       can most likely be optimized in your backend.
-    - :func:`Backend.reset`  will reload the powergrid from the hard drive by default. This is rather slow and we
-      recommend to overload it.
 
     And, if the flag :attr:Backend.shunts_data_available` is set to ``True`` the method :func:`Backend.shunt_info`
     should also be implemented.
@@ -98,12 +98,6 @@ class Backend(GridObjects, ABC):
         ``True`` in that case, you also need to implement all the relevant shunt information (attributes `n_shunt`,
         `shunt_to_subid`, `name_shunt` and function `shunt_info` and handle the modification of shunts
         bus, active value and reactive value in the "apply_action" function).
-
-
-    In order to be valid and carry out some computations, you should call :func:`Backend.load_grid` and later
-    :func:`grid2op.Spaces.GridObjects.assert_grid_correct`. It is also more than recommended to call
-    :func:`Backend.assert_grid_correct_after_powerflow` after the first powerflow. This is all carried ou in the
-    environment properly.
 
     Attributes
     ----------
@@ -222,7 +216,7 @@ class Backend(GridObjects, ABC):
         If not called, then the `environment` will not be able to use more than 2 busbars per substations.
         
         .. seealso::
-            :func:`Backend.cnot_handle_more_than_2_busbar`
+            :func:`Backend.cannot_handle_more_than_2_busbar`
 
         .. note::
             From grid2op 1.10.0 it is preferable that your backend calls one of

@@ -4698,9 +4698,12 @@ class GridObjects:
         def format_el(values):
             return ",".join([f'"{el}"' for el in values])
 
-        tmp_tmp_ = [f'"{k}": [{format_el(v)}]' for k, v in cls.grid_layout.items()]
-        tmp_ = ",".join(tmp_tmp_)
-        grid_layout_str = f"{{{tmp_}}}"
+        if cls.grid_layout is not None:
+            tmp_tmp_ = [f'"{k}": [{format_el(v)}]' for k, v in cls.grid_layout.items()]
+            tmp_ = ",".join(tmp_tmp_)
+            grid_layout_str = f"{{{tmp_}}}"
+        else:
+            grid_layout_str = "None"
 
         name_shunt_str = ",".join([f'"{el}"' for el in cls.name_shunt])
         shunt_to_subid_str = GridObjects._format_int_vect_to_cls_str(cls.shunt_to_subid)

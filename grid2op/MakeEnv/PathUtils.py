@@ -34,7 +34,7 @@ def str_to_bool(string: str) -> bool:
         return True
     if string_ in ["f", "false", "n", "no", "off", "0"]:
         return False
-    raise ValueError(f"Uknown way to convert `{string}` to a boolean. Please use \"1\" or \"0\"")
+    raise ValueError(f"Uknown way to convert `{string}` to a boolean. Please either set it to \"1\" or \"0\"")
     
         
 if os.path.exists(DEFAULT_PATH_CONFIG):

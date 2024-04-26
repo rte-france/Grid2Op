@@ -37,14 +37,20 @@ Change Log
   an observation (no need to do it from the Observation Space)
 - [ADDED] method to change the reward from the observation (observation_space
   is not needed anymore): you can use `obs.change_reward`
+- [ADDED] a way to automatically set the `experimental_read_from_local_dir` flags 
+  (with automatic class creation). For now it is disable by default, but you can 
+  activate it transparently (see doc)
 - [FIXED] a small issue that could lead to having 
   "redispatching_unit_commitment_availble" flag set even if the redispatching
   data was not loded correctly
 - [FIXED] EducPandaPowerBackend now properly sends numpy array in the class attributes
   (instead of pandas series)
-- [FIXED] an issue when loading back data (with EpisodeData): when there were no storage units
+- [FIXED] an issue when loading back data (with `EpisodeData`): when there were no storage units
   on the grid it did not set properly the "storage relevant" class attributes
-- [FIXED] notebook 5 on loading back data.
+- [FIXED] a bug in the "gridobj.generate_classes()" function which crashes when no
+  grid layout was set
+- [FIXED] notebook 5 on loading back data with `EpisodeData`.
+- [FIXED] converter between backends (could not handle more than 2 busbars)
 - [IMPROVED] documentation about `obs.simulate` to make it clearer the 
   difference between env.step and obs.simulate on some cases
 - [IMPROVED] type hints on some methods of `GridObjects`
