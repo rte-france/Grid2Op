@@ -339,6 +339,7 @@ def _get_action_grid_class():
     }
     GridObjects.shunts_data_available = False
     my_cls = GridObjects.init_grid(GridObjects, force=True)
+    GridObjects._clear_class_attribute()
     return my_cls, json_
 
 

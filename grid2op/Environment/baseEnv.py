@@ -4085,6 +4085,15 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         with open(os.path.join(sys_path, "__init__.py"), mode, encoding="utf-8") as f:
             f.write(_init_txt)
 
+    def delete_classes(self):
+        """
+        .. versionadded: 1.11.0
+            Function added following the new behaviour introduced in this version
+            
+        
+        """
+        pass
+    
     def __del__(self):
         """when the environment is garbage collected, free all the memory, including cross reference to itself in the observation space."""
         if hasattr(self, "_BaseEnv__closed") and not self.__closed:

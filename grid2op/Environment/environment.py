@@ -118,6 +118,7 @@ class Environment(BaseEnv):
         _compat_glop_version=None,
         _read_from_local_dir=True,
         _is_test=False,
+        _allow_loaded_backend=False,
     ):
         BaseEnv.__init__(
             self,
@@ -161,10 +162,12 @@ class Environment(BaseEnv):
             )
         self.name = name
         self._read_from_local_dir = _read_from_local_dir
+        
+        #: starting grid2Op 1.11 classes are stored on the disk when an environment is created
+        #: so the "environment" is created twice (one to generate the class and then correctly to load them)
+        self._allow_loaded_backend : bool = _allow_loaded_backend
 
-        # for gym compatibility (initialized below)
-        # self.action_space = None
-        # self.observation_space = None
+        # for gym compatibility (action_spacen and observation_space initialized below)
         self.reward_range = None
         self._viewer = None
         self.metadata = None
@@ -231,7 +234,7 @@ class Environment(BaseEnv):
                 'grid2op.Backend class, type provided is "{}"'.format(type(backend))
             )
         self.backend = backend
-        if self.backend.is_loaded and self._init_obs is None:
+        if self.backend.is_loaded and self._init_obs is None and not self._allow_loaded_backend:
             raise EnvError(
                 "Impossible to use the same backend twice. Please create your environment with a "
                 "new backend instance (new object)."

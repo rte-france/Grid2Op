@@ -52,6 +52,7 @@ Change Log
   save up a bit of computation time.
 - [IMPROVED] force class attributes to be numpy arrays of proper types when the 
   classes are initialized from the backend.
+- [IMPROVED] some (slight) speed improvments when comparing actions or deep copying objects
 
 [1.10.1] - 2024-03-xx
 ----------------------

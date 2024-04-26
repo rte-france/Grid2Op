@@ -2107,6 +2107,7 @@ class Backend(GridObjects, ABC):
                 self.__class__.__name__,
                 self.__class__,
             )
+            
             # reset the attribute of the grid2op.Backend.Backend class
             # that can be messed up with depending on the initialization of the backend
             Backend._clear_class_attribute()  # reset totally the grid2op Backend type

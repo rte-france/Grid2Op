@@ -34,15 +34,15 @@ class TestL2RPNNEURIPS2020_Track1Compat(unittest.TestCase):
             self.env.seed(0)
 
     def test_elements(self):
-        assert self.env.n_sub == 36
-        assert self.env.n_line == 59
-        assert self.env.n_load == 37
-        assert self.env.n_gen == 22
-        assert self.env.n_storage == 0
+        assert type(self.env).n_sub == 36
+        assert type(self.env).n_line == 59
+        assert type(self.env).n_load == 37
+        assert type(self.env).n_gen == 22
+        assert type(self.env).n_storage == 0
 
     def test_opponent(self):
         assert issubclass(self.env._opponent_action_class, PowerlineSetAction)
-        assert self.env._opponent_action_space.n == self.env.n_line
+        assert self.env._opponent_action_space.n == type(self.env).n_line
 
     def test_action_space(self):
         assert issubclass(self.env.action_space.subtype, PlayableAction)
@@ -79,11 +79,11 @@ class TestL2RPNNEURIPS2020_Track2Compat(unittest.TestCase):
             self.env.seed(0)
 
     def test_elements(self):
-        assert self.env.n_sub == 118
-        assert self.env.n_line == 186
-        assert self.env.n_load == 99
-        assert self.env.n_gen == 62
-        assert self.env.n_storage == 0
+        assert type(self.env).n_sub == 118
+        assert type(self.env).n_line == 186
+        assert type(self.env).n_load == 99
+        assert type(self.env).n_gen == 62
+        assert type(self.env).n_storage == 0
 
     def test_opponent(self):
         assert issubclass(self.env._opponent_action_class, DontAct)
@@ -127,11 +127,11 @@ class TestL2RPN_CASE14_SANDBOXCompat(unittest.TestCase):
             self.env.seed(42)
 
     def test_elements(self):
-        assert self.env.n_sub == 14
-        assert self.env.n_line == 20
-        assert self.env.n_load == 11
-        assert self.env.n_gen == 6
-        assert self.env.n_storage == 0
+        assert type(self.env).n_sub == 14
+        assert type(self.env).n_line == 20
+        assert type(self.env).n_load == 11
+        assert type(self.env).n_gen == 6
+        assert type(self.env).n_storage == 0
 
     def test_opponent(self):
         assert issubclass(self.env._opponent_action_class, DontAct)
@@ -172,11 +172,11 @@ class TestEDUC_CASE14_REDISPCompat(unittest.TestCase):
             self.env.seed(0)
 
     def test_elements(self):
-        assert self.env.n_sub == 14
-        assert self.env.n_line == 20
-        assert self.env.n_load == 11
-        assert self.env.n_gen == 6
-        assert self.env.n_storage == 0
+        assert type(self.env).n_sub == 14
+        assert type(self.env).n_line == 20
+        assert type(self.env).n_load == 11
+        assert type(self.env).n_gen == 6
+        assert type(self.env).n_storage == 0
 
     def test_opponent(self):
         assert issubclass(self.env._opponent_action_class, DontAct)
@@ -217,11 +217,11 @@ class TestCompatMode_WhenStorage(unittest.TestCase):
             self.env.seed(0)
 
     def test_elements(self):
-        assert self.env.n_sub == 14
-        assert self.env.n_line == 20
-        assert self.env.n_load == 11
-        assert self.env.n_gen == 6
-        assert self.env.n_storage == 0
+        assert type(self.env).n_sub == 14
+        assert type(self.env).n_line == 20
+        assert type(self.env).n_load == 11
+        assert type(self.env).n_gen == 6
+        assert type(self.env).n_storage == 0
 
     def test_opponent(self):
         assert issubclass(self.env._opponent_action_class, DontAct)

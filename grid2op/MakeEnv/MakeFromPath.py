@@ -7,6 +7,7 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 import os
+import time
 import importlib.util
 import numpy as np
 import json
@@ -16,10 +17,14 @@ from grid2op.Environment import Environment
 from grid2op.Backend import Backend, PandaPowerBackend
 from grid2op.Opponent.opponentSpace import OpponentSpace
 from grid2op.Parameters import Parameters
-from grid2op.Chronics import ChronicsHandler, ChangeNothing, FromNPY, FromChronix2grid
-from grid2op.Chronics import GridStateFromFile, GridValue
+from grid2op.Chronics import (ChronicsHandler,
+                              ChangeNothing,
+                              FromNPY,
+                              FromChronix2grid,
+                              GridStateFromFile,
+                              GridValue)
 from grid2op.Action import BaseAction, DontAct
-from grid2op.Exceptions import *
+from grid2op.Exceptions import EnvError
 from grid2op.Observation import CompleteObservation, BaseObservation
 from grid2op.Reward import BaseReward, L2RPNReward
 from grid2op.Rules import BaseRules, DefaultRules
@@ -864,29 +869,68 @@ def make_from_dataset_path(
     if observation_backend_kwargs is observation_backend_kwargs_cfg_:
         observation_backend_kwargs = None
 
-    if experimental_read_from_local_dir:
-        sys_path = os.path.join(os.path.split(grid_path_abs)[0], "_grid2op_classes")
-        if not os.path.exists(sys_path):
-            raise RuntimeError(
-                "Attempting to load the grid classes from the env path. Yet the directory "
-                "where they should be placed does not exists. Did you call `env.generate_classes()` "
-                "BEFORE creating an environment with `experimental_read_from_local_dir=True` ?"
-            )
-        if not os.path.isdir(sys_path) or not os.path.exists(
-            os.path.join(sys_path, "__init__.py")
-        ):
-            raise RuntimeError(
-                f"Impossible to load the classes from the env path. There is something that is "
-                f"not a directory and that is called `_grid2op_classes`. "
-                f'Please remove "{sys_path}" and call `env.generate_classes()` where env is an '
-                f"environment created with `experimental_read_from_local_dir=False` (default)"
-            )
+    # new in 1.11.0 :
     # sys_path = os.path.join(os.path.split(grid_path_abs)[0], "_grid2op_classes")
     # if not os.path.exists(sys_path):
     #     try:
     #         os.mkdir(sys_path)
     #     except FileExistsError:
+    #         # if another process created it, no problem
     #         pass
+        
+    # # TODO: automatic delete the directory if needed
+    # # TODO: check the "new" path works
+    # # TODO: in the BaseEnv.generate_classes make sure the classes are added to the "__init__" if the file is created
+    # # TODO: check the hash thingy is working in baseEnv._aux_gen_classes (currently a pdb)
+    # # TODO: check that previous behaviour is working correctly
+    # # TODO: create again the environment with the proper "read from local_dir"
+    # # TODO check that it works if the backend changes, if shunt / no_shunt if name of env changes etc.
+    # # TODO: make that only if backend can be copied !
+    # # TODO: what if it cannot write on disk => fallback to previous behaviour
+    # # TODO: allow for a way to disable that (with env variable or config in grid2op)
+    # # TODO: keep only one environment that will delete the files (with a flag in its constructor)
+    # if not experimental_read_from_local_dir:
+    #     init_env = Environment(init_env_path=os.path.abspath(dataset_path),
+    #                            init_grid_path=grid_path_abs,
+    #                            chronics_handler=data_feeding,
+    #                            backend=backend,
+    #                            parameters=param,
+    #                            name=name_env + _add_to_name,
+    #                            names_chronics_to_backend=names_chronics_to_backend,
+    #                            actionClass=action_class,
+    #                            observationClass=observation_class,
+    #                            rewardClass=reward_class,
+    #                            legalActClass=gamerules_class,
+    #                            voltagecontrolerClass=volagecontroler_class,
+    #                            other_rewards=other_rewards,
+    #                            opponent_space_type=opponent_space_type,
+    #                            opponent_action_class=opponent_action_class,
+    #                            opponent_class=opponent_class,
+    #                            opponent_init_budget=opponent_init_budget,
+    #                            opponent_attack_duration=opponent_attack_duration,
+    #                            opponent_attack_cooldown=opponent_attack_cooldown,
+    #                            opponent_budget_per_ts=opponent_budget_per_ts,
+    #                            opponent_budget_class=opponent_budget_class,
+    #                            kwargs_opponent=kwargs_opponent,
+    #                            has_attention_budget=has_attention_budget,
+    #                            attention_budget_cls=attention_budget_class,
+    #                            kwargs_attention_budget=kwargs_attention_budget,
+    #                            logger=logger,
+    #                            n_busbar=n_busbar,
+    #                            _compat_glop_version=_compat_glop_version,
+    #                            _read_from_local_dir=None,  # first environment to generate the classes and save them
+    #                            kwargs_observation=kwargs_observation,
+    #                            observation_bk_class=observation_backend_class,
+    #                            observation_bk_kwargs=observation_backend_kwargs,
+    #                            )              
+    #     this_local_dir = f"{time.time()}_{os.getpid()}"
+    #     init_env.generate_classes(local_dir_id=this_local_dir)
+    #     init_env.backend = None  # to avoid to close the backend when init_env is deleted
+    #     classes_path = os.path.join(sys_path, this_local_dir)
+    #     # to force the reading back of the classes from the hard drive
+    #     init_env.delete_classes()
+    # else:
+    #     classes_path = sys_path
 
     # Finally instantiate env from config & overrides
     env = Environment(
@@ -919,6 +963,7 @@ def make_from_dataset_path(
         n_busbar=n_busbar,
         _compat_glop_version=_compat_glop_version,
         _read_from_local_dir=experimental_read_from_local_dir,
+        _allow_loaded_backend=True,
         kwargs_observation=kwargs_observation,
         observation_bk_class=observation_backend_class,
         observation_bk_kwargs=observation_backend_kwargs,

@@ -675,7 +675,9 @@ class GridObjects:
     @classmethod
     def _clear_class_attribute(cls) -> None:
         """Also calls :func:`GridObjects._clear_grid_dependant_class_attributes` : this clear the attribute that
-        may be backend dependant too
+        may be backend dependant too (eg shunts_data)
+
+        This clear the class as if it was defined in grid2op directly.
         """        
         cls.shunts_data_available = False
         cls.n_busbar_per_sub = DEFAULT_N_BUSBAR_PER_SUB
@@ -716,9 +718,9 @@ class GridObjects:
     @classmethod
     def _clear_grid_dependant_class_attributes(cls) -> None:
         """reset to an original state all the class attributes that depends on an environment"""
+        cls._reset_cls_dict()
         cls._INIT_GRID_CLS = None  # do not modify that, this is handled by grid2op automatically
         cls._PATH_GRID_CLASSES = None  # especially do not modify that
-        cls._reset_cls_dict()
         
         cls.glop_version = grid2op.__version__
 
