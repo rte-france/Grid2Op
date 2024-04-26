@@ -247,11 +247,14 @@ class Environment(BaseEnv):
                 self.backend._PATH_ENV = self.get_path_env()
             # all the above should be done in this exact order, otherwise some weird behaviour might occur
             # this is due to the class attribute
+            # type(self.backend)._clear_class_attribute()  # don't do that, tbe backend (in Backend.py) is responsible of that
             type(self.backend).set_env_name(self.name)
             type(self.backend).set_n_busbar_per_sub(self._n_busbar)
             self.backend.load_grid(
                 self._init_grid_path
             )  # the real powergrid of the environment
+            self.backend.load_storage_data(self.get_path_env())
+            self.backend._fill_names_obj()
             try:
                 self.backend.load_redispacthing_data(self.get_path_env())
             except BackendError as exc_:
@@ -259,14 +262,12 @@ class Environment(BaseEnv):
                 warnings.warn(f"Impossible to load redispatching data. This is not an error but you will not be able "
                             f"to use all grid2op functionalities. "
                             f"The error was: \"{exc_}\"")
-            self.backend.load_storage_data(self.get_path_env())
             exc_ = self.backend.load_grid_layout(self.get_path_env())
             if exc_ is not None:
                 warnings.warn(
                     f"No layout have been found for you grid (or the layout provided was corrupted). You will "
                     f'not be able to use the renderer, plot the grid etc. The error was "{exc_}"'
                 )
-            self.backend.is_loaded = True
 
             # alarm set up
             self.load_alarm_data()
@@ -274,6 +275,7 @@ class Environment(BaseEnv):
             
             # to force the initialization of the backend to the proper type
             self.backend.assert_grid_correct()
+            self.backend.is_loaded = True
             need_process_backend = True
 
         self._handle_compat_glop_version(need_process_backend)
@@ -325,9 +327,8 @@ class Environment(BaseEnv):
             )
 
         # action affecting the grid that will be made by the agent
-        bk_type = type(
-            self.backend
-        )  # be careful here: you need to initialize from the class, and not from the object
+        # be careful here: you need to initialize from the class, and not from the object
+        bk_type = type(self.backend) 
         self._rewardClass = rewardClass
         self._actionClass = actionClass.init_grid(gridobj=bk_type)
         self._actionClass._add_shunt_data()

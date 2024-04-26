@@ -730,7 +730,6 @@ class PandaPowerBackend(Backend):
         self._sh_vnkv = self._grid.bus["vn_kv"][self.shunt_to_subid].values.astype(
             dt_float
         )
-        # self.shunts_data_available = True  # TODO shunts_data_available
 
         # store the topoid -> objid
         self._big_topo_to_obj = [(None, None) for _ in range(self.dim_topo)]

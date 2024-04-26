@@ -2978,6 +2978,9 @@ class TestSimulateEqualsStepStorageCurtail(TestSimulateEqualsStep):
         self.obs = self._make_forecast_perfect(self.env)
         self.sim_obs = None
         self.step_obs = None
+        
+    def tearDown(self):
+        self.env.close()
 
     def test_storage_act(self):
         """test i can do storage actions in simulate"""

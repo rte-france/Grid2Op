@@ -28,6 +28,7 @@ from grid2op.Space.space_utils import save_to_dict
 
 
 def _get_action_grid_class():
+    GridObjects._clear_class_attribute()
     GridObjects.env_name = "test_action_env"
     GridObjects.n_busbar_per_sub = 2
     GridObjects.n_gen = 5
