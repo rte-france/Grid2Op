@@ -10,16 +10,47 @@
 import os
 import json
 
+
 DEFAULT_PATH_CONFIG = os.path.expanduser("~/.grid2opconfig.json")
 DEFAULT_PATH_DATA = os.path.expanduser("~/data_grid2op")
-KEY_DATA_PATH = "data_path"
+USE_CLASS_IN_FILE = False  # set to True for new behaviour (will be set to True in grid2op 1.11)
 
+
+KEY_DATA_PATH = "data_path"
+KEY_CLASS_IN_FILE = "class_in_file"
+
+
+def str_to_bool(string: str) -> bool:
+    """convert a "string" to a boolean, with the convention:
+    
+    - "t", "y", "yes", "true", "True", "TRUE" etc. returns True
+    - "false", "False", "FALSE" etc. returns False
+    - "1" returns True
+    - "0" returns False
+    
+    """
+    string_ = string.lower()
+    if string_ in ["t", "true", "y", "yes", "on", "1"]:
+        return True
+    if string_ in ["f", "false", "n", "no", "off", "0"]:
+        return False
+    raise ValueError(f"Uknown way to convert `{string}` to a boolean. Please use \"1\" or \"0\"")
+    
+        
 if os.path.exists(DEFAULT_PATH_CONFIG):
     with open(DEFAULT_PATH_CONFIG, "r") as f:
         dict_ = json.load(f)
 
     if KEY_DATA_PATH in dict_:
         DEFAULT_PATH_DATA = os.path.abspath(dict_[KEY_DATA_PATH])
+        
+    if KEY_CLASS_IN_FILE in dict_:
+        USE_CLASS_IN_FILE = bool(dict_[KEY_CLASS_IN_FILE])
+        if KEY_CLASS_IN_FILE in os.environ:
+            try:
+                USE_CLASS_IN_FILE = str_to_bool(os.environ[KEY_CLASS_IN_FILE])
+            except ValueError as exc:
+                raise RuntimeError(f"Impossible to read the behaviour from `{KEY_CLASS_IN_FILE}` environment variable") from exc
 
 
 def _create_path_folder(data_path):
