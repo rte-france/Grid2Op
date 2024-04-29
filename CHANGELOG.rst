@@ -40,6 +40,7 @@ Change Log
 - [ADDED] a way to automatically set the `experimental_read_from_local_dir` flags 
   (with automatic class creation). For now it is disable by default, but you can 
   activate it transparently (see doc)
+- [ADDED] TODO the possibility to set the grid in an initial state (using an action) TODO
 - [FIXED] a small issue that could lead to having 
   "redispatching_unit_commitment_availble" flag set even if the redispatching
   data was not loded correctly
@@ -60,6 +61,8 @@ Change Log
   classes are initialized from the backend.
 - [IMPROVED] some (slight) speed improvments when comparing actions or deep copying objects
 - [IMPROVED] the way the "grid2op compat" mode is handled
+- [IMPROVED] the coverage of the tests in the "test_basic_env_ls.py" to test more in depth lightsim2grid
+  (creation of multiple environments, grid2op compatibility mode)
 
 [1.10.1] - 2024-03-xx
 ----------------------

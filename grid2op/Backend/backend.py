@@ -67,14 +67,15 @@ class Backend(GridObjects, ABC):
     All the abstract methods (that need to be implemented for a backend to work properly) are (more information given
     in the :ref:`create-backend-module` page):
 
-    - :func:`Backend.load_grid`
-    - :func:`Backend.apply_action`
-    - :func:`Backend.runpf`
-    - :func:`Backend.get_topo_vect`
-    - :func:`Backend.generators_info`
-    - :func:`Backend.loads_info`
-    - :func:`Backend.lines_or_info`
-    - :func:`Backend.lines_ex_info`
+    - :func:`Backend.load_grid` (called once per episode, or if :func:`Backend.reset` is implemented, once for the entire 
+       lifetime of the environment)
+    - :func:`Backend.apply_action` (called once per episode -initialization- and at least once per step)
+    - :func:`Backend.runpf` (called once per episode -initialization- and at least once per step)
+    - :func:`Backend.get_topo_vect` (called once per episode -initialization- and at least once per step)
+    - :func:`Backend.generators_info` (called once per episode -initialization- and at least once per step)
+    - :func:`Backend.loads_info`  (called once per episode -initialization- and at least once per step)
+    - :func:`Backend.lines_or_info`  (called once per episode -initialization- and at least once per step)
+    - :func:`Backend.lines_ex_info`  (called once per episode -initialization- and at least once per step)
 
     And optionally:
 

@@ -3202,6 +3202,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         # somehow "env.step()" or "env.reset()"
         self._has_just_been_seeded =  False  
         
+        cls = type(self)
         has_error = True
         is_done = False
         is_illegal = False
@@ -3218,7 +3219,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         detailed_info = []
         init_disp = 1.0 * action._redispatch  # dispatching action
         init_alert = None
-        if type(self).dim_alerts > 0:
+        if cls.dim_alerts > 0:
             init_alert = copy.deepcopy(action._raise_alert)
             
         action_storage_power = 1.0 * action._storage_power  # battery information
@@ -3232,7 +3233,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         beg_step = time.perf_counter()
         self._last_obs : Optional[BaseObservation] = None
         self._forecasts = None  # force reading the forecast from the time series
-        cls = type(self)
         try:
             beg_ = time.perf_counter()
 
@@ -3343,7 +3343,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                     )
             else:
                 has_error = True
-
         except StopIteration:
             # episode is over
             is_done = True

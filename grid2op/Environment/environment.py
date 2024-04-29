@@ -242,15 +242,20 @@ class Environment(BaseEnv):
             
         need_process_backend = False        
         if not self.backend.is_loaded:
+            if hasattr(self.backend, "init_pp_backend") and self.backend.init_pp_backend is not None:
+                # hack for lightsim2grid ...
+                if type(self.backend.init_pp_backend)._INIT_GRID_CLS is not None:
+                    type(self.backend.init_pp_backend)._INIT_GRID_CLS._clear_grid_dependant_class_attributes()
+                type(self.backend.init_pp_backend)._clear_grid_dependant_class_attributes()
+                
             # usual case: the backend is not loaded
             # NB it is loaded when the backend comes from an observation for
             # example
             if self._read_from_local_dir is not None:
                 # test to support pickle conveniently
-                self.backend._PATH_ENV = self.get_path_env()
+                self.backend._PATH_GRID_CLASSES = self.get_path_env()
             # all the above should be done in this exact order, otherwise some weird behaviour might occur
             # this is due to the class attribute
-            # type(self.backend)._clear_class_attribute()  # don't do that, tbe backend (in Backend.py) is responsible of that
             type(self.backend).set_env_name(self.name)
             type(self.backend).set_n_busbar_per_sub(self._n_busbar)
             if self._compat_glop_version is not None:
@@ -441,8 +446,25 @@ class Environment(BaseEnv):
 
         # test the backend returns object of the proper size
         if need_process_backend:
-            self.backend.assert_grid_correct_after_powerflow()
+            
+            # hack to fix an issue with lightsim2grid...
+            # (base class is not reset correctly, will be fixed ASAP)
+            base_cls_ls = None
+            if hasattr(self.backend, "init_pp_backend") and self.backend.init_pp_backend is not None:
+                base_cls_ls = type(self.backend.init_pp_backend)
 
+            self.backend.assert_grid_correct_after_powerflow()
+            
+            # hack to fix an issue with lightsim2grid...
+            # (base class is not reset correctly, will be fixed ASAP)
+            if hasattr(self.backend, "init_pp_backend") and self.backend.init_pp_backend is not None:
+                if self.backend._INIT_GRID_CLS is not None:
+                    # the init grid class has already been properly computed
+                    self.backend._INIT_GRID_CLS._clear_grid_dependant_class_attributes()
+                elif base_cls_ls is not None:
+                    # we need to clear the class of the original type as it has not been properly computed
+                    base_cls_ls._clear_grid_dependant_class_attributes()
+                
         # for gym compatibility
         self.reward_range = self._reward_helper.range()
         self._viewer = None
@@ -883,9 +905,12 @@ class Environment(BaseEnv):
             self.backend.set_thermal_limit(self._thermal_limit_a.astype(dt_float))
 
         self._backend_action = self._backend_action_class()
-        self.nb_time_step = -1  # to have init obs at step 1
-        do_nothing = self._helper_action_env({})
-        *_, fail_to_start, info = self.step(do_nothing)
+        self.nb_time_step = -1  # to have init obs at step 1 (and to prevent 'setting to proper state' "action" to be illegal)
+        init_action = self.chronics_handler.get_init_action()
+        if init_action is None:
+            # default behaviour for grid2op < 1.10.2
+            init_action = self._helper_action_env({})
+        *_, fail_to_start, info = self.step(init_action)
         if fail_to_start:
             raise Grid2OpException(
                 "Impossible to initialize the powergrid, the powerflow diverge at iteration 0. "

@@ -10,6 +10,7 @@ import warnings
 from datetime import datetime, timedelta
 from abc import ABC, abstractmethod
 
+import grid2op
 from grid2op.dtypes import dt_int
 from grid2op.Space import RandomObject
 from grid2op.Exceptions import EnvError
@@ -800,3 +801,22 @@ class GridValue(RandomObject, ABC):
         """
         for _ in range(nb_timestep):
             self.load_next()
+
+    def get_init_action(self) -> "grid2op.Action.playableAction.PlayableAction":
+        """
+        .. versionadded 1.10.2
+
+        It is used when the environment is reset (*ie* when :func:`grid2op.Environment.Environment.reset` is called)
+        to set the grid in its "original" state.
+        
+        Before grid2op 1.10.2 the original state is necessarily "everything connected together".
+        
+        For later version, we let the possibility to set, in the "time series folder" (or time series generators)
+        the possibility to change the initial condition of the grid.
+        
+        Returns
+        -------
+        grid2op.Action.playableAction.PlayableAction
+            The desired intial configuration of the grid
+        """
+        return None

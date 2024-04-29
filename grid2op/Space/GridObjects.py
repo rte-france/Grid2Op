@@ -1343,7 +1343,8 @@ class GridObjects:
                     attr_nm.endswith("to_sub_pos") or
                     attr_nm.startswith("n_") or
                     attr_nm.startswith("dim_topo") or 
-                    attr_nm.startswith("name_")
+                    attr_nm.startswith("name_") or
+                    attr_nm.startswith("shunts_data_available")
                    ):
                     setattr(cls, attr_nm, attr)
             else:
@@ -1352,8 +1353,8 @@ class GridObjects:
         
         # make sure to catch data intiialized even outside of this function
         if not _topo_vect_only:
-            obj._CLS_DICT = None
-            obj._CLS_DICT_EXTENDED = None
+            # obj._CLS_DICT = None
+            # obj._CLS_DICT_EXTENDED = None
             cls._CLS_DICT = None
             cls._CLS_DICT_EXTENDED = None
             tmp = {}
@@ -3814,7 +3815,26 @@ class GridObjects:
             copy_,
         )
 
-
+        # shunts (not in topo vect but still usefull)
+        if cls.shunts_data_available:
+            save_to_dict(
+                res,
+                cls,
+                "name_shunt",
+                (lambda li: [str(el) for el in li]) if as_list else None,
+                copy_,
+            )
+            save_to_dict(
+                res,
+                cls,
+                "shunt_to_subid",
+                (lambda li: [int(el) for el in li]) if as_list else None,
+                copy_,
+            )
+        else:
+            res["name_shunt"] = None
+            res["shunt_to_subid"] = None
+            
         if not _topo_vect_only:
             # all the attributes bellow are not needed for the "first call"
             # to this function when the elements are put together in the topo_vect.
@@ -3848,26 +3868,6 @@ class GridObjects:
                 )
             else:
                 res["grid_layout"] = None
-
-            # shunts
-            if cls.shunts_data_available:
-                save_to_dict(
-                    res,
-                    cls,
-                    "name_shunt",
-                    (lambda li: [str(el) for el in li]) if as_list else None,
-                    copy_,
-                )
-                save_to_dict(
-                    res,
-                    cls,
-                    "shunt_to_subid",
-                    (lambda li: [int(el) for el in li]) if as_list else None,
-                    copy_,
-                )
-            else:
-                res["name_shunt"] = None
-                res["shunt_to_subid"] = None
 
             # storage data
             save_to_dict(
@@ -4013,16 +4013,15 @@ class GridObjects:
         res["dim_topo"] = 1 * cls.dim_topo
         # storage
         res["n_storage"] = cls.n_storage
+        # shunt (not in topo vect but might be usefull)
+        res["shunts_data_available"] = cls.shunts_data_available
+        res["n_shunt"] = cls.n_shunt
         
         if not _topo_vect_only:
             # all the attributes bellow are not needed for the "first call"
             # to this function when the elements are put together in the topo_vect.
             # Indeed, at this stage (first call in the backend.load_grid) these
             # attributes are not loaded yet
-            
-            # shunt
-            res["n_shunt"] = cls.n_shunt
-            res["shunts_data_available"] = cls.shunts_data_available
             
             # redispatching / curtailment
             res[
