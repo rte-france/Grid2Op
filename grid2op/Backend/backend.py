@@ -22,6 +22,7 @@ except ImportError:
     # python version is probably bellow 3.11
     from typing_extensions import Self
     
+import grid2op
 from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Exceptions import (
     EnvError,

@@ -903,6 +903,8 @@ def make_from_dataset_path(
         # TODO: keep only one environment that will delete the files (with a flag in its constructor)
         
         # TODO: explain in doc new behaviour with regards to "class in file"
+        
+        # TODO: basic CI for this "new" mode
         if not experimental_read_from_local_dir:
             init_env = Environment(init_env_path=os.path.abspath(dataset_path),
                                 init_grid_path=grid_path_abs,
@@ -942,12 +944,13 @@ def make_from_dataset_path(
             init_env.backend = None  # to avoid to close the backend when init_env is deleted
             classes_path = os.path.join(sys_path, this_local_dir)
             # to force the reading back of the classes from the hard drive
-            init_env._forget_classes()
+            init_env._forget_classes()  # TODO not implemented
+            init_env.close()
         else:
             classes_path = sys_path
         allow_loaded_backend = True
     else:
-        # legacy behaviour
+        # legacy behaviour (<= 1.10.1 behaviour)
         classes_path = experimental_read_from_local_dir
         if experimental_read_from_local_dir:
             sys_path = os.path.join(os.path.split(grid_path_abs)[0], "_grid2op_classes")

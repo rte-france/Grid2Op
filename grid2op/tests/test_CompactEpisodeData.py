@@ -152,7 +152,6 @@ class TestCompactEpisodeData(unittest.TestCase):
         episode_data = CompactEpisodeData.from_disk(path=f, ep_id=episode_name)
         assert int(episode_data.meta["chronics_max_timestep"]) == self.max_iter
         assert len(episode_data.other_rewards) == self.max_iter
-        print("\n\nOther Rewards:", episode_data.other_reward_names)
         other_reward_idx = episode_data.other_reward_names.index("test")
         other_reward = episode_data.other_rewards[:, other_reward_idx]
         assert np.all(np.abs(other_reward - episode_data.rewards) <= self.tol_one)
@@ -206,12 +205,11 @@ class TestCompactEpisodeData(unittest.TestCase):
 
     def test_3_episode_3process_with_saving(self):
         f = tempfile.mkdtemp()
-        nb_episode = 2
+        nb_episode = 2  
         res = self.runner._run_parrallel(
             nb_episode=nb_episode, nb_process=2, path_save=f,
         )
         assert len(res) == nb_episode
-        print(f"\n\n{f}\n",'\n'.join([str(elt) for elt in Path(f).glob('*')]))
         for i, episode_name, cum_reward, timestep, total_ts in res:
             episode_data = CompactEpisodeData.from_disk(path=f, ep_id=episode_name)
             assert int(episode_data.meta["chronics_max_timestep"]) == self.max_iter
