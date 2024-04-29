@@ -4011,6 +4011,8 @@ class GridObjects:
         res["n_line"] = cls.n_line
         res["n_sub"] = cls.n_sub
         res["dim_topo"] = 1 * cls.dim_topo
+        # storage
+        res["n_storage"] = cls.n_storage
         
         if not _topo_vect_only:
             # all the attributes bellow are not needed for the "first call"
@@ -4021,9 +4023,6 @@ class GridObjects:
             # shunt
             res["n_shunt"] = cls.n_shunt
             res["shunts_data_available"] = cls.shunts_data_available
-            
-            # storage
-            res["n_storage"] = cls.n_storage
             
             # redispatching / curtailment
             res[
