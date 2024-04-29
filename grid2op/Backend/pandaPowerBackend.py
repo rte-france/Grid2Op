@@ -176,7 +176,6 @@ class PandaPowerBackend(Backend):
         self._number_true_line = -1
         self._corresp_name_fun = {}
         self._get_vector_inj = {}
-        self.dim_topo = -1
         self._vars_action = BaseAction.attr_list_vect
         self._vars_action_set = BaseAction.attr_list_vect
         self.cst_1 = dt_float(1.0)
@@ -554,6 +553,8 @@ class PandaPowerBackend(Backend):
         self.name_sub = ["sub_{}".format(i) for i, row in self._grid.bus.iterrows()]
         self.name_sub = np.array(self.name_sub)
 
+        self.n_shunt = self._grid.shunt.shape[0]
+    
         # "hack" to handle topological changes, for now only 2 buses per substation
         add_topo = copy.deepcopy(self._grid.bus)
         # TODO n_busbar: what if non contiguous indexing ???
@@ -653,6 +654,20 @@ class PandaPowerBackend(Backend):
                 self._what_object_where[sub_id].append(("storage", "bus", i))
 
         self.dim_topo = self.sub_info.sum()
+        
+        # shunts data
+        self.shunt_to_subid = np.zeros(self.n_shunt, dtype=dt_int) - 1
+        name_shunt = []
+        # TODO read name from the grid if provided
+        for i, (_, row) in enumerate(self._grid.shunt.iterrows()):
+            bus = int(row["bus"])
+            name_shunt.append("shunt_{bus}_{index_shunt}".format(**row, index_shunt=i))
+            self.shunt_to_subid[i] = bus
+        self.name_shunt = np.array(name_shunt).astype(str)
+        self._sh_vnkv = self._grid.bus["vn_kv"][self.shunt_to_subid].values.astype(
+            dt_float
+        )
+        
         self._compute_pos_big_topo()
 
         # utilities for imeplementing apply_action
@@ -717,21 +732,6 @@ class PandaPowerBackend(Backend):
         self.storage_v = np.full(self.n_storage, dtype=dt_float, fill_value=np.NaN)
         self._nb_bus_before = None
 
-        # shunts data
-        self.n_shunt = self._grid.shunt.shape[0]
-        self.shunt_to_subid = np.zeros(self.n_shunt, dtype=dt_int) - 1
-        name_shunt = []
-        # TODO read name from the grid if provided
-        for i, (_, row) in enumerate(self._grid.shunt.iterrows()):
-            bus = int(row["bus"])
-            name_shunt.append("shunt_{bus}_{index_shunt}".format(**row, index_shunt=i))
-            self.shunt_to_subid[i] = bus
-        self.name_shunt = np.array(name_shunt)
-        self._sh_vnkv = self._grid.bus["vn_kv"][self.shunt_to_subid].values.astype(
-            dt_float
-        )
-        # self.shunts_data_available = True  # TODO shunts_data_available
-
         # store the topoid -> objid
         self._big_topo_to_obj = [(None, None) for _ in range(self.dim_topo)]
         nm_ = "load"
@@ -792,7 +792,12 @@ class PandaPowerBackend(Backend):
             )  # will be initialized in the "assert_grid_correct"
 
     def storage_deact_for_backward_comaptibility(self) -> None:
-        self._init_private_attrs()
+        cls = type(self)
+        self.storage_theta = np.full(cls.n_storage, fill_value=np.NaN, dtype=dt_float)
+        self.storage_p = np.full(cls.n_storage, dtype=dt_float, fill_value=np.NaN)
+        self.storage_q = np.full(cls.n_storage, dtype=dt_float, fill_value=np.NaN)
+        self.storage_v = np.full(cls.n_storage, dtype=dt_float, fill_value=np.NaN)
+        self._topo_vect = self._get_topo_vect()
 
     def _convert_id_topo(self, id_big_topo):
         """
@@ -1177,16 +1182,6 @@ class PandaPowerBackend(Backend):
             self._reset_all_nan()
             msg = exc_.__str__()
             return False, BackendError(f'powerflow diverged with error :"{msg}"')
-
-    def assert_grid_correct(self) -> None:
-        """
-        INTERNAL
-
-        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
-
-            This is done as it should be by the Environment
-        """
-        super().assert_grid_correct()
 
     def _reset_all_nan(self) -> None:
         self.p_or[:] = np.NaN

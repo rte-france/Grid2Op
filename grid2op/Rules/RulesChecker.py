@@ -81,4 +81,8 @@ class RulesChecker(object):
         reason:
             A grid2op IllegalException given the reason for which the action is illegal
         """
+        if env.nb_time_step <= 0:
+          # only access when env is reset
+          return True, None
+      
         return self.legal_action(action, env)

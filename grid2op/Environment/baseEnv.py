@@ -8,6 +8,7 @@
 
 
 from datetime import datetime
+import shutil
 import logging
 import time
 import copy
@@ -3201,6 +3202,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         # somehow "env.step()" or "env.reset()"
         self._has_just_been_seeded =  False  
         
+        cls = type(self)
         has_error = True
         is_done = False
         is_illegal = False
@@ -3217,7 +3219,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         detailed_info = []
         init_disp = 1.0 * action._redispatch  # dispatching action
         init_alert = None
-        if type(self).dim_alerts > 0:
+        if cls.dim_alerts > 0:
             init_alert = copy.deepcopy(action._raise_alert)
             
         action_storage_power = 1.0 * action._storage_power  # battery information
@@ -3231,7 +3233,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         beg_step = time.perf_counter()
         self._last_obs : Optional[BaseObservation] = None
         self._forecasts = None  # force reading the forecast from the time series
-        cls = type(self)
         try:
             beg_ = time.perf_counter()
 
@@ -3342,7 +3343,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                     )
             else:
                 has_error = True
-
         except StopIteration:
             # episode is over
             is_done = True
@@ -4085,6 +4085,50 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         with open(os.path.join(sys_path, "__init__.py"), mode, encoding="utf-8") as f:
             f.write(_init_txt)
 
+    def _forget_classes(self):
+        """
+        This function allows python to "forget" the classes created at the initialization of the environment.
+        
+        It should not be used in most cases and is reserved for internal use only.
+        
+        .. versionadded: 1.10.2
+            Function added following the new behaviour introduced in this version. 
+            
+        """
+        from grid2op.MakeEnv.PathUtils import USE_CLASS_IN_FILE
+        if not USE_CLASS_IN_FILE:
+            return
+        pass
+    
+    def remove_all_class_folders(self):
+        """
+        This function allows python to remove all the files containing all the classes 
+        in the environment.
+        
+        .. warning::
+            If you have pending grid2op "job" using this environment, they will most likely crash
+            so use with extra care !
+        
+        It should not be used in most cases and is reserved for internal use only.
+        
+        .. versionadded: 1.10.2
+            Function added following the new behaviour introduced in this version. 
+            
+        """
+        directory_path = os.path.join(self.get_path_env(), "_grid2op_classes")
+        try:
+            with os.scandir(directory_path) as entries:
+                for entry in entries:
+                    try:
+                        if entry.is_file():
+                            os.unlink(entry.path)
+                        else:
+                            shutil.rmtree(entry.path)
+                    except (OSError, FileNotFoundError):
+                        pass
+        except OSError:
+            pass
+        
     def __del__(self):
         """when the environment is garbage collected, free all the memory, including cross reference to itself in the observation space."""
         if hasattr(self, "_BaseEnv__closed") and not self.__closed:

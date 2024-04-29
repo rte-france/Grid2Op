@@ -6,21 +6,12 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 import json
-import os
-import warnings
-import copy
 import numpy as np
-import grid2op
-from grid2op.Exceptions import (
-    Grid2OpException,
-    EnvError,
-    IncorrectNumberOfElements,
-    NonFiniteElement,
-)
 from grid2op.Action import ActionSpace
 from grid2op.Observation import ObservationSpace
 
 from pathlib import Path as p
+
 
 class CompactEpisodeData():
 
@@ -222,7 +213,6 @@ class CompactEpisodeData():
         """
         Store this Episode's meta data to disk.
         """
-        print({k:(v,type(v)) for k,v in self.meta.items()})
         with open(self.exp_dir / f"{self.ep_id}_metadata.json", "w", encoding="utf-8") as f:
             json.dump(self.meta, f, indent=4, sort_keys=True)
     

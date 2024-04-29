@@ -29,6 +29,11 @@ class LookParam(BaseRules):
     def __call__(self, action, env):
         """
         See :func:`BaseRules.__call__` for a definition of the parameters of this function.
+        
+        ..versionchanged:: 1.10.2
+            In grid2op 1.10.2 this function is not called when the environment is reset:
+            The "action" made by the environment to set the environment in the desired state is always legal
+            
         """
         # at first iteration, env.current_obs is None...
         powerline_status = env.get_current_line_status()

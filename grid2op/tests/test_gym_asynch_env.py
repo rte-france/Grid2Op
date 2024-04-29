@@ -172,11 +172,14 @@ class AsyncGymEnvTester_Fork(unittest.TestCase):
             template_env.close()
             
             
-# class AsyncGymEnvTester_Spawn(AsyncGymEnvTester_Fork):
-# Will be working when branch class_in_files will be merged
-#     def _aux_start_method(self):
-#         return "spawn"
+class AsyncGymEnvTester_Spawn(AsyncGymEnvTester_Fork):
+    # Will be working when branch class_in_files will be merged
+    def _aux_start_method(self):
+        return "spawn"
     
+    def setUp(self) -> None:
+        self.skipTest("Not handled at the moment")
+        return super().setUp()
     
 if __name__ == "__main__":
     unittest.main()

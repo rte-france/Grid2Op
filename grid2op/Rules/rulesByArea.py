@@ -94,6 +94,11 @@ class RulesByArea(BaseRules):
     def __call__(self, action, env):
         """
         See :func:`BaseRules.__call__` for a definition of the _parameters of this function.
+        
+        ..versionchanged:: 1.10.2
+            In grid2op 1.10.2 this function is not called when the environment is reset:
+            The "action" made by the environment to set the environment in the desired state is always legal
+            
         """
         is_legal, reason = PreventDiscoStorageModif.__call__(self, action, env)
         if not is_legal:

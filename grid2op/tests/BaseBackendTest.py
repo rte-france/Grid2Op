@@ -63,7 +63,7 @@ from grid2op.Exceptions import *
 from grid2op.Rules import RulesChecker
 from grid2op.Rules import AlwaysLegal
 from grid2op.Action._backendAction import _BackendAction
-from grid2op.Backend import Backend, PandaPowerBackend
+from grid2op.Backend import PandaPowerBackend
 
 import pdb
                     
