@@ -2135,10 +2135,11 @@ class Backend(GridObjects, ABC):
         in the class name !)
         """
         cls = type(self)
-        for attr_nm, val in cls._CLS_DICT_EXTENDED.items():
-            if hasattr(self, attr_nm) and hasattr(cls, attr_nm):
-                if id(getattr(self, attr_nm)) != id(getattr(cls, attr_nm)):
-                    delattr(self, attr_nm)
+        if cls._CLS_DICT_EXTENDED is not None:
+            for attr_nm, val in cls._CLS_DICT_EXTENDED.items():
+                if hasattr(self, attr_nm) and hasattr(cls, attr_nm):
+                    if id(getattr(self, attr_nm)) != id(getattr(cls, attr_nm)):
+                        delattr(self, attr_nm)
         
     def assert_grid_correct_after_powerflow(self) -> None:
         """

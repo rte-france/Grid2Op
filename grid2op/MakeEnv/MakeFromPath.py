@@ -951,7 +951,7 @@ def make_from_dataset_path(
         allow_loaded_backend = True
     else:
         # legacy behaviour (<= 1.10.1 behaviour)
-        classes_path = experimental_read_from_local_dir
+        classes_path = None if not experimental_read_from_local_dir else experimental_read_from_local_dir
         if experimental_read_from_local_dir:
             sys_path = os.path.join(os.path.split(grid_path_abs)[0], "_grid2op_classes")
             if not os.path.exists(sys_path):

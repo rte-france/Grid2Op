@@ -1353,10 +1353,7 @@ class GridObjects:
         
         # make sure to catch data intiialized even outside of this function
         if not _topo_vect_only:
-            # obj._CLS_DICT = None
-            # obj._CLS_DICT_EXTENDED = None
-            cls._CLS_DICT = None
-            cls._CLS_DICT_EXTENDED = None
+            cls._reset_cls_dict()
             tmp = {}
             GridObjects._make_cls_dict_extended(obj, tmp, as_list=False, copy_=True, _topo_vect_only=False)
 
