@@ -1420,8 +1420,8 @@ class Backend(GridObjects, ABC):
         cls = type(self)
         if self.name_line is None:
             if cls.name_line is None:
-                line_or_to_subid = cls.line_or_to_subid if cls.line_or_to_subid else self.line_or_to_subid
-                line_ex_to_subid = cls.line_ex_to_subid if cls.line_ex_to_subid else self.line_ex_to_subid
+                line_or_to_subid = cls.line_or_to_subid if cls.line_or_to_subid is not None else self.line_or_to_subid
+                line_ex_to_subid = cls.line_ex_to_subid if cls.line_ex_to_subid is not None else self.line_ex_to_subid
                 self.name_line = [
                     "{}_{}_{}".format(or_id, ex_id, l_id)
                     for l_id, (or_id, ex_id) in enumerate(
