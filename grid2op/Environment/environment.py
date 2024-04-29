@@ -253,6 +253,8 @@ class Environment(BaseEnv):
             # type(self.backend)._clear_class_attribute()  # don't do that, tbe backend (in Backend.py) is responsible of that
             type(self.backend).set_env_name(self.name)
             type(self.backend).set_n_busbar_per_sub(self._n_busbar)
+            if self._compat_glop_version is not None:
+                type(self.backend).glop_version = self._compat_glop_version
             self.backend.load_grid(
                 self._init_grid_path
             )  # the real powergrid of the environment
@@ -507,81 +509,87 @@ class Environment(BaseEnv):
                 "read back data (for example with EpisodeData) that were stored with previous "
                 "grid2op version."
             )
+
             if need_process_backend:
-                self.backend.set_env_name(f"{self.name}_{self._compat_glop_version}")
-            cls_bk = type(self.backend)
-            cls_bk.glop_version = self._compat_glop_version
-            if cls_bk.glop_version == cls_bk.BEFORE_COMPAT_VERSION:
-                # oldest version: no storage and no curtailment available
-                # deactivate storage
-                # recompute the topology vector (more or less everything need to be adjusted...
-                stor_locs = [pos for pos in cls_bk.storage_pos_topo_vect]
-                for stor_loc in sorted(stor_locs, reverse=True):
-                    for vect in [
-                        cls_bk.load_pos_topo_vect,
-                        cls_bk.gen_pos_topo_vect,
-                        cls_bk.line_or_pos_topo_vect,
-                        cls_bk.line_ex_pos_topo_vect,
-                    ]:
-                        vect[vect >= stor_loc] -= 1
+                # the following line must be called BEFORE "self.backend.assert_grid_correct()" !
+                self.backend.storage_deact_for_backward_comaptibility()
+                    
+            # if need_process_backend:
+            #     self.backend.set_env_name(f"{self.name}_{self._compat_glop_version}")
+            # cls_bk = type(self.backend)
+            # cls_bk.glop_version = self._compat_glop_version
+            # if cls_bk.glop_version == cls_bk.BEFORE_COMPAT_VERSION:
+            #     # oldest version: no storage and no curtailment available
+            #     # deactivate storage
+            #     # recompute the topology vector (more or less everything need to be adjusted...
+            #     stor_locs = [pos for pos in cls_bk.storage_pos_topo_vect]
+            #     for stor_loc in sorted(stor_locs, reverse=True):
+            #         for vect in [
+            #             cls_bk.load_pos_topo_vect,
+            #             cls_bk.gen_pos_topo_vect,
+            #             cls_bk.line_or_pos_topo_vect,
+            #             cls_bk.line_ex_pos_topo_vect,
+            #         ]:
+            #             vect[vect >= stor_loc] -= 1
 
-                # deals with the "sub_pos" vector
-                for sub_id in range(cls_bk.n_sub):
-                    if (cls_bk.storage_to_subid == sub_id).any():
-                        stor_ids = (cls_bk.storage_to_subid == sub_id).nonzero()[0]
-                        stor_locs = cls_bk.storage_to_sub_pos[stor_ids]
-                        for stor_loc in sorted(stor_locs, reverse=True):
-                            for vect, sub_id_me in zip(
-                                [
-                                    cls_bk.load_to_sub_pos,
-                                    cls_bk.gen_to_sub_pos,
-                                    cls_bk.line_or_to_sub_pos,
-                                    cls_bk.line_ex_to_sub_pos,
-                                ],
-                                [
-                                    cls_bk.load_to_subid,
-                                    cls_bk.gen_to_subid,
-                                    cls_bk.line_or_to_subid,
-                                    cls_bk.line_ex_to_subid,
-                                ],
-                            ):
-                                vect[(vect >= stor_loc) & (sub_id_me == sub_id)] -= 1
+            #     # deals with the "sub_pos" vector
+            #     for sub_id in range(cls_bk.n_sub):
+            #         if (cls_bk.storage_to_subid == sub_id).any():
+            #             stor_ids = (cls_bk.storage_to_subid == sub_id).nonzero()[0]
+            #             stor_locs = cls_bk.storage_to_sub_pos[stor_ids]
+            #             for stor_loc in sorted(stor_locs, reverse=True):
+            #                 for vect, sub_id_me in zip(
+            #                     [
+            #                         cls_bk.load_to_sub_pos,
+            #                         cls_bk.gen_to_sub_pos,
+            #                         cls_bk.line_or_to_sub_pos,
+            #                         cls_bk.line_ex_to_sub_pos,
+            #                     ],
+            #                     [
+            #                         cls_bk.load_to_subid,
+            #                         cls_bk.gen_to_subid,
+            #                         cls_bk.line_or_to_subid,
+            #                         cls_bk.line_ex_to_subid,
+            #                     ],
+            #                 ):
+            #                     vect[(vect >= stor_loc) & (sub_id_me == sub_id)] -= 1
 
-                # remove storage from the number of element in the substation
-                for sub_id in range(cls_bk.n_sub):
-                    cls_bk.sub_info[sub_id] -= (cls_bk.storage_to_subid == sub_id).sum()
-                # remove storage from the total number of element
-                cls_bk.dim_topo -= cls_bk.n_storage
+            #     # remove storage from the number of element in the substation
+            #     for sub_id in range(cls_bk.n_sub):
+            #         cls_bk.sub_info[sub_id] -= (cls_bk.storage_to_subid == sub_id).sum()
+            #     # remove storage from the total number of element
+            #     cls_bk.dim_topo -= cls_bk.n_storage
 
-                # recompute this private member
-                cls_bk._topo_vect_to_sub = np.repeat(
-                    np.arange(cls_bk.n_sub), repeats=cls_bk.sub_info
-                )
-                self.backend._topo_vect_to_sub = np.repeat(
-                    np.arange(cls_bk.n_sub), repeats=cls_bk.sub_info
-                )
+            #     # recompute this private member
+            #     cls_bk._topo_vect_to_sub = np.repeat(
+            #         np.arange(cls_bk.n_sub), repeats=cls_bk.sub_info
+            #     )
+            #     self.backend._topo_vect_to_sub = np.repeat(
+            #         np.arange(cls_bk.n_sub), repeats=cls_bk.sub_info
+            #     )
 
-                new_grid_objects_types = cls_bk.grid_objects_types
-                new_grid_objects_types = new_grid_objects_types[
-                    new_grid_objects_types[:, cls_bk.STORAGE_COL] == -1, :
-                ]
-                cls_bk.grid_objects_types = 1 * new_grid_objects_types
-                self.backend.grid_objects_types = 1 * new_grid_objects_types
+            #     new_grid_objects_types = cls_bk.grid_objects_types
+            #     new_grid_objects_types = new_grid_objects_types[
+            #         new_grid_objects_types[:, cls_bk.STORAGE_COL] == -1, :
+            #     ]
+            #     cls_bk.grid_objects_types = 1 * new_grid_objects_types
+            #     self.backend.grid_objects_types = 1 * new_grid_objects_types
 
-                # erase all trace of storage units
-                cls_bk.set_no_storage()
-                Environment.deactivate_storage(self.backend)
+            #     # erase all trace of storage units
+            #     cls_bk.set_no_storage()
+            #     Environment.deactivate_storage(self.backend)
 
-                if need_process_backend:
-                    # the following line must be called BEFORE "self.backend.assert_grid_correct()" !
-                    self.backend.storage_deact_for_backward_comaptibility()
+            #     if need_process_backend:
+            #         # the following line must be called BEFORE "self.backend.assert_grid_correct()" !
+            #         self.backend.storage_deact_for_backward_comaptibility()
 
-                    # and recomputes everything while making sure everything is consistent
-                    self.backend.assert_grid_correct()
-                    type(self.backend)._topo_vect_to_sub = np.repeat(
-                        np.arange(cls_bk.n_sub), repeats=cls_bk.sub_info
-                    )
-                    type(self.backend).grid_objects_types = new_grid_objects_types
+            #         # and recomputes everything while making sure everything is consistent
+            #         self.backend.assert_grid_correct()
+            #         type(self.backend)._topo_vect_to_sub = np.repeat(
+            #             np.arange(cls_bk.n_sub), repeats=cls_bk.sub_info
+            #         )
+            #         type(self.backend).grid_objects_types = new_grid_objects_types
+            # Environment._clear_class_attribute()
 
     def _voltage_control(self, agent_action, prod_v_chronics):
         """

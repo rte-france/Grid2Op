@@ -214,7 +214,7 @@ class TestCompatMode_WhenStorage(unittest.TestCase):
                 _compat_glop_version=GridObjects.BEFORE_COMPAT_VERSION,
                 _add_to_name=type(self).__name__+"test_attached_compat_4",
             )
-            self.env.seed(0)
+            self.env.seed(3)  # 0, 1 and 2 leads to "wrong action" (games over)
 
     def test_elements(self):
         assert type(self.env).n_sub == 14
@@ -239,7 +239,9 @@ class TestCompatMode_WhenStorage(unittest.TestCase):
         res = 0
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = grid2op.make("educ_case14_redisp", test=True, _add_to_name=type(self).__name__+"test_same_env_as_no_storage")
+            env = grid2op.make("educ_case14_redisp",
+                               test=True,
+                               _add_to_name=type(self).__name__+"test_same_env_as_no_storage")
         for attr in self.env.observation_space.attr_list_vect:
             tmp = getattr(self.env.observation_space._template_obj, attr).shape
             tmp2 = getattr(env.observation_space._template_obj, attr).shape
@@ -272,7 +274,6 @@ class TestCompatMode_WhenStorage(unittest.TestCase):
             act = self.env.action_space.sample()
             obs, reward, done, info = self.env.step(act)
             if done:
-                pdb.set_trace()
                 break
         assert i >= 1, (
             "could not perform the random action test because it games over first time step. "

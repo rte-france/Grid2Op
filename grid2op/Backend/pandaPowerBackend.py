@@ -176,7 +176,6 @@ class PandaPowerBackend(Backend):
         self._number_true_line = -1
         self._corresp_name_fun = {}
         self._get_vector_inj = {}
-        self.dim_topo = -1
         self._vars_action = BaseAction.attr_list_vect
         self._vars_action_set = BaseAction.attr_list_vect
         self.cst_1 = dt_float(1.0)
@@ -791,7 +790,12 @@ class PandaPowerBackend(Backend):
             )  # will be initialized in the "assert_grid_correct"
 
     def storage_deact_for_backward_comaptibility(self) -> None:
-        self._init_private_attrs()
+        cls = type(self)
+        self.storage_theta = np.full(cls.n_storage, fill_value=np.NaN, dtype=dt_float)
+        self.storage_p = np.full(cls.n_storage, dtype=dt_float, fill_value=np.NaN)
+        self.storage_q = np.full(cls.n_storage, dtype=dt_float, fill_value=np.NaN)
+        self.storage_v = np.full(cls.n_storage, dtype=dt_float, fill_value=np.NaN)
+        self._topo_vect = self._get_topo_vect()
 
     def _convert_id_topo(self, id_big_topo):
         """
@@ -1176,16 +1180,6 @@ class PandaPowerBackend(Backend):
             self._reset_all_nan()
             msg = exc_.__str__()
             return False, BackendError(f'powerflow diverged with error :"{msg}"')
-
-    def assert_grid_correct(self) -> None:
-        """
-        INTERNAL
-
-        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
-
-            This is done as it should be by the Environment
-        """
-        super().assert_grid_correct()
 
     def _reset_all_nan(self) -> None:
         self.p_or[:] = np.NaN

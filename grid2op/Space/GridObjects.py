@@ -2888,7 +2888,7 @@ class GridObjects:
         name_res = "{}_{}".format(cls.__name__, gridobj.env_name)
         if gridobj.glop_version != grid2op.__version__:
             name_res += f"_{gridobj.glop_version}"
-
+        
         if gridobj._PATH_GRID_CLASSES is not None:
             # the configuration equires to initialize the classes from the local environment path
             # this might be usefull when using pickle module or multiprocessing on Windows for example
@@ -2929,15 +2929,24 @@ class GridObjects:
         
         res_cls._compute_pos_big_topo_cls()
         res_cls.process_shunt_satic_data()
-        res_cls.process_grid2op_compat()
+        compat_mode = res_cls.process_grid2op_compat()
         res_cls._check_convert_to_np_array()  # convert everything to numpy array
         if force_module is not None:
             res_cls.__module__ = force_module  # hack because otherwise it says "abc" which is not the case
             # best would be to have a look at https://docs.python.org/3/library/types.html
-        if cls._CLS_DICT is not None:
-            res_cls._CLS_DICT = cls._CLS_DICT
-        if cls._CLS_DICT_EXTENDED is not None:
-            res_cls._CLS_DICT_EXTENDED = cls._CLS_DICT_EXTENDED
+        
+        if not compat_mode:
+            # I can reuse the "cls" dictionnary as they did not changed
+            if cls._CLS_DICT is not None:
+                res_cls._CLS_DICT = cls._CLS_DICT
+            if cls._CLS_DICT_EXTENDED is not None:
+                res_cls._CLS_DICT_EXTENDED = cls._CLS_DICT_EXTENDED
+        else:
+            # I need to rewrite the _CLS_DICT and _CLS_DICT_EXTENDED
+            # as the class has been modified with a "compatibility version" mode
+            tmp = {}
+            res_cls._make_cls_dict_extended(res_cls, tmp, as_list=False)
+            
         # store the type created here in the "globals" to prevent the initialization of the same class over and over
         globals()[name_res] = res_cls
         del res_cls
@@ -2965,24 +2974,98 @@ class GridObjects:
         This function can be overloaded, but in this case it's best to call this original method too.
 
         """
+        res = False
         glop_ver = cls._get_grid2op_version_as_version_obj()
         
+        if cls.glop_version == cls.BEFORE_COMPAT_VERSION:
+            # oldest version: no storage and no curtailment available
+            cls._aux_process_old_compat()
+            res = True
+            
         if glop_ver < version.parse("1.6.0"):
             # this feature did not exist before.
             cls.dim_alarms = 0
             cls.assistant_warning_type = None
+            res = True
             
         if glop_ver < version.parse("1.9.1"):
             # this feature did not exists before
             cls.dim_alerts = 0 
             cls.alertable_line_names = []
             cls.alertable_line_ids = []
+            res = True
             
         if glop_ver < version.parse("1.10.0.dev0"):
             # this feature did not exists before
             # I need to set it to the default if set elsewhere
             cls.n_busbar_per_sub = DEFAULT_N_BUSBAR_PER_SUB
+            res = True
+            
+        if res:
+            cls._reset_cls_dict()  # forget the previous class (stored as dict)
+        return res
 
+    @classmethod
+    def _aux_fix_topo_vect_removed_storage(cls):
+        if cls.n_storage == 0:
+            return
+        
+        stor_locs = [pos for pos in cls.storage_pos_topo_vect]
+        for stor_loc in sorted(stor_locs, reverse=True):
+            for vect in [
+                cls.load_pos_topo_vect,
+                cls.gen_pos_topo_vect,
+                cls.line_or_pos_topo_vect,
+                cls.line_ex_pos_topo_vect,
+            ]:
+                vect[vect >= stor_loc] -= 1
+
+        # deals with the "sub_pos" vector
+        for sub_id in range(cls.n_sub):
+            if (cls.storage_to_subid == sub_id).any():
+                stor_ids = (cls.storage_to_subid == sub_id).nonzero()[0]
+                stor_locs = cls.storage_to_sub_pos[stor_ids]
+                for stor_loc in sorted(stor_locs, reverse=True):
+                    for vect, sub_id_me in zip(
+                        [
+                            cls.load_to_sub_pos,
+                            cls.gen_to_sub_pos,
+                            cls.line_or_to_sub_pos,
+                            cls.line_ex_to_sub_pos,
+                        ],
+                        [
+                            cls.load_to_subid,
+                            cls.gen_to_subid,
+                            cls.line_or_to_subid,
+                            cls.line_ex_to_subid,
+                        ],
+                    ):
+                        vect[(vect >= stor_loc) & (sub_id_me == sub_id)] -= 1
+
+        # remove storage from the number of element in the substation
+        for sub_id in range(cls.n_sub):
+            cls.sub_info[sub_id] -= (cls.storage_to_subid == sub_id).sum()
+        # remove storage from the total number of element
+        cls.dim_topo -= cls.n_storage
+
+        # recompute this private member
+        cls._topo_vect_to_sub = np.repeat(
+            np.arange(cls.n_sub), repeats=cls.sub_info
+        )
+
+        new_grid_objects_types = cls.grid_objects_types
+        new_grid_objects_types = new_grid_objects_types[
+            new_grid_objects_types[:, cls.STORAGE_COL] == -1, :
+        ]
+        cls.grid_objects_types = 1 * new_grid_objects_types
+        
+    @classmethod
+    def _aux_process_old_compat(cls):
+        # remove "storage dependant attributes (topo_vect etc.) that are modified !"
+        cls._aux_fix_topo_vect_removed_storage()
+        # deactivate storage
+        cls.set_no_storage()
+            
     @classmethod
     def get_obj_connect_to(cls, _sentinel=None, substation_id=None):
         """
@@ -4291,11 +4374,9 @@ class GridObjects:
 
         # this implementation is 6 times faster than the "cls_to_dict" one below, so i kept it
         me_dict = {}
-        GridObjects._make_cls_dict_extended(cls, me_dict, as_list=False, copy_=False) # TODO serialize the dict of the class not to build this every time
+        GridObjects._make_cls_dict_extended(cls, me_dict, as_list=False, copy_=False)
         other_cls_dict = {}
-        GridObjects._make_cls_dict_extended(
-            other_cls, other_cls_dict, as_list=False, copy_=False
-        )  # TODO serialize the dict of the class not to build this every time
+        GridObjects._make_cls_dict_extended(other_cls, other_cls_dict, as_list=False, copy_=False) 
 
         if me_dict.keys() - other_cls_dict.keys():
             # one key is in me but not in other

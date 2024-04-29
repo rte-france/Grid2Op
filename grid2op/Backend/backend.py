@@ -2117,7 +2117,28 @@ class Backend(GridObjects, ABC):
         my_cls._complete_action_class._add_shunt_data()
         my_cls._complete_action_class._update_value_set()
         my_cls.assert_grid_correct_cls()
+        self._remove_my_attr_cls()
 
+    def _remove_my_attr_cls(self):
+        """
+        INTERNAL
+
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+            
+        This function is called at the end of :func:`Backend.assert_grid_correct` and it "cleans" the attribute of the
+        backend object that are stored in the class now, to avoid discrepency between what has been read from the 
+        grid and what have been processed by grid2op (for example in "compatibility" mode, storage are deactivated, so
+        `self.n_storage` would be different that `type(self).n_storage`)
+        
+        For this to work, the grid must first be initialized correctly, with the proper type (name of the environment
+        in the class name !)
+        """
+        cls = type(self)
+        for attr_nm, val in cls._CLS_DICT_EXTENDED.items():
+            if hasattr(self, attr_nm) and hasattr(cls, attr_nm):
+                if id(getattr(self, attr_nm)) != id(getattr(cls, attr_nm)):
+                    delattr(self, attr_nm)
+        
     def assert_grid_correct_after_powerflow(self) -> None:
         """
         INTERNAL

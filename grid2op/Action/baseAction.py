@@ -782,12 +782,13 @@ class BaseAction(GridObjects):
 
     @classmethod
     def _aux_process_old_compat(cls):
+        super()._aux_process_old_compat()
+        
         # this is really important, otherwise things from grid2op base types will be affected
         cls.authorized_keys = copy.deepcopy(cls.authorized_keys)
         cls.attr_list_vect = copy.deepcopy(cls.attr_list_vect)
 
         # deactivate storage
-        cls.set_no_storage()
         if "set_storage" in cls.authorized_keys:
             cls.authorized_keys.remove("set_storage")
         if "_storage_power" in cls.attr_list_vect:
