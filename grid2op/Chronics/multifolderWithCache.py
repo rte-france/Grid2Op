@@ -200,6 +200,8 @@ class MultifolderWithCache(Multifolder):
             )
             self._cached_data[i] = data
             self.cache_size += 1
+            if self.action_space is not None:
+                data.action_space = self.action_space
 
         if self.cache_size == 0:
             raise RuntimeError("Impossible to initialize the new cache.")

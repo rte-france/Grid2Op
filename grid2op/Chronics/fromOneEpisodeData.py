@@ -25,6 +25,7 @@ from grid2op.Episode import EpisodeData
 
 TYPE_EP_DATA_INGESTED = Union[str, Path, EpisodeData, Tuple[str, str]]
 
+
 class FromOneEpisodeData(GridValue): 
     """This class allows to use the :class:`grid2op.Chronics.handlers.BaseHandler` to read back data 
     stored in :class:`grid2op.Episode.EpisodeData`
@@ -422,3 +423,7 @@ class FromOneEpisodeData(GridValue):
             self.load_next()
             # for this class I suppose the real data AND the forecast are read each step
             self.forecasts()
+            
+    def get_init_action(self) -> Union["grid2op.Action.playableAction.PlayableAction", None]:
+        obs = self._episode_data.observations[0]
+        return self.action_space({"set_bus": obs.topo_vect})

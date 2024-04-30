@@ -379,6 +379,8 @@ class Environment(BaseEnv):
             self.name_sub,
             names_chronics_to_backend=names_chronics_to_backend,
         )
+        # new in grdi2op 1.10.2: used
+        self.chronics_handler.action_space = self._helper_action_env
         self._names_chronics_to_backend = names_chronics_to_backend
         self.delta_time_seconds = dt_float(self.chronics_handler.time_interval.seconds)
         
@@ -1799,7 +1801,7 @@ class Environment(BaseEnv):
                              observation_bk_kwargs,
                              _raw_backend_class,
                              _read_from_local_dir,
-                             n_busbar=DEFAULT_N_BUSBAR_PER_SUB):
+                             n_busbar=DEFAULT_N_BUSBAR_PER_SUB):        
         res = cls(init_env_path=init_env_path,
                   init_grid_path=init_grid_path,
                   chronics_handler=chronics_handler,

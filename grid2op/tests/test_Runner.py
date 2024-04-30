@@ -401,9 +401,8 @@ class TestRunner(HelperTests, unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             with grid2op.make("rte_case14_test", test=True, _add_to_name=type(self).__name__) as env:
+                env.set_max_iter(2 * self.max_iter)
                 runner = Runner(**env.get_params_for_runner())
-        runner.gridStateclass_kwargs["max_iter"] = 2 * self.max_iter
-        runner.chronics_handler.set_max_iter(2 * self.max_iter)
         res = runner.run(nb_episode=1)
         for i, _, cum_reward, timestep, total_ts in res:
             assert int(timestep) == 2 * self.max_iter

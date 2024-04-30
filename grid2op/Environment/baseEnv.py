@@ -742,13 +742,19 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         new_obj._hazards = copy.deepcopy(self._hazards)
         new_obj._env_modification = copy.deepcopy(self._env_modification)
 
+        # action space used by the environment
+        new_obj._game_rules = copy.deepcopy(self._game_rules)
+        new_obj._helper_action_env = self._helper_action_env.copy()
+        new_obj._helper_action_env.legal_action = new_obj._game_rules.legal_action
+        
         # to use the data
         new_obj.done = self.done
         new_obj.current_reward = copy.deepcopy(self.current_reward)
         new_obj.chronics_handler = copy.deepcopy(self.chronics_handler)
-        new_obj._game_rules = copy.deepcopy(self._game_rules)
-        new_obj._helper_action_env = self._helper_action_env.copy()
-        new_obj._helper_action_env.legal_action = new_obj._game_rules.legal_action
+        # retrieve the "pointer" to the new_obj action space (for initializing the grid)
+        new_obj.chronics_handler._real_data._GridValue__action_space = None
+        new_obj.chronics_handler.action_space = new_obj._helper_action_env
+        # action space
         new_obj._action_space = self._action_space.copy()
         new_obj._action_space.legal_action = new_obj._game_rules.legal_action
 

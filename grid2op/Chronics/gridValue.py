@@ -9,11 +9,12 @@ import numpy as np
 import warnings
 from datetime import datetime, timedelta
 from abc import ABC, abstractmethod
+from typing import Union
 
 import grid2op
 from grid2op.dtypes import dt_int
 from grid2op.Space import RandomObject
-from grid2op.Exceptions import EnvError
+from grid2op.Exceptions import EnvError, Grid2OpException
 
 # TODO sous echantillonner ou sur echantilloner les scenario: need to modify everything that affect the number
 # TODO of time steps there, for example "Space.gen_min_time_on" or "params.NB_TIMESTEP_POWERFLOW_ALLOWED" for
@@ -107,6 +108,23 @@ class GridValue(RandomObject, ABC):
         self.maintenance_time = None
         self.maintenance_duration = None
         self.hazard_duration = None
+        
+        # complete action space set by the environment
+        self.__action_space : Union["grid2op.Action.SerializableActionSpace", None] = None  
+        
+    @property
+    def action_space(self)-> Union["grid2op.Action.SerializableActionSpace", None]:
+        return self.__action_space
+    
+    @action_space.setter
+    def action_space(self, values):
+        from grid2op.Action import SerializableActionSpace
+        if not isinstance(values, SerializableActionSpace):
+            raise EnvError(f"Impossible to set the action space with a value of type {type(values)}")
+        if self.__action_space is not None:
+            raise EnvError(f"Impossible to change the action space once initialized.")
+        # TODO maybe raise a warning if the underlying action class is not CompleteAction
+        self.__action_space = values
 
     def get_kwargs(self, dict_):
         """
@@ -116,7 +134,7 @@ class GridValue(RandomObject, ABC):
         pass
 
     @property
-    def max_iter(self):
+    def max_iter(self) -> int:
         return self._max_iter
     
     @max_iter.setter
@@ -131,7 +149,7 @@ class GridValue(RandomObject, ABC):
         order_backend_lines,
         order_backend_subs,
         names_chronics_to_backend,
-    ):
+    ) -> None:
         """
         This function is used to initialize the data generator.
         It can be use to load scenarios, or to initialize noise if scenarios are generated on the fly. It must also
@@ -802,12 +820,12 @@ class GridValue(RandomObject, ABC):
         for _ in range(nb_timestep):
             self.load_next()
 
-    def get_init_action(self) -> "grid2op.Action.playableAction.PlayableAction":
+    def get_init_action(self) -> Union["grid2op.Action.playableAction.PlayableAction", None]:
         """
-        .. versionadded 1.10.2
-
         It is used when the environment is reset (*ie* when :func:`grid2op.Environment.Environment.reset` is called)
         to set the grid in its "original" state.
+        
+        .. versionadded 1.10.2
         
         Before grid2op 1.10.2 the original state is necessarily "everything connected together".
         

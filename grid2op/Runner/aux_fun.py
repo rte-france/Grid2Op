@@ -48,19 +48,18 @@ def _aux_one_process_parrallel(
     add_nb_highres_sim=False,
 ):
     """this is out of the runner, otherwise it does not work on windows / macos"""
-    chronics_handler = ChronicsHandler(
-        chronicsClass=runner.gridStateclass,
-        path=runner.path_chron,
-        **runner.gridStateclass_kwargs
-    )
+    # chronics_handler = ChronicsHandler(
+    #     chronicsClass=runner.gridStateclass,
+    #     path=runner.path_chron,
+    #     **runner.gridStateclass_kwargs
+    # )
     parameters = copy.deepcopy(runner.parameters)
     nb_episode_this_process = len(episode_this_process)
     res = [(None, None, None) for _ in range(nb_episode_this_process)]
     for i, ep_id in enumerate(episode_this_process):
         # `ep_id`: grid2op id of the episode i want to play
         # `i`: my id of the episode played (0, 1, ... episode_this_process)
-        env, agent = runner._new_env(
-            chronics_handler=chronics_handler, parameters=parameters
+        env, agent = runner._new_env(parameters=parameters
         )
         try:
             env_seed = None
@@ -82,7 +81,7 @@ def _aux_one_process_parrallel(
                 use_compact_episode_data=runner.use_compact_episode_data,
             )
             (name_chron, cum_reward, nb_time_step, max_ts, episode_data, nb_highres_sim)  = tmp_
-            id_chron = chronics_handler.get_id()
+            id_chron = env.chronics_handler.get_id()
             res[i] = (id_chron, name_chron, float(cum_reward), nb_time_step, max_ts)
             
             if add_detailed_output:

@@ -40,6 +40,13 @@ class JSONMaintenanceHandler(BaseHandler):
     - "max_daily_number_per_month_maintenance": maximum number of powerlines
       allowed in maintenance at the same time.
     
+    .. warning::
+        Use this class only for the MAINTENANCE and not for environment
+        data ("load_p", "load_q", "prod_p" or "prod_v") nor for 
+        forecast (in this case use :class:`CSVForecastHandler`) 
+        nor for setting the initial state state (in this case use 
+        :class:`JSONInitStateHandler`)
+        
     """
     def __init__(self,
                  array_name="maintenance",

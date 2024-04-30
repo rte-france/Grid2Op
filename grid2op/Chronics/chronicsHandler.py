@@ -88,6 +88,14 @@ class ChronicsHandler(RandomObject):
             ) from exc_
 
     @property
+    def action_space(self):
+        return self._real_data.action_space
+    
+    @action_space.setter
+    def action_space(self, values):
+        self._real_data.action_space = values
+         
+    @property
     def kwargs(self):
         res = copy.deepcopy(self._kwargs)
         if self._real_data is not None:
