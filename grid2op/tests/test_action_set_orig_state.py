@@ -11,8 +11,15 @@ import tempfile
 import numpy as np
 import warnings
 import unittest
-
+try:
+    from lightsim2grid import LightSimBackend
+    LS_AVAIL = True
+except ImportError:
+    LS_AVAIL = False
+    
 import grid2op
+from grid2op.Environment import TimedOutEnvironment, MaskedEnvironment, SingleEnvMultiProcess
+from grid2op.Backend import PandaPowerBackend
 from grid2op.Episode import EpisodeData
 from grid2op.Opponent import FromEpisodeDataOpponent
 from grid2op.Runner import Runner
@@ -30,13 +37,10 @@ from grid2op.Chronics import (FromHandlers,
                               FromNPY)
 from grid2op.Chronics.handlers import CSVHandler, JSONInitStateHandler
 
-# TODO test forecast env
+
 # TODO test with and without shunt
 # TODO test grid2Op compat mode (storage units)
 # TODO test with "names_orig_to_backend"
-# TODO test with lightsimbackend
-# TODO test with Runner
-# TODO test other type of environment (multimix, masked etc.)
 
 
 class TestSetActOrigDefault(unittest.TestCase):
@@ -54,12 +58,16 @@ class TestSetActOrigDefault(unittest.TestCase):
             PATH_DATA_TEST, "5bus_example_act_topo_set_init"
         )
     
+    def _get_backend(self):
+        return PandaPowerBackend()
+    
     def setUp(self) -> None:
         self.env_nm = self._env_path()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self.env = grid2op.make(self.env_nm,
                                     test=True,
+                                    backend=self._get_backend(),
                                     action_class=self._get_act_cls(),
                                     chronics_class=self._get_ch_cls(),
                                     data_feeding_kwargs={"gridvalueClass": self._get_c_cls()}
@@ -71,37 +79,51 @@ class TestSetActOrigDefault(unittest.TestCase):
         assert issubclass(self.env.action_space.subtype, self._get_act_cls())
         assert isinstance(self.env.chronics_handler.real_data, self._get_ch_cls())
         assert isinstance(self.env.chronics_handler.real_data.data, self._get_c_cls())
+        assert isinstance(self.env.backend, type(self._get_backend()))
         
     def tearDown(self) -> None:
         self.env.close()
         return super().tearDown()
     
+    def _aux_reset_env(self, seed, ep_id):
+        obs = self.env.reset(seed=seed, options={"time serie id": ep_id})
+        return obs
+    
+    def _aux_make_step(self, act=None):
+        if act is None:
+            act = self.env.action_space()
+        return self.env.step(act)
+        
+    def _aux_get_init_act(self):
+        return self.env.chronics_handler.get_init_action()
+    
     def test_working_setbus(self):
         # ts id 0 => set_bus
-        self.obs = self.env.reset(seed=0, options={"time serie id": 0})
+        self.obs = self._aux_reset_env(seed=0, ep_id=0)
         
         assert self.obs.topo_vect[self.obs.line_or_pos_topo_vect[1]] == 2
         assert self.obs.topo_vect[self.obs.load_pos_topo_vect[0]] == 2
         assert (self.obs.time_before_cooldown_line == 0).all()
         assert (self.obs.time_before_cooldown_sub == 0).all()
-        obs, reward, done, info = self.env.step(self.env.action_space())
+        
+        obs, reward, done, info = self._aux_make_step()
         assert not done
         assert obs.topo_vect[self.obs.line_or_pos_topo_vect[1]] == 2
         assert obs.topo_vect[self.obs.load_pos_topo_vect[0]] == 2
         assert (obs.time_before_cooldown_line == 0).all()
         assert (obs.time_before_cooldown_sub == 0).all()
         
-
     def test_working_setstatus(self):
         # ts id 1 => set_status
-        self.obs = self.env.reset(seed=0, options={"time serie id": 1})
+        self.obs = self._aux_reset_env(seed=0, ep_id=1)
         
         assert self.obs.topo_vect[self.obs.line_or_pos_topo_vect[1]] == -1
         assert self.obs.topo_vect[self.obs.line_ex_pos_topo_vect[1]] == -1
         assert not self.obs.line_status[1]
         assert (self.obs.time_before_cooldown_line == 0).all()
         assert (self.obs.time_before_cooldown_sub == 0).all()
-        obs, reward, done, info = self.env.step(self.env.action_space())
+        
+        obs, reward, done, info = self._aux_make_step()
         assert not done
         assert obs.topo_vect[self.obs.line_or_pos_topo_vect[1]] == -1
         assert obs.topo_vect[self.obs.line_ex_pos_topo_vect[1]] == -1
@@ -111,14 +133,17 @@ class TestSetActOrigDefault(unittest.TestCase):
         
     def test_rules_ok(self):
         """test that even if the action to set is illegal, it works (case of ts id 2)"""
-        self.obs = self.env.reset(seed=0, options={"time serie id": 2})
+        self.obs = self._aux_reset_env(seed=0, ep_id=2)
         
         assert self.obs.topo_vect[self.obs.line_or_pos_topo_vect[1]] == 2
         assert self.obs.topo_vect[self.obs.line_ex_pos_topo_vect[5]] == 2
         assert (self.obs.time_before_cooldown_line == 0).all()
         assert (self.obs.time_before_cooldown_sub == 0).all()
-        act_init = self.env.chronics_handler.get_init_action()
-        obs, reward, done, info = self.env.step(act_init)
+        act_init = self._aux_get_init_act()
+        if act_init is None:
+            # test not correct for multiprocessing, I stop here
+            return
+        obs, reward, done, info = self._aux_make_step(act_init)
         assert info["exception"] is not None
         assert info["is_illegal"]
         assert obs.topo_vect[self.obs.line_or_pos_topo_vect[1]] == 2
@@ -307,7 +332,130 @@ class TestSetActOrigFromHandlers(TestSetActOrigDefault):
                                                          "init_state_handler": JSONInitStateHandler("init_state_handler")
                                                         }
                                     )
+
+
+class TestSetActOrigLightsim(TestSetActOrigDefault):
+    def _get_backend(self):
+        if not LS_AVAIL:
+            self.skipTest("LightSimBackend is not available")
+        return LightSimBackend()
     
     
+class TestSetActOrigTOEnv(TestSetActOrigDefault):
+    def setUp(self) -> None:
+        super().setUp()
+        env_init = self.env
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env = TimedOutEnvironment(self.env)
+        env_init.close()
+        return LightSimBackend()
+    
+    
+class TestSetActOrigMaskedEnv(TestSetActOrigDefault):
+    def setUp(self) -> None:
+        super().setUp()
+        env_init = self.env
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env = MaskedEnvironment(self.env,
+                                         lines_of_interest=np.array([1, 1, 1, 1, 0, 0, 0, 0]))
+        env_init.close()
+    
+
+def always_true(x):
+    # I can't use lambda in set_filter (lambda cannot be pickled)
+    return True
+
+
+class TestSetActOrigMultiProcEnv(TestSetActOrigDefault):
+    def _aux_reset_env(self, seed, ep_id):
+        # self.env.seed(seed)
+        self.env.set_id(ep_id)
+        obs = self.env.reset()
+        return obs[0]
+
+    def _aux_get_init_act(self):
+        return None
+    
+    def _aux_make_step(self):
+        obs, reward, done, info = self.env.step([self.env_init.action_space(), self.env_init.action_space()])
+        return obs[0], reward[0], done[0], info[0]
+            
+    def setUp(self) -> None:
+        super().setUp()
+        self.env_init = self.env
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env = SingleEnvMultiProcess(self.env, 2)
+        self.env.set_filter(always_true)
+        
+    def tearDown(self) -> None:
+        self.env_init.close()
+        return super().tearDown()
+
+
+class TestSetActOrigForcastEnv(TestSetActOrigDefault):
+    def test_working_setbus(self):
+        super().test_working_setbus()
+        for_env = self.env.get_obs().get_forecast_env()
+        obs, reward, done, info = for_env.step(self.env.action_space())
+        
+    def test_working_setstatus(self):
+        super().test_working_setstatus()
+        for_env = self.env.get_obs().get_forecast_env()
+        obs, reward, done, info = for_env.step(self.env.action_space())
+    
+    def test_rules_ok(self):
+        super().test_rules_ok()
+        for_env = self.env.get_obs().get_forecast_env()
+        obs, reward, done, info = for_env.step(self.env.action_space())
+
+
+class TestSetActOrigRunner(unittest.TestCase):
+    def _env_path(self):
+        return TestSetActOrigDefault._env_path(self)
+    
+    def setUp(self) -> None:
+        self.env_nm = self._env_path()
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env = grid2op.make(self.env_nm,
+                                    test=True
+                                    )
+    def tearDown(self) -> None:
+        self.env.close()
+        return super().tearDown()
+
+    def test_right_init_act(self):
+        runner = Runner(**self.env.get_params_for_runner())
+        res = runner.run(nb_episode=3,
+                         episode_id=[0, 1, 2],
+                         max_iter=10,
+                         add_detailed_output=True)
+        for i, el in enumerate(res):
+            ep_data = el[-1]
+            init_obs = ep_data.observations[0]
+            if i == 0:
+                assert init_obs.topo_vect[init_obs.line_or_pos_topo_vect[1]] == 2
+                assert init_obs.topo_vect[init_obs.load_pos_topo_vect[0]] == 2
+                assert (init_obs.time_before_cooldown_line == 0).all()
+                assert (init_obs.time_before_cooldown_sub == 0).all()
+            elif i == 1:
+                assert init_obs.topo_vect[init_obs.line_or_pos_topo_vect[1]] == -1
+                assert init_obs.topo_vect[init_obs.line_ex_pos_topo_vect[1]] == -1
+                assert not init_obs.line_status[1]
+                assert (init_obs.time_before_cooldown_line == 0).all()
+                assert (init_obs.time_before_cooldown_sub == 0).all()
+            elif i == 2:
+                assert init_obs.topo_vect[init_obs.line_or_pos_topo_vect[1]] == 2
+                assert init_obs.topo_vect[init_obs.line_ex_pos_topo_vect[5]] == 2
+                assert (init_obs.time_before_cooldown_line == 0).all()
+                assert (init_obs.time_before_cooldown_sub == 0).all()
+            else:
+                raise RuntimeError("Test is coded correctly")
+                
+                
+        
 if __name__ == "__main__":
     unittest.main()

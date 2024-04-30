@@ -11,6 +11,7 @@ import os
 import numpy as np
 from datetime import timedelta
 
+from grid2op.Exceptions.envExceptions import EnvError
 from grid2op.dtypes import dt_int
 from grid2op.Exceptions import Grid2OpException, ChronicsError
 from grid2op.Space import RandomObject
@@ -93,8 +94,15 @@ class ChronicsHandler(RandomObject):
     
     @action_space.setter
     def action_space(self, values):
-        self._real_data.action_space = values
-         
+        try:
+            self._real_data.action_space = values
+        except EnvError as exc_:
+            raise EnvError("Impossible to set the action_space for this 'chronics_handler'. "
+                           f"It appears they have already been set previously. Do you try to use "
+                           "The same 'chronics_handler' for two different environment ? "
+                           "If so, you probably should not. \n"
+                           "If you deep copied a 'chronics_handler', you can call `cpy.cleanup_action_space()` "
+                           "on the copy to solve this issue.") from exc_
     @property
     def kwargs(self):
         res = copy.deepcopy(self._kwargs)
@@ -214,3 +222,10 @@ class ChronicsHandler(RandomObject):
             # https://github.com/matplotlib/matplotlib/issues/7852/
             return object.__getattr__(self, name)
         return getattr(self._real_data, name)
+
+    def cleanup_action_space(self):
+        """INTERNAL, used to forget the "old" action_space when the
+        chronics_handler is copied for example.
+        """
+        self._real_data.cleanup_action_space()
+        

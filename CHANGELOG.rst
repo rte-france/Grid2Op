@@ -63,6 +63,7 @@ Change Log
   grid layout was set
 - [FIXED] notebook 5 on loading back data with `EpisodeData`.
 - [FIXED] converter between backends (could not handle more than 2 busbars)
+- [FIXED] a bug in `BaseMultiProcessEnvironment`: set_filter had no impact
 - [IMPROVED] documentation about `obs.simulate` to make it clearer the 
   difference between env.step and obs.simulate on some cases
 - [IMPROVED] type hints on some methods of `GridObjects`

@@ -192,3 +192,7 @@ class FromMultiEpisodeData(GridValue):
         
     def get_init_action(self) -> Union["grid2op.Action.playableAction.PlayableAction", None]:
         return self.data.get_init_action()
+    
+    def cleanup_action_space(self):
+        super().cleanup_action_space()
+        self.data.cleanup_action_space()

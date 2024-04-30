@@ -838,3 +838,15 @@ class GridValue(RandomObject, ABC):
             The desired intial configuration of the grid
         """
         return None
+
+    def cleanup_action_space(self):
+        """
+        INTERNAL
+        
+        Used internally, do not overide
+        
+        It is for example used when making a deepcopy of a `chronics_handler` to make sure
+        the new copy references the proper action space of the new environment.
+        """
+        self.__action_space = None
+        # NB the action space is not closed as it is NOT own by this class

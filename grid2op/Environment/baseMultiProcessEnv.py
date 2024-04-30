@@ -206,6 +206,7 @@ class RemoteEnv(Process):
                 self.remote.send(self.env._time_step)
             elif cmd == "set_filter":
                 self.env.chronics_handler.set_filter(data)
+                self.env.chronics_handler.reset()
                 self.remote.send(None)
             elif cmd == "set_id":
                 self.env.set_id(data)

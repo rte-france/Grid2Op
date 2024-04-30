@@ -294,3 +294,10 @@ class MultifolderWithCache(Multifolder):
         dict_["_DONTUSE_nb_step_called"] = self.__nb_step_called
         dict_["_DONTUSE_nb_init_called"] = self.__nb_init_called
         return super().get_kwargs(dict_)
+
+    def cleanup_action_space(self):
+        super().cleanup_action_space()
+        for el in self._cached_data:
+            if el is None:
+                continue
+            el.cleanup_action_space()

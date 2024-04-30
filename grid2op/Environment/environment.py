@@ -1107,6 +1107,7 @@ class Environment(BaseEnv):
         res["init_grid_path"] = self._init_grid_path
         if with_chronics_handler:
             res["chronics_handler"] = copy.deepcopy(self.chronics_handler)
+            res["chronics_handler"].cleanup_action_space()
         if with_backend:
             if not self.backend._can_be_copied:
                 raise RuntimeError("Impossible to get the kwargs for this "

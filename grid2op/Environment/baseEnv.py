@@ -752,8 +752,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         new_obj.current_reward = copy.deepcopy(self.current_reward)
         new_obj.chronics_handler = copy.deepcopy(self.chronics_handler)
         # retrieve the "pointer" to the new_obj action space (for initializing the grid)
-        new_obj.chronics_handler._real_data._GridValue__action_space = None
+        new_obj.chronics_handler.cleanup_action_space()
         new_obj.chronics_handler.action_space = new_obj._helper_action_env
+        
         # action space
         new_obj._action_space = self._action_space.copy()
         new_obj._action_space.legal_action = new_obj._game_rules.legal_action
