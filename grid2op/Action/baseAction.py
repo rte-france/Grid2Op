@@ -624,6 +624,7 @@ class BaseAction(GridObjects):
 
         """
         res = {}
+        cls = type(self)
         # bool elements
         if self._modif_alert:
             res["raise_alert"] = [
@@ -645,7 +646,7 @@ class BaseAction(GridObjects):
             self._aux_serialize_add_key_change("gen_change_bus", "generators_id", res["change_bus"])
             self._aux_serialize_add_key_change("line_or_change_bus", "lines_or_id", res["change_bus"])
             self._aux_serialize_add_key_change("line_ex_change_bus", "lines_ex_id", res["change_bus"])
-            if hasattr(type(self), "n_storage") and type(self).n_storage:
+            if hasattr(cls, "n_storage") and cls.n_storage:
                 self._aux_serialize_add_key_change("storage_change_bus", "storages_id", res["change_bus"])
             if not res["change_bus"]:
                 del res["change_bus"]
@@ -664,7 +665,7 @@ class BaseAction(GridObjects):
             self._aux_serialize_add_key_set("gen_set_bus", "generators_id", res["set_bus"])
             self._aux_serialize_add_key_set("line_or_set_bus", "lines_or_id", res["set_bus"])
             self._aux_serialize_add_key_set("line_ex_set_bus", "lines_ex_id", res["set_bus"])
-            if hasattr(type(self), "n_storage") and type(self).n_storage:
+            if hasattr(cls, "n_storage") and cls.n_storage:
                 self._aux_serialize_add_key_set("storage_set_bus", "storages_id", res["set_bus"])
             if not res["set_bus"]:
                 del res["set_bus"]
@@ -715,7 +716,7 @@ class BaseAction(GridObjects):
             if not res["injection"]:
                 del res["injection"]
 
-        if type(self).shunts_data_available:
+        if cls.shunts_data_available:
             res["shunt"] = {}
             if np.isfinite(self.shunt_p).any():
                 res["shunt"]["shunt_p"] = [
@@ -6473,3 +6474,51 @@ class BaseAction(GridObjects):
         if self._modif_curtailment:
             self._aux_decompose_as_unary_actions_curtail(cls, group_curtail, res)
         return res
+    
+    def _add_act_and_remove_line_status_only_set(self, other: "BaseAction"):
+        """INTERNAL
+        
+        This is used by the environment when combining action in the "set state" in env.reset.
+        
+        It supposes both self and other are only "set" actions
+        """
+        self += other
+        cls = type(self)
+        # switch off in self the element disconnected in other
+        switched_off = other._set_line_status == -1
+        switched_off |= self._set_topo_vect[cls.line_or_pos_topo_vect] == -1
+        switched_off |= self._set_topo_vect[cls.line_ex_pos_topo_vect] == -1
+        self._set_topo_vect[cls.line_or_pos_topo_vect[switched_off]] = -1
+        self._set_topo_vect[cls.line_ex_pos_topo_vect[switched_off]] = -1
+        self._set_line_status[switched_off] = -1
+        
+        # switch on in self the element reconnected in other
+        switched_on = other._set_line_status == 1
+        switched_on |= self._set_topo_vect[cls.line_or_pos_topo_vect] > 0
+        switched_on |= self._set_topo_vect[cls.line_ex_pos_topo_vect] > 0
+        self._set_topo_vect[cls.line_or_pos_topo_vect[switched_on]] = np.maximum(other._set_topo_vect[cls.line_or_pos_topo_vect[switched_on]],
+                                                                                  0)
+        self._set_topo_vect[cls.line_ex_pos_topo_vect[switched_on]] = np.maximum(other._set_topo_vect[cls.line_ex_pos_topo_vect[switched_on]],
+                                                                                  0)
+        self._set_line_status[switched_on] = 1
+        
+        if (self._set_line_status != 0).any():
+            self._modif_set_status = True
+        if (self._set_topo_vect != 0).any():
+            self._modif_set_bus = True
+
+    def remove_change(self) -> "BaseAction":
+        """This function will modify 'self' and remove all "change" action type. 
+        
+        It is mainly used in the environment, when removing the "change" type for setting the original
+        state of the grid.
+        
+        """
+        if self._change_bus_vect.any():
+            warnings.warn("This action modified the buses with `change_bus` ")
+            self._change_bus_vect[:] = False
+            self._modif_change_bus = False
+        if self._switch_line_status.any():
+            self._switch_line_status[:] = False
+            self._modif_change_status = False
+        return self

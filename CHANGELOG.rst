@@ -64,6 +64,10 @@ Change Log
 - [FIXED] notebook 5 on loading back data with `EpisodeData`.
 - [FIXED] converter between backends (could not handle more than 2 busbars)
 - [FIXED] a bug in `BaseMultiProcessEnvironment`: set_filter had no impact
+- [FIXED] an issue in the `Runner` (`self.chronics_handler` was sometimes used, sometimes not
+  and most of the time incorrectly)
+- [FIXED] on `RemoteEnv` class (impact all multi process environment): the kwargs used to build then backend
+  where not used which could lead to"wrong" backends being used in the sub processes.
 - [IMPROVED] documentation about `obs.simulate` to make it clearer the 
   difference between env.step and obs.simulate on some cases
 - [IMPROVED] type hints on some methods of `GridObjects`

@@ -33,6 +33,7 @@ from grid2op.Environment.baseEnv import BaseEnv
 from grid2op.Opponent import BaseOpponent, NeverAttackBudget
 from grid2op.operator_attention import LinearAttentionBudget
 from grid2op.Space import DEFAULT_N_BUSBAR_PER_SUB
+from grid2op.typing_variables import RESET_OPTIONS_TYPING
 
 
 class Environment(BaseEnv):
@@ -807,7 +808,7 @@ class Environment(BaseEnv):
         return "<{} instance named {}>".format(type(self).__name__, self.name)
         # TODO be closer to original gym implementation
 
-    def reset_grid(self):
+    def reset_grid(self, init_state_dict=None, method="combine"):
         """
         INTERNAL
 
@@ -831,10 +832,23 @@ class Environment(BaseEnv):
 
         self._backend_action = self._backend_action_class()
         self.nb_time_step = -1  # to have init obs at step 1 (and to prevent 'setting to proper state' "action" to be illegal)
-        init_action = self.chronics_handler.get_init_action()
+        init_action : BaseAction = self.chronics_handler.get_init_action()
         if init_action is None:
             # default behaviour for grid2op < 1.10.2
             init_action = self._helper_action_env({})
+        else:
+            init_action.remove_change()
+            
+        if init_state_dict is not None:
+            init_act_opt : BaseAction = self._helper_action_env(init_state_dict)
+            if method == "combine":
+                init_action._add_act_and_remove_line_status_only_set(init_act_opt)
+            elif method == "ignore":
+                init_action = init_act_opt
+            else:
+                raise Grid2OpException(f"kwargs `method` used to set the initial state of the grid "
+                                       f"is not understood (use one of `combine` or `ignore` and "
+                                       f"not `{method}`)")
         *_, fail_to_start, info = self.step(init_action)
         if fail_to_start:
             raise Grid2OpException(
@@ -863,7 +877,7 @@ class Environment(BaseEnv):
     def reset(self, 
               *,
               seed: Union[int, None] = None,
-              options: Union[Dict[Union[str, Literal["time serie id"]], Union[int, str]], None] = None) -> BaseObservation:
+              options: RESET_OPTIONS_TYPING = None) -> BaseObservation:
         """
         Reset the environment to a clean state.
         It will reload the next chronics if any. And reset the grid to a clean state.
@@ -932,6 +946,65 @@ class Environment(BaseEnv):
             obs = env.reset(options={"time serie id": time_serie_id})
             ... 
         
+        Another feature has been added in version 1.10.2, which is the possibility to set the 
+        grid to a given "topological" state at the first observation (before this version, 
+        you could only retrieve an observation with everything connected together). 
+        
+        In grid2op 1.10.2, you can do that by using the keys `"init state"` in the "options" kwargs of 
+        the reset function. The value associated to this key should be dictionnary that can be
+        converted to a non ambiguous grid2op action using an "action space".
+        
+        .. notes::
+            The "action space" used here is not the action space of the agent. It's an "action
+            space" that uses a :grid2op:`Action.Action.BaseAction` class meaning you can do any
+            type of action, on shunts, on topology, on line status etc. even if the agent is not
+            allowed to.
+            
+            Likewise, nothing check if this action is legal or not.
+            
+        You can use it like this:
+        
+        .. code-block:: python
+
+            # to start an episode with a line disconnected, you can do:
+            init_state_dict = {"set_line_status": [(0, -1)]}
+            obs = env.reset(options={"init state": init_state_dict})
+            obs.line_status[0] is False
+            
+            # to start an episode with a different topolovy
+            init_state_dict = {"set_bus": {"lines_or_id": [(0, 2)], "lines_ex_id": [(3, 2)]}}
+            obs = env.reset(options={"init state": init_state_dict})
+            
+        .. note::
+            Since grid2op version 1.10.2, there is also the possibility to set the "initial state"
+            of the grid directly in the time series. The priority is always given to the 
+            argument passed in the "options" value. 
+            
+            Concretely if, in the "time series" (formelly called "chronics") provides an action would change
+            the topology of substation 1 and 2 (for example) and you provide an action that disable the
+            line 6, then the initial state will see substation 1 and 2 changed (as in the time series)
+            and line 6 disconnected. 
+            
+            Another example in this case: if the action you provide would change topology of substation 2 and 4
+            then the initial state (after `env.reset`) will give:
+            - substation 1 as in the time serie
+            - substation 2 as in "options"
+            - substation 4 as in "options"
+        
+        .. note::
+            Concerning the previously described behaviour, if you want to ignore the data in the
+            time series, you can add : `"method": "ignore"` in the dictionary describing the action.
+            In this case the action in the time series will be totally ignored and the initial
+            state will be fully set by the action passed in the "options" dict.
+            
+            An example is:
+            
+            .. code-block:: python
+
+                init_state_dict = {"set_line_status": [(0, -1)], "method": "force"}
+                obs = env.reset(options={"init state": init_state_dict})
+                obs.line_status[0] is False
+            
         """
         super().reset(seed=seed, options=options)
             
@@ -947,7 +1020,20 @@ class Environment(BaseEnv):
         self._reset_maintenance()
         self._reset_redispatching()
         self._reset_vectors_and_timings()  # it need to be done BEFORE to prevent cascading failure when there has been
-        self.reset_grid()
+        method = "combine"
+        act_as_dict = None
+        if "init state" in options:
+            act_as_dict = options["init state"]
+            if "method" in act_as_dict:
+                method = act_as_dict["method"]
+                del act_as_dict["method"]
+            init_state : BaseAction = self._helper_action_env(act_as_dict)
+            ambiguous, except_tmp = init_state.is_ambiguous()
+            if ambiguous:
+                raise Grid2OpException("You provided an invalid (ambiguous) action to set the 'init state'") from except_tmp
+            init_state.remove_change()
+            
+        self.reset_grid(act_as_dict, method)
         if self.viewer_fig is not None:
             del self.viewer_fig
             self.viewer_fig = None
@@ -1108,12 +1194,17 @@ class Environment(BaseEnv):
         if with_chronics_handler:
             res["chronics_handler"] = copy.deepcopy(self.chronics_handler)
             res["chronics_handler"].cleanup_action_space()
+        
+        # deals with the backend
         if with_backend:
             if not self.backend._can_be_copied:
                 raise RuntimeError("Impossible to get the kwargs for this "
                                    "environment, the backend cannot be copied.")
             res["backend"] = self.backend.copy()
             res["backend"]._is_loaded = False  # i can reload a copy of an environment
+        else:
+            res["_backend_kwargs"] = self.backend._my_kwargs
+        
         res["parameters"] = copy.deepcopy(self._parameters)
         res["names_chronics_to_backend"] = copy.deepcopy(
             self._names_chronics_to_backend

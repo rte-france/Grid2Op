@@ -87,7 +87,7 @@ class RemoteEnv(Process):
         """
         self.space_prng = np.random.RandomState()
         self.space_prng.seed(seed=self.seed_used)
-        self.backend = self.env_params["_raw_backend_class"]()
+        self.backend = self.env_params["_raw_backend_class"](**self.env_params["_backend_kwargs"])
         with warnings.catch_warnings():
             # warnings have bee already sent in the main process, no need to resend them
             warnings.filterwarnings("ignore")

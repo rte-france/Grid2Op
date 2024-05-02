@@ -299,7 +299,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
     #: this are the keys of the dictionnary `options`
     #: that can be used when calling `env.reset(..., options={})`
-    KEYS_RESET_OPTIONS = {"time serie id"}
+    KEYS_RESET_OPTIONS = {"time serie id", "init state"}
     
     
     def __init__(

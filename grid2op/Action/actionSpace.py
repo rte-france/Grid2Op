@@ -10,6 +10,7 @@ import warnings
 import copy
 from typing import Dict, List, Any, Literal
 
+import grid2op
 from grid2op.Action.baseAction import BaseAction
 from grid2op.Action.serializableActionSpace import SerializableActionSpace
 
