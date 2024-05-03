@@ -77,7 +77,8 @@ class OneChangeThenNothing(BaseAgent):
 
     def __init__(self, action_space):
         BaseAgent.__init__(self, action_space)
-        warnings.warn(f"Deprecated class, please use `env.reset(options={'init state': {env.action_space(acts_dict_[0]).to_json()}})` instead")
+        cls = type(self)
+        warnings.warn(f"Deprecated class, please use `env.reset(options={{'init state': {self.action_space(cls.my_dict).to_json()}, 'method': 'ignore' }})` instead")
         self.has_changed = False
         self.do_nothing_action = self.action_space({})
 

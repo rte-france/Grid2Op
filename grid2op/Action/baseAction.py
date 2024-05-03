@@ -6522,11 +6522,8 @@ class BaseAction(GridObjects):
         switched_on |= other._set_topo_vect[cls.line_ex_pos_topo_vect] > 0
         self._set_line_status[switched_on] = 1
         # "reconnect" object through topo vect
-        or_topo_vect = other._set_topo_vect > 0
-        self._set_topo_vect[or_topo_vect] = other._set_topo_vect[or_topo_vect]
-        # "reconnect" object through topo vect
-        ex_topo_vect = other._set_topo_vect > 0
-        self._set_topo_vect[or_topo_vect] = other._set_topo_vect[ex_topo_vect]
+        topo_vect = other._set_topo_vect > 0
+        self._set_topo_vect[topo_vect] = other._set_topo_vect[topo_vect]
         
         if (self._set_line_status != 0).any():
             self._modif_set_status = True
