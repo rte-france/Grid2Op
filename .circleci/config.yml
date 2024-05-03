@@ -164,7 +164,7 @@ jobs:
                    grid2op.testinstall
 
     legacy_lightsim:               
-        executor: python310
+        executor: python38  # needs to be 38: whl of lightsim were not released for 3.10 at the time
         resource_class: small
         steps:
             - checkout

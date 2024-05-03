@@ -1156,7 +1156,10 @@ class Environment(BaseEnv):
         self._custom_deepcopy_for_copy(res)
         return res
 
-    def get_kwargs(self, with_backend=True, with_chronics_handler=True):
+    def get_kwargs(self,
+                   with_backend=True,
+                   with_chronics_handler=True,
+                   with_backend_kwargs=False):
         """
         This function allows to make another Environment with the same parameters as the one that have been used
         to make this one.
@@ -1206,8 +1209,6 @@ class Environment(BaseEnv):
                                    "environment, the backend cannot be copied.")
             res["backend"] = self.backend.copy()
             res["backend"]._is_loaded = False  # i can reload a copy of an environment
-        else:
-            res["_backend_kwargs"] = self.backend._my_kwargs
         
         res["parameters"] = copy.deepcopy(self._parameters)
         res["names_chronics_to_backend"] = copy.deepcopy(
@@ -1223,7 +1224,14 @@ class Environment(BaseEnv):
         res["voltagecontrolerClass"] = self._voltagecontrolerClass
         res["other_rewards"] = {k: v.rewardClass for k, v in self.other_rewards.items()}
         res["name"] = self.name
+        
         res["_raw_backend_class"] = self._raw_backend_class
+        if with_backend_kwargs:
+            # used for multi processing, to pass exactly the
+            # right things when building the backends
+            # in each sub process
+            res["_backend_kwargs"] = self.backend._my_kwargs
+            
         res["with_forecast"] = self.with_forecast
 
         res["opponent_space_type"] = self._opponent_space_type
