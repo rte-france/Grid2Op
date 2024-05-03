@@ -25,4 +25,6 @@ STEP_INFO_TYPING = Dict[Literal["disc_lines",
                         Any]
 
 #: type hints for the "options" flag of reset function
-RESET_OPTIONS_TYPING = Union[Dict[Union[Literal["time serie id", "init state"], str], Union[int, str]], None]
+RESET_OPTIONS_TYPING = Union[Dict[Literal["time serie id", "init state"], str],
+                             Dict[Union[int, str]],
+                             None]

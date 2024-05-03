@@ -164,7 +164,7 @@ jobs:
                    grid2op.testinstall
 
     legacy_lightsim:               
-        executor: python38
+        executor: python310
         resource_class: small
         steps:
             - checkout

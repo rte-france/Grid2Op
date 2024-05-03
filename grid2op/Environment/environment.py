@@ -1006,6 +1006,22 @@ class Environment(BaseEnv):
                 obs.line_status[0] is False
             
         """
+        # process the "options" kwargs
+        # (if there is an init state then I need to process it to remove the 
+        # some keys)
+        method = "combine"
+        act_as_dict = None
+        if options is not None and "init state" in options:
+            act_as_dict = options["init state"]
+            if "method" in act_as_dict:
+                method = act_as_dict["method"]
+                del act_as_dict["method"]
+            init_state : BaseAction = self._helper_action_env(act_as_dict)
+            ambiguous, except_tmp = init_state.is_ambiguous()
+            if ambiguous:
+                raise Grid2OpException("You provided an invalid (ambiguous) action to set the 'init state'") from except_tmp
+            init_state.remove_change()
+        
         super().reset(seed=seed, options=options)
             
         self.chronics_handler.next_chronics()
@@ -1020,18 +1036,6 @@ class Environment(BaseEnv):
         self._reset_maintenance()
         self._reset_redispatching()
         self._reset_vectors_and_timings()  # it need to be done BEFORE to prevent cascading failure when there has been
-        method = "combine"
-        act_as_dict = None
-        if "init state" in options:
-            act_as_dict = options["init state"]
-            if "method" in act_as_dict:
-                method = act_as_dict["method"]
-                del act_as_dict["method"]
-            init_state : BaseAction = self._helper_action_env(act_as_dict)
-            ambiguous, except_tmp = init_state.is_ambiguous()
-            if ambiguous:
-                raise Grid2OpException("You provided an invalid (ambiguous) action to set the 'init state'") from except_tmp
-            init_state.remove_change()
             
         self.reset_grid(act_as_dict, method)
         if self.viewer_fig is not None:
