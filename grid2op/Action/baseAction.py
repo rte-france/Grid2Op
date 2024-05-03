@@ -6510,21 +6510,23 @@ class BaseAction(GridObjects):
         cls = type(self)
         # switch off in self the element disconnected in other
         switched_off = other._set_line_status == -1
-        switched_off |= self._set_topo_vect[cls.line_or_pos_topo_vect] == -1
-        switched_off |= self._set_topo_vect[cls.line_ex_pos_topo_vect] == -1
+        switched_off |= other._set_topo_vect[cls.line_or_pos_topo_vect] == -1
+        switched_off |= other._set_topo_vect[cls.line_ex_pos_topo_vect] == -1
         self._set_topo_vect[cls.line_or_pos_topo_vect[switched_off]] = -1
         self._set_topo_vect[cls.line_ex_pos_topo_vect[switched_off]] = -1
         self._set_line_status[switched_off] = -1
         
         # switch on in self the element reconnected in other
         switched_on = other._set_line_status == 1
-        switched_on |= self._set_topo_vect[cls.line_or_pos_topo_vect] > 0
-        switched_on |= self._set_topo_vect[cls.line_ex_pos_topo_vect] > 0
-        self._set_topo_vect[cls.line_or_pos_topo_vect[switched_on]] = np.maximum(other._set_topo_vect[cls.line_or_pos_topo_vect[switched_on]],
-                                                                                  0)
-        self._set_topo_vect[cls.line_ex_pos_topo_vect[switched_on]] = np.maximum(other._set_topo_vect[cls.line_ex_pos_topo_vect[switched_on]],
-                                                                                  0)
+        switched_on |= other._set_topo_vect[cls.line_or_pos_topo_vect] > 0
+        switched_on |= other._set_topo_vect[cls.line_ex_pos_topo_vect] > 0
         self._set_line_status[switched_on] = 1
+        # "reconnect" object through topo vect
+        or_topo_vect = other._set_topo_vect > 0
+        self._set_topo_vect[or_topo_vect] = other._set_topo_vect[or_topo_vect]
+        # "reconnect" object through topo vect
+        ex_topo_vect = other._set_topo_vect > 0
+        self._set_topo_vect[or_topo_vect] = other._set_topo_vect[ex_topo_vect]
         
         if (self._set_line_status != 0).any():
             self._modif_set_status = True

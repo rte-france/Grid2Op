@@ -6,6 +6,7 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
+import warnings
 from grid2op.Agent.baseAgent import BaseAgent
 
 
@@ -76,7 +77,7 @@ class OneChangeThenNothing(BaseAgent):
 
     def __init__(self, action_space):
         BaseAgent.__init__(self, action_space)
-        warnings.warn(f"Deprecated class, please use `env.reset(options={'init state': {self._get_dict_act().to_json()}})` instead")
+        warnings.warn(f"Deprecated class, please use `env.reset(options={'init state': {env.action_space(acts_dict_[0]).to_json()}})` instead")
         self.has_changed = False
         self.do_nothing_action = self.action_space({})
 

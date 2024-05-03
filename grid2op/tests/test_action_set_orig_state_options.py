@@ -51,13 +51,12 @@ class TestSetActOptionDefault(unittest.TestCase):
     
     def test_combine_ts_set_bus_opt_setbus_nopb(self):
         # ts id 0 => set_bus (in the time series)
-        self.obs = self._aux_reset_env(seed=0, ep_id=0, init_state={"set_bus": {"lines_or_id": [(5, 2)]}})
-        
+        self.obs = self._aux_reset_env(seed=0, ep_id=0, init_state={"set_bus": {"lines_or_id": [(0, 2)]}})
         # in the time series
         assert self.obs.topo_vect[self.obs.line_or_pos_topo_vect[1]] == 2
         assert self.obs.topo_vect[self.obs.load_pos_topo_vect[0]] == 2
         # in the action
-        assert self.obs.topo_vect[self.obs.line_or_pos_topo_vect[5]] == 2
+        assert self.obs.topo_vect[self.obs.line_or_pos_topo_vect[0]] == 2
     
     def test_combine_ts_set_bus_opt_setbus_collision(self):
         # ts id 0 => set_bus (in the time series)
