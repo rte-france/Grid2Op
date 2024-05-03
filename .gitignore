@@ -403,6 +403,11 @@ grid2op/tests/requirements.txt
 grid2op/tests/venv_test_311/
 issue_577/
 junk.py
+grid2op/tests/20240429_failed_tests.txt
+grid2op/tests/20240429_failed_tests_small.txt
+grid2op/tests/20240429_teq_test.txt
+grid2op/tests/req_38_np121
+test_make_2_envs.py
 
 # profiling files
 **.prof

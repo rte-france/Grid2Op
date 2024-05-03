@@ -6435,7 +6435,6 @@ class BaseAction(GridObjects):
                     tmp += a
             assert tmp == act
         
-        
         Parameters
         ----------
         group_topo : bool, optional
@@ -6499,12 +6498,15 @@ class BaseAction(GridObjects):
             self._aux_decompose_as_unary_actions_curtail(cls, group_curtail, res)
         return res
     
-    def _add_act_and_remove_line_status_only_set(self, other: "BaseAction"):
+    def _add_act_and_remove_line_status_only_set(self, other: "BaseAction") -> "BaseAction":
         """INTERNAL
         
         This is used by the environment when combining action in the "set state" in env.reset.
         
         It supposes both self and other are only "set" actions
+        
+        .. versionadded:: 1.10.2
+        
         """
         self += other
         cls = type(self)
@@ -6529,12 +6531,15 @@ class BaseAction(GridObjects):
             self._modif_set_status = True
         if (self._set_topo_vect != 0).any():
             self._modif_set_bus = True
+        return self
 
     def remove_change(self) -> "BaseAction":
         """This function will modify 'self' and remove all "change" action type. 
         
         It is mainly used in the environment, when removing the "change" type for setting the original
         state of the grid.
+        
+        .. versionadded:: 1.10.2
         
         """
         if self._change_bus_vect.any():

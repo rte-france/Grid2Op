@@ -41,8 +41,6 @@ from grid2op.Chronics.handlers import CSVHandler, JSONInitStateHandler
 
 
 # TODO test "change" is deactivated
-# TODO test grid2Op compat mode (storage units)
-# TODO test with redispatching and curtailment actions
 # TODO test with "names_orig_to_backend"
 
 
