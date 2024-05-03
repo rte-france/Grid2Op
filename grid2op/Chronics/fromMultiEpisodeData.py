@@ -152,6 +152,9 @@ class FromMultiEpisodeData(GridValue):
             names_chronics_to_backend=names_chronics_to_backend,
         )
         self._episode_data = self.data._episode_data 
+        if self.action_space is not None:
+            if self.data.action_space is None:
+                self.data.action_space = self.action_space
         
     def done(self):
         return self.data.done()
@@ -186,3 +189,10 @@ class FromMultiEpisodeData(GridValue):
     
     def fast_forward(self, nb_timestep):
         self.data.fast_forward(nb_timestep)
+        
+    def get_init_action(self) -> Union["grid2op.Action.playableAction.PlayableAction", None]:
+        return self.data.get_init_action()
+    
+    def cleanup_action_space(self):
+        super().cleanup_action_space()
+        self.data.cleanup_action_space()

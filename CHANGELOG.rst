@@ -33,6 +33,12 @@ Change Log
 
 [1.10.2] - 2024-xx-yy
 -------------------------
+- [BREAKING] the `runner.run_one_episode` now returns an extra first argument: 
+  `chron_id, chron_name, cum_reward, timestep, max_ts = runner.run_one_episode()` which 
+  is consistant with `runner.run(...)` (previously it returned only 
+  `chron_name, cum_reward, timestep, max_ts = runner.run_one_episode()`)
+- [BREAKING] the runner now has no `chronics_handler` attribute (`runner.chronics_handler` 
+  is not defined)
 - [ADDED] it is now possible to call `change_reward` directly from 
   an observation (no need to do it from the Observation Space)
 - [ADDED] method to change the reward from the observation (observation_space
@@ -40,10 +46,15 @@ Change Log
 - [ADDED] a way to automatically set the `experimental_read_from_local_dir` flags 
   (with automatic class creation). For now it is disable by default, but you can 
   activate it transparently (see doc)
-- [ADDED] TODO the possibility to set the grid in an initial state (using an action) TODO
+- [ADDED] possibility to set the grid to an initial state (using an action) when using the
+  "time series" classes. The supported classes are `GridStateFromFile` - and all its derivative, 
+  `FromOneEpisodeData`, `FromMultiEpisodeData`, `FromNPY` and `FromHandlers`. The classes `ChangeNothing`
+  and `FromChronix2grid` are not supported at the moment.
+- [ADDED] an "Handler" (`JSONInitStateHandler`) that can set the grid to an initial state (so as to make
+  compatible the `FromHandlers` time series class with this new feature)
 - [FIXED] a small issue that could lead to having 
   "redispatching_unit_commitment_availble" flag set even if the redispatching
-  data was not loded correctly
+  data was not loaded correctly
 - [FIXED] EducPandaPowerBackend now properly sends numpy array in the class attributes
   (instead of pandas series)
 - [FIXED] an issue when loading back data (with `EpisodeData`): when there were no storage units
@@ -52,6 +63,11 @@ Change Log
   grid layout was set
 - [FIXED] notebook 5 on loading back data with `EpisodeData`.
 - [FIXED] converter between backends (could not handle more than 2 busbars)
+- [FIXED] a bug in `BaseMultiProcessEnvironment`: set_filter had no impact
+- [FIXED] an issue in the `Runner` (`self.chronics_handler` was sometimes used, sometimes not
+  and most of the time incorrectly)
+- [FIXED] on `RemoteEnv` class (impact all multi process environment): the kwargs used to build then backend
+  where not used which could lead to"wrong" backends being used in the sub processes.
 - [IMPROVED] documentation about `obs.simulate` to make it clearer the 
   difference between env.step and obs.simulate on some cases
 - [IMPROVED] type hints on some methods of `GridObjects`

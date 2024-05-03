@@ -905,6 +905,11 @@ def make_from_dataset_path(
         # TODO: explain in doc new behaviour with regards to "class in file"
         
         # TODO: basic CI for this "new" mode
+        
+        # TODO: use the tempfile.TemporaryDirectory() to hold the classes, and in the (real) env copy, runner , env.get_kwargs() 
+        # or whatever
+        # reference this "tempfile.TemporaryDirectory()" which will be deleted automatically
+        # when every "pointer" to it are deleted, this sounds more reasonable
         if not experimental_read_from_local_dir:
             init_env = Environment(init_env_path=os.path.abspath(dataset_path),
                                 init_grid_path=grid_path_abs,

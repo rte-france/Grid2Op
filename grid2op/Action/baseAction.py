@@ -10,6 +10,8 @@ import copy
 import numpy as np
 import warnings
 from typing import Tuple, Dict, Literal, Any, List
+
+
 try:
     from typing import Self
 except ImportError:
@@ -17,6 +19,8 @@ except ImportError:
     
 from packaging import version
 
+import grid2op
+from grid2op.typing_variables import DICT_ACT_TYPING
 from grid2op.dtypes import dt_int, dt_bool, dt_float
 from grid2op.Exceptions import *
 from grid2op.Space import GridObjects
@@ -624,6 +628,7 @@ class BaseAction(GridObjects):
 
         """
         res = {}
+        cls = type(self)
         # bool elements
         if self._modif_alert:
             res["raise_alert"] = [
@@ -645,7 +650,7 @@ class BaseAction(GridObjects):
             self._aux_serialize_add_key_change("gen_change_bus", "generators_id", res["change_bus"])
             self._aux_serialize_add_key_change("line_or_change_bus", "lines_or_id", res["change_bus"])
             self._aux_serialize_add_key_change("line_ex_change_bus", "lines_ex_id", res["change_bus"])
-            if hasattr(type(self), "n_storage") and type(self).n_storage:
+            if hasattr(cls, "n_storage") and cls.n_storage:
                 self._aux_serialize_add_key_change("storage_change_bus", "storages_id", res["change_bus"])
             if not res["change_bus"]:
                 del res["change_bus"]
@@ -664,7 +669,7 @@ class BaseAction(GridObjects):
             self._aux_serialize_add_key_set("gen_set_bus", "generators_id", res["set_bus"])
             self._aux_serialize_add_key_set("line_or_set_bus", "lines_or_id", res["set_bus"])
             self._aux_serialize_add_key_set("line_ex_set_bus", "lines_ex_id", res["set_bus"])
-            if hasattr(type(self), "n_storage") and type(self).n_storage:
+            if hasattr(cls, "n_storage") and cls.n_storage:
                 self._aux_serialize_add_key_set("storage_set_bus", "storages_id", res["set_bus"])
             if not res["set_bus"]:
                 del res["set_bus"]
@@ -715,7 +720,7 @@ class BaseAction(GridObjects):
             if not res["injection"]:
                 del res["injection"]
 
-        if type(self).shunts_data_available:
+        if cls.shunts_data_available:
             res["shunt"] = {}
             if np.isfinite(self.shunt_p).any():
                 res["shunt"]["shunt_p"] = [
@@ -2094,11 +2099,31 @@ class BaseAction(GridObjects):
 
     def _digest_storage(self, dict_):
         if "set_storage" in dict_:
-            self.storage_p = dict_["set_storage"]
-
+            try:
+                self.storage_p = dict_["set_storage"]
+            except IllegalAction as exc_:
+                cls = type(self)
+                # only raise the error if I am not in compat mode
+                if cls.glop_version == grid2op.__version__:
+                    raise exc_
+                else:
+                    # TODO be more specific on the version
+                    warnings.warn(f"Ignored error on storage units, because "
+                                  f"you are in a backward compatibility mode.")
+                    
     def _digest_curtailment(self, dict_):
         if "curtail" in dict_:
-            self.curtail = dict_["curtail"]
+            try:
+                self.curtail = dict_["curtail"]
+            except IllegalAction as exc_:
+                cls = type(self)
+                # only raise the error if I am not in compat mode
+                if cls.glop_version == grid2op.__version__:
+                    raise exc_
+                else:
+                    # TODO be more specific on the version
+                    warnings.warn(f"Ignored error on curtailment, because "
+                                  f"you are in a backward compatibility mode.")
 
     def _digest_alarm(self, dict_):
         """
@@ -2125,7 +2150,7 @@ class BaseAction(GridObjects):
         self._subs_impacted = None
         self._lines_impacted = None
 
-    def update(self, dict_):
+    def update(self, dict_: DICT_ACT_TYPING):
         """
         Update the action with a comprehensible format specified by a dictionary.
 
@@ -6410,7 +6435,6 @@ class BaseAction(GridObjects):
                     tmp += a
             assert tmp == act
         
-        
         Parameters
         ----------
         group_topo : bool, optional
@@ -6473,3 +6497,56 @@ class BaseAction(GridObjects):
         if self._modif_curtailment:
             self._aux_decompose_as_unary_actions_curtail(cls, group_curtail, res)
         return res
+    
+    def _add_act_and_remove_line_status_only_set(self, other: "BaseAction") -> "BaseAction":
+        """INTERNAL
+        
+        This is used by the environment when combining action in the "set state" in env.reset.
+        
+        It supposes both self and other are only "set" actions
+        
+        .. versionadded:: 1.10.2
+        
+        """
+        self += other
+        cls = type(self)
+        # switch off in self the element disconnected in other
+        switched_off = other._set_line_status == -1
+        switched_off |= other._set_topo_vect[cls.line_or_pos_topo_vect] == -1
+        switched_off |= other._set_topo_vect[cls.line_ex_pos_topo_vect] == -1
+        self._set_topo_vect[cls.line_or_pos_topo_vect[switched_off]] = -1
+        self._set_topo_vect[cls.line_ex_pos_topo_vect[switched_off]] = -1
+        self._set_line_status[switched_off] = -1
+        
+        # switch on in self the element reconnected in other
+        switched_on = other._set_line_status == 1
+        switched_on |= other._set_topo_vect[cls.line_or_pos_topo_vect] > 0
+        switched_on |= other._set_topo_vect[cls.line_ex_pos_topo_vect] > 0
+        self._set_line_status[switched_on] = 1
+        # "reconnect" object through topo vect
+        topo_vect = other._set_topo_vect > 0
+        self._set_topo_vect[topo_vect] = other._set_topo_vect[topo_vect]
+        
+        if (self._set_line_status != 0).any():
+            self._modif_set_status = True
+        if (self._set_topo_vect != 0).any():
+            self._modif_set_bus = True
+        return self
+
+    def remove_change(self) -> "BaseAction":
+        """This function will modify 'self' and remove all "change" action type. 
+        
+        It is mainly used in the environment, when removing the "change" type for setting the original
+        state of the grid.
+        
+        .. versionadded:: 1.10.2
+        
+        """
+        if self._change_bus_vect.any():
+            warnings.warn("This action modified the buses with `change_bus` ")
+            self._change_bus_vect[:] = False
+            self._modif_change_bus = False
+        if self._switch_line_status.any():
+            self._switch_line_status[:] = False
+            self._modif_change_status = False
+        return self

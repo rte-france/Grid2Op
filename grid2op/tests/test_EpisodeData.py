@@ -143,6 +143,7 @@ class TestEpisodeData(unittest.TestCase):
     def test_one_episode_with_saving(self):
         f = tempfile.mkdtemp()
         (
+            ep_id,
             episode_name,
             cum_reward,
             timestep,
@@ -176,7 +177,7 @@ class TestEpisodeData(unittest.TestCase):
             name_env="test_episodedata_env",
             agentClass=OneChange,
         )
-        _, cum_reward, timestep, max_ts, episode_data = runner.run_one_episode(
+        _, _, cum_reward, timestep, max_ts, episode_data = runner.run_one_episode(
             max_iter=self.max_iter, detailed_output=True
         )
         # Check that the type of first action is set bus
@@ -186,6 +187,7 @@ class TestEpisodeData(unittest.TestCase):
         """test i can use the function "len" of the episode data"""
         f = tempfile.mkdtemp()
         (
+            ep_id,
             episode_name,
             cum_reward,
             timestep,

@@ -538,11 +538,11 @@ class Runner(object):
         self.max_iter = max_iter
         if max_iter > 0:
             self.gridStateclass_kwargs["max_iter"] = max_iter
-        self.chronics_handler = ChronicsHandler(
-            chronicsClass=self.gridStateclass,
-            path=self.path_chron,
-            **self.gridStateclass_kwargs
-        )
+        # self.chronics_handler = ChronicsHandler(
+        #     chronicsClass=self.gridStateclass,
+        #     path=self.path_chron,
+        #     **self.gridStateclass_kwargs
+        # )
 
         self.verbose = verbose
         self.thermal_limit_a = thermal_limit_a
@@ -634,12 +634,18 @@ class Runner(object):
             res = self.backendClass(**this_kwargs)
         return res
     
-    def _new_env(self, chronics_handler, parameters) -> Tuple[BaseEnv, BaseAgent]:
+    def _new_env(self, parameters) -> Tuple[BaseEnv, BaseAgent]:
         # the same chronics_handler is used for all the environments.
         # make sure to "reset" it properly
         # (this is handled elsewhere in case of "multi chronics")
-        if not self.chronics_handler.chronicsClass.MULTI_CHRONICS:
-            self.chronics_handler.next_chronics()  
+        # ch_used = copy.deepcopy(chronics_handler)
+        # if not ch_used.chronicsClass.MULTI_CHRONICS:
+        #     ch_used.next_chronics()  
+        chronics_handler = ChronicsHandler(
+            chronicsClass=self.gridStateclass,
+            path=self.path_chron,
+            **self.gridStateclass_kwargs
+        )
         backend = self._make_new_backend()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -704,7 +710,7 @@ class Runner(object):
         Function used to initialized the environment and the agent.
         It is called by :func:`Runner.reset`.
         """
-        env, self.agent = self._new_env(self.chronics_handler, self.parameters)
+        env, self.agent = self._new_env(self.parameters)
         return env
 
     def reset(self):
@@ -781,12 +787,16 @@ class Runner(object):
             )
             if max_iter is not None:
                 env.chronics_handler.set_max_iter(-1)
-                
+            
+            id_chron = env.chronics_handler.get_id()
         # `res` here necessarily contains detailed_output and nb_highres_call  
         if not add_nb_highres_sim:
             res = res[:-1]
         if not detailed_output:
             res = res[:-1]
+        
+        # new in 1.10.2: id_chron is computed from here
+        res = (id_chron, *res)
         return res
 
     def _run_sequential(
@@ -869,6 +879,7 @@ class Runner(object):
                 if episode_id is not None:
                     ep_id = episode_id[i]  # otherwise i use the provided one
                 (
+                    id_chron,
                     name_chron,
                     cum_reward,
                     nb_time_step,
@@ -885,7 +896,6 @@ class Runner(object):
                     detailed_output=True,
                     add_nb_highres_sim=True
                 )
-                id_chron = self.chronics_handler.get_id()
                 res[i] = (id_chron,
                           name_chron,
                           float(cum_reward),

@@ -553,8 +553,11 @@ class PandaPowerBackend(Backend):
         self.name_sub = ["sub_{}".format(i) for i, row in self._grid.bus.iterrows()]
         self.name_sub = np.array(self.name_sub)
 
-        self.n_shunt = self._grid.shunt.shape[0]
-    
+        if type(self).shunts_data_available:
+            self.n_shunt = self._grid.shunt.shape[0]
+        else:
+            self.n_shunt = 0
+            
         # "hack" to handle topological changes, for now only 2 buses per substation
         add_topo = copy.deepcopy(self._grid.bus)
         # TODO n_busbar: what if non contiguous indexing ???
@@ -656,17 +659,18 @@ class PandaPowerBackend(Backend):
         self.dim_topo = self.sub_info.sum()
         
         # shunts data
-        self.shunt_to_subid = np.zeros(self.n_shunt, dtype=dt_int) - 1
-        name_shunt = []
-        # TODO read name from the grid if provided
-        for i, (_, row) in enumerate(self._grid.shunt.iterrows()):
-            bus = int(row["bus"])
-            name_shunt.append("shunt_{bus}_{index_shunt}".format(**row, index_shunt=i))
-            self.shunt_to_subid[i] = bus
-        self.name_shunt = np.array(name_shunt).astype(str)
-        self._sh_vnkv = self._grid.bus["vn_kv"][self.shunt_to_subid].values.astype(
-            dt_float
-        )
+        if type(self).shunts_data_available:
+            self.shunt_to_subid = np.zeros(self.n_shunt, dtype=dt_int) - 1
+            name_shunt = []
+            # TODO read name from the grid if provided
+            for i, (_, row) in enumerate(self._grid.shunt.iterrows()):
+                bus = int(row["bus"])
+                name_shunt.append("shunt_{bus}_{index_shunt}".format(**row, index_shunt=i))
+                self.shunt_to_subid[i] = bus
+            self.name_shunt = np.array(name_shunt).astype(str)
+            self._sh_vnkv = self._grid.bus["vn_kv"][self.shunt_to_subid].values.astype(
+                dt_float
+            )
         
         self._compute_pos_big_topo()
 

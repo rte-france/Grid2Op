@@ -87,7 +87,9 @@ class RemoteEnv(Process):
         """
         self.space_prng = np.random.RandomState()
         self.space_prng.seed(seed=self.seed_used)
-        self.backend = self.env_params["_raw_backend_class"]()
+        self.backend = self.env_params["_raw_backend_class"](**self.env_params["_backend_kwargs"])
+        del self.env_params["_backend_kwargs"]
+        
         with warnings.catch_warnings():
             # warnings have bee already sent in the main process, no need to resend them
             warnings.filterwarnings("ignore")
@@ -206,6 +208,7 @@ class RemoteEnv(Process):
                 self.remote.send(self.env._time_step)
             elif cmd == "set_filter":
                 self.env.chronics_handler.set_filter(data)
+                self.env.chronics_handler.reset()
                 self.remote.send(None)
             elif cmd == "set_id":
                 self.env.set_id(data)
@@ -288,7 +291,7 @@ class BaseMultiProcessEnvironment(GridObjects):
         max_int = np.iinfo(dt_int).max
         _remotes, _work_remotes = zip(*[Pipe() for _ in range(self.nb_env)])
 
-        env_params = [sub_env.get_kwargs(with_backend=False) for sub_env in envs]
+        env_params = [sub_env.get_kwargs(with_backend=False, with_backend_kwargs=True) for sub_env in envs]
         self._ps = [
             RemoteEnv(
                 env_params=env_,

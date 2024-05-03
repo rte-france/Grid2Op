@@ -52,6 +52,8 @@ class CSVHandler(BaseHandler):
         "prod_p" or "prod_v") and not for maintenance (in this case
         use :class:`CSVMaintenanceHandler`) nor for 
         forecast (in this case use :class:`CSVForecastHandler`) 
+        nor for setting the initial state state (in this case use 
+        :class:`JSONInitStateHandler`)
     
     This is the default way to provide data to grid2op and its used for
     most l2rpn environments.

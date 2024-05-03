@@ -14,7 +14,7 @@ import tempfile
 from grid2op.Observation import BaseObservation
 from grid2op.tests.helper_path_test import *
 
-from grid2op import make
+import grid2op
 from grid2op.Reward import _AlertTrustScore
 from grid2op.Parameters import Parameters
 from grid2op.Exceptions import Grid2OpException
@@ -68,7 +68,7 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
         Raises:
             Grid2OpException: raise an exception if an attack occur
         """
-        with make(
+        with grid2op.make(
             self.env_nm,
             test=True,
             difficulty="1",
@@ -111,7 +111,7 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE], 
                                duration=3, 
                                steps_attack=[2])
-        with make(self.env_nm,
+        with grid2op.make(self.env_nm,
                   test=True,
                   difficulty="1", 
                   opponent_attack_cooldown=0, 
@@ -173,7 +173,7 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE] + ['48_53_141'],
                                duration=3,
                                steps_attack=[2])
-        with make(self.env_nm,
+        with grid2op.make(self.env_nm,
                   test=True,
                   difficulty="1",
                   reward_class=_AlertTrustScore(**DEFAULT_PARAMS_TRUSTSCORE),
@@ -237,7 +237,7 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
         Raises:
             Grid2OpException: raise an exception if an attack occur
         """
-        with make(
+        with grid2op.make(
                 self.env_nm,
                 test=True,
                 difficulty="1",
@@ -289,7 +289,7 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE],
                                duration=3,
                                steps_attack=[1])
-        with make(self.env_nm,
+        with grid2op.make(self.env_nm,
                   test=True,
                   difficulty="1",
                   opponent_attack_cooldown=0,
@@ -342,7 +342,7 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE], 
                                duration=3, 
                                steps_attack=[2])
-        with make(self.env_nm,
+        with grid2op.make(self.env_nm,
                   test=True,
                   difficulty="1", 
                   reward_class=_AlertTrustScore(**DEFAULT_PARAMS_TRUSTSCORE),
@@ -398,7 +398,7 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE], 
                                    duration=3, 
                                    steps_attack=[2])
-        with make(self.env_nm,
+        with grid2op.make(self.env_nm,
                   test=True,
                   difficulty="1", 
                   reward_class=_AlertTrustScore(**DEFAULT_PARAMS_TRUSTSCORE),
@@ -458,7 +458,7 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE]+['48_53_141'], 
                                    duration=3, 
                                    steps_attack=[1])
-        with make(self.env_nm,
+        with grid2op.make(self.env_nm,
                   test=True,
                   difficulty="1", 
                   opponent_attack_cooldown=0, 
@@ -512,7 +512,7 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE]+['48_53_141'], 
                                    duration=3, 
                                    steps_attack=[2])
-        with make(self.env_nm,
+        with grid2op.make(self.env_nm,
                   test=True,
                   difficulty="1", 
                   reward_class=_AlertTrustScore(**DEFAULT_PARAMS_TRUSTSCORE),
@@ -575,7 +575,7 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE]+['48_53_141'], 
                                duration=[1, 1], 
                                steps_attack=[1, 2])
-        with make(self.env_nm,
+        with grid2op.make(self.env_nm,
                   test=True,
                   difficulty="1", 
                   opponent_attack_cooldown=0, 
@@ -629,7 +629,7 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE]+['48_53_141'], 
                                duration=[1,1], 
                                steps_attack=[2, 3])
-        with make(self.env_nm,
+        with grid2op.make(self.env_nm,
                   test=True,
                   difficulty="1", 
                   opponent_attack_cooldown=0, 
@@ -693,7 +693,7 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE]+['48_53_141'], 
                                    duration=[1,1], 
                                    steps_attack=[2, 3])
-        with make(self.env_nm,
+        with grid2op.make(self.env_nm,
                   test=True,
                   difficulty="1", 
                   opponent_attack_cooldown=0, 
@@ -760,7 +760,7 @@ class TestAlertTrustScoreNoBlackout(unittest.TestCase):
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE]+['48_53_141'], 
                                    duration=[1,1], 
                                    steps_attack=[2, 3])
-        with make(self.env_nm,
+        with grid2op.make(self.env_nm,
                   test=True,
                   difficulty="1", 
                   opponent_attack_cooldown=0, 
@@ -842,7 +842,7 @@ class TestAlertTrustScoreBlackout_NoAttackCause(unittest.TestCase):
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE],
                                duration=3,
                                steps_attack=[3])
-        with make(self.env_nm,
+        with grid2op.make(self.env_nm,
                   test=True,
                   difficulty="1",
                   opponent_attack_cooldown=0,
@@ -904,7 +904,7 @@ class TestAlertTrustScoreBlackout_NoAttackCause(unittest.TestCase):
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE],
                                duration=3,
                                steps_attack=[3])
-        with make(self.env_nm,
+        with grid2op.make(self.env_nm,
                   test=True,
                   difficulty="1",
                   opponent_attack_cooldown=0,
@@ -966,7 +966,7 @@ class TestAlertTrustScoreBlackout_NoAttackCause(unittest.TestCase):
 
         """Even if there is a blackout, an we raise an alert
            we expect a score of 0 because there is no attack and we don't finish the scenario"""
-        with make(
+        with grid2op.make(
                 self.env_nm,
                 test=True,
                 difficulty="1",
@@ -1012,7 +1012,7 @@ class TestAlertTrustScoreBlackout_NoAttackCause(unittest.TestCase):
     def test_assistant_trust_score_blackout_no_attack_no_alert(self) -> None:
         """Even if there is a blackout, an we don't raise an alert
            we expect a score of 0 because there is no attack and we don't finish the scenario"""
-        with make(
+        with grid2op.make(
                 self.env_nm,
                 test=True,
                 difficulty="1",
@@ -1056,7 +1056,7 @@ class TestAlertTrustScoreBlackout_NoAttackCause(unittest.TestCase):
     def test_assistant_trust_score_blackout_no_attack_before_window_alert(self) -> None:
         """Even if there is a blackout, an we raise an alert too early
            we expect a score of 0 because there is no attack and we don't finish the scenario"""
-        with make(
+        with grid2op.make(
                 self.env_nm,
                 test=True,
                 difficulty="1",
@@ -1102,7 +1102,7 @@ class TestAlertTrustScoreBlackout_NoAttackCause(unittest.TestCase):
     def test_assistant_trust_score_blackout_no_attack_before_window_no_alert(self) -> None:
         """Even if there is a blackout, an we raise an alert too late
            we expect a score of 0 because there is no attack and we don't finish the scenario"""
-        with make(
+        with grid2op.make(
                 self.env_nm,
                 test=True,
                 difficulty="1",
@@ -1174,7 +1174,7 @@ class TestAlertTrustScoreBlackout_CauseAttack(unittest.TestCase):
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE], 
                                duration=3, 
                                steps_attack=[3])
-        with make(self.env_nm,
+        with grid2op.make(self.env_nm,
                   test=True,
                   difficulty="1", 
                   opponent_attack_cooldown=0, 
@@ -1239,7 +1239,7 @@ class TestAlertTrustScoreBlackout_CauseAttack(unittest.TestCase):
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE], 
                                duration=3, 
                                steps_attack=[3])
-        with make(self.env_nm,
+        with grid2op.make(self.env_nm,
                   test=True,
                   difficulty="1", 
                   opponent_attack_cooldown=0, 
@@ -1304,7 +1304,7 @@ class TestAlertTrustScoreBlackout_CauseAttack(unittest.TestCase):
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE] + ['48_53_141'],
                                duration=3,
                                steps_attack=[3, 3])
-        with make(self.env_nm,
+        with grid2op.make(self.env_nm,
                   test=True,
                   difficulty="1",
                   reward_class=_AlertTrustScore(**DEFAULT_PARAMS_TRUSTSCORE),
@@ -1376,7 +1376,7 @@ class TestAlertTrustScoreBlackout_CauseAttack(unittest.TestCase):
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE],
                                duration=3,
                                steps_attack=[3])
-        with make(self.env_nm,
+        with grid2op.make(self.env_nm,
                   test=True,
                   difficulty="1",
                   opponent_attack_cooldown=0,
@@ -1437,7 +1437,7 @@ class TestAlertTrustScoreBlackout_CauseAttack(unittest.TestCase):
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE], 
                                    duration=3, 
                                    steps_attack=[3])
-        with make(self.env_nm,
+        with grid2op.make(self.env_nm,
                   test=True,
                   difficulty="1", 
                   opponent_attack_cooldown=0, 
@@ -1502,7 +1502,7 @@ class TestAlertTrustScoreBlackout_CauseAttack(unittest.TestCase):
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE]+['48_53_141'], 
                                duration=3, 
                                steps_attack=[3, 3])
-        with make(self.env_nm,
+        with grid2op.make(self.env_nm,
                   test=True,
                   difficulty="1", 
                   opponent_attack_cooldown=0, 
@@ -1570,7 +1570,7 @@ class TestAlertTrustScoreBlackout_CauseAttack(unittest.TestCase):
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE]+['48_53_141'], 
                                duration=[1,1], 
                                steps_attack=[3, 4])
-        with make(self.env_nm,
+        with grid2op.make(self.env_nm,
                   test=True,
                   difficulty="1", 
                   opponent_attack_cooldown=0, 
@@ -1641,7 +1641,7 @@ class TestAlertTrustScoreBlackout_CauseAttack(unittest.TestCase):
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE]+['48_53_141'], 
                                duration=[1,1], 
                                steps_attack=[3, 4])
-        with make(self.env_nm,
+        with grid2op.make(self.env_nm,
                   test=True,
                   difficulty="1", 
                   opponent_attack_cooldown=0, 
@@ -1706,7 +1706,7 @@ class TestAlertTrustScoreBlackout_CauseAttack(unittest.TestCase):
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE]+['48_53_141'], 
                                duration=[1,1], 
                                steps_attack=[3, 4])
-        with make(self.env_nm,
+        with grid2op.make(self.env_nm,
                   test=True,
                   difficulty="1", 
                   opponent_attack_cooldown=0, 
@@ -1770,7 +1770,7 @@ class TestAlertTrustScoreBlackout_CauseAttack(unittest.TestCase):
         kwargs_opponent = dict(lines_attacked=[ATTACKED_LINE]+['48_53_141'], 
                                duration=[1, 1], 
                                steps_attack=[3, 6])
-        with make(self.env_nm,
+        with grid2op.make(self.env_nm,
                   test=True,
                   difficulty="1", 
                   opponent_attack_cooldown=0, 
@@ -1831,7 +1831,7 @@ class TestRunnerAlertTrust(unittest.TestCase):
         self.env_nm = os.path.join(
             PATH_DATA_TEST, "l2rpn_idf_2023_with_alert"
         )
-        self.env = make(self.env_nm, test=True, difficulty="1",
+        self.env = grid2op.make(self.env_nm, test=True, difficulty="1",
                                 reward_class=_AlertTrustScore(**DEFAULT_PARAMS_TRUSTSCORE))
         self.env.seed(0)
         return super().setUp()
