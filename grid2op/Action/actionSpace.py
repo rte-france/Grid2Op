@@ -11,6 +11,7 @@ import copy
 from typing import Dict, List, Any, Literal
 
 import grid2op
+from grid2op.typing_variables import DICT_ACT_TYPING
 from grid2op.Action.baseAction import BaseAction
 from grid2op.Action.serializableActionSpace import SerializableActionSpace
 
@@ -75,22 +76,9 @@ class ActionSpace(SerializableActionSpace):
 
     def __call__(
         self,
-        dict_: Dict[Literal["injection",
-                            "hazards",
-                            "maintenance",
-                            "set_line_status",
-                            "change_line_status",
-                            "set_bus", 
-                            "change_bus",
-                            "redispatch",
-                            "set_storage",
-                            "curtail",
-                            "raise_alarm",
-                            "raise_alert"], Any] = None,
+        dict_: DICT_ACT_TYPING = None,
         check_legal: bool = False,
-        env: "grid2op.Environment.BaseEnv" = None,
-        *,
-        injection=None,
+        env: "grid2op.Environment.BaseEnv" = None
     ) -> BaseAction:
         """
         This utility allows you to build a valid action, with the proper sizes if you provide it with a valid
@@ -133,9 +121,15 @@ class ActionSpace(SerializableActionSpace):
             An action that is valid and corresponds to what the agent want to do with the formalism defined in
             see :func:`Action.udpate`.
 
+        Notes
+        -----
+        
+        This function is not in the "SerializableActionSpace" because the
+        "legal_action" is not serialized. TODO ?
+        
         """
         # build the action
-        res = self.actionClass()
+        res : BaseAction = self.actionClass()
         
         # update the action
         res.update(dict_)

@@ -24,7 +24,23 @@ STEP_INFO_TYPING = Dict[Literal["disc_lines",
                                 "time_series_id"],
                         Any]
 
+#: Dict representing an action
+DICT_ACT_TYPING = Dict[Literal["injection",
+                               "hazards",
+                               "maintenance",
+                               "set_line_status",
+                               "change_line_status",
+                               "set_bus", 
+                               "change_bus",
+                               "redispatch",
+                               "set_storage",
+                               "curtail",
+                               "raise_alarm",
+                               "raise_alert"],
+                       Any]
+# TODO improve that (especially the Any part)
+
 #: type hints for the "options" flag of reset function
-RESET_OPTIONS_TYPING = Union[Dict[Literal["time serie id", "init state"], str],
-                             Dict[Union[int, str]],
+RESET_OPTIONS_TYPING = Union[Dict[Literal["time serie id", "init state"],
+                                  Union[int, DICT_ACT_TYPING]],
                              None]

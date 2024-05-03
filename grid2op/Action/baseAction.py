@@ -10,6 +10,8 @@ import copy
 import numpy as np
 import warnings
 from typing import Tuple, Dict, Literal, Any, List
+
+
 try:
     from typing import Self
 except ImportError:
@@ -17,6 +19,8 @@ except ImportError:
     
 from packaging import version
 
+import grid2op
+from grid2op.typing_variables import DICT_ACT_TYPING
 from grid2op.dtypes import dt_int, dt_bool, dt_float
 from grid2op.Exceptions import *
 from grid2op.Space import GridObjects
@@ -2126,7 +2130,7 @@ class BaseAction(GridObjects):
         self._subs_impacted = None
         self._lines_impacted = None
 
-    def update(self, dict_):
+    def update(self, dict_: DICT_ACT_TYPING):
         """
         Update the action with a comprehensible format specified by a dictionary.
 
