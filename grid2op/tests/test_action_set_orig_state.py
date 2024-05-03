@@ -7,7 +7,9 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 
+from os import PathLike
 import tempfile
+from typing import Union
 import numpy as np
 import warnings
 import unittest
@@ -39,8 +41,8 @@ from grid2op.Chronics.handlers import CSVHandler, JSONInitStateHandler
 
 
 # TODO test "change" is deactivated
-# TODO test with and without shunt
 # TODO test grid2Op compat mode (storage units)
+# TODO test with redispatching and curtailment actions
 # TODO test with "names_orig_to_backend"
 
 
@@ -457,6 +459,60 @@ class TestSetActOrigRunner(unittest.TestCase):
                 raise RuntimeError("Test is coded correctly")
                 
                 
+class _PPNoShunt_Test(PandaPowerBackend):
+    shunts_data_available = False
         
+    
+class TestSetSuntState(unittest.TestCase):
+    def _env_path(self):
+        return os.path.join(
+            PATH_DATA_TEST, "educ_case14_storage_init_state"
+        )
+    
+    def _get_backend(self):
+        return PandaPowerBackend()
+    
+    def setUp(self) -> None:
+        self.env_nm = self._env_path()
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env = grid2op.make(self.env_nm,
+                                    test=True
+                                    )   
+            self.env_noshunt = grid2op.make(self.env_nm,
+                                            test=True,
+                                            backend=_PPNoShunt_Test()
+                                            )   
+            self.env_nostor = grid2op.make(self.env_nm,
+                                           test=True,
+                                           _compat_glop_version="neurips_2020_compat"
+                                           )   
+        assert type(self.env_noshunt).shunts_data_available is False
+        assert type(self.env_nostor).n_storage == 0
+        assert type(self.env).n_storage == 2
+        
+    def test_set_shunt_state(self):
+        """test that the action that acts on the shunt works (when shunt are supported)
+        or has no impact if the backend does not support shunts"""
+        obs_shunt = self.env.reset(seed=0, options={"time serie id": 0})
+        obs_noshunt = self.env_noshunt.reset(seed=0, options={"time serie id": 0})
+        assert obs_shunt._shunt_q[0] == 0.  # the action put the shunt to 0.
+        # in the backend with no shunt, the shunt is active and generator 
+        # does not produce same q
+        assert abs(obs_shunt.gen_q[4] - obs_noshunt.gen_q[4]) > 5.
+        
+    def test_set_storage_state(self):
+        obs_stor = self.env.reset(seed=0, options={"time serie id": 1})
+        obs_nostor = self.env_nostor.reset(seed=0, options={"time serie id": 1})
+        slack_id = -1
+        # the storage action is taken into account
+        assert obs_stor.storage_power[0] == 5.  # the action set this
+        
+        # the original grid (withtout storage)
+        # and the grid with storage action have the same "gen_p"
+        # if I remove the impact of the storage unit
+        deltagen_p_th =  ((obs_stor.gen_p - obs_stor.actual_dispatch) - obs_nostor.gen_p)
+        assert (np.abs(deltagen_p_th[:slack_id]) <= 1e-6).all()
+
 if __name__ == "__main__":
     unittest.main()

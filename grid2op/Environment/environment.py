@@ -841,6 +841,7 @@ class Environment(BaseEnv):
             
         if init_state_dict is not None:
             init_act_opt : BaseAction = self._helper_action_env(init_state_dict)
+            init_act_opt.remove_change()
             if method == "combine":
                 init_action._add_act_and_remove_line_status_only_set(init_act_opt)
             elif method == "ignore":

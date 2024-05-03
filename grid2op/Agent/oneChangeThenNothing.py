@@ -29,6 +29,11 @@ class OneChangeThenNothing(BaseAgent):
 
     .. code-block:: python
 
+        # This class has been deprecated, please use the env.reset()
+        # with proper options instead
+        
+        
+        DEPRECATED ! 
         import grid2op
         from grid2op.Agent import OneChangeThenNothing
         acts_dict_ = [{}, {"set_line_status": [(0,-1)]}]  # list of dictionaries. Each dictionary
@@ -44,12 +49,34 @@ class OneChangeThenNothing(BaseAgent):
             # run 2 episode with it
             res_2 = runner.run(nb_episode=2)
 
+    Notes:
+    ------
+    
+    After grid2op 1.10.2, this class has been deprecated. A cleaner alternative
+    to use it is to set the initial state of grid when calling `env.reset` like this:
+    
+    .. code-block:: python
+    
+        import grid2op
+        
+        env = grid2op.make("l2rpn_case14_sandbox")  # create an environment
+        dict_act_json = ...  # dict representing an action
+        obs = env.reset(options={"init state": dict_act_json})
+    
+    This way of doing offers:
+    
+    - more flexibility: rules are not checked
+    - more flexibility: any type of actions acting on anything can be performed
+      (even if the action would be illegal for the agent)
+    - less trouble: cooldown are not affected
+    
     """
 
     my_dict = {}
 
     def __init__(self, action_space):
         BaseAgent.__init__(self, action_space)
+        warnings.warn(f"Deprecated class, please use `env.reset(options={'init state': {self._get_dict_act().to_json()}})` instead")
         self.has_changed = False
         self.do_nothing_action = self.action_space({})
 

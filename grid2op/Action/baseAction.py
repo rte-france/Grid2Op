@@ -2099,11 +2099,31 @@ class BaseAction(GridObjects):
 
     def _digest_storage(self, dict_):
         if "set_storage" in dict_:
-            self.storage_p = dict_["set_storage"]
-
+            try:
+                self.storage_p = dict_["set_storage"]
+            except IllegalAction as exc_:
+                cls = type(self)
+                # only raise the error if I am not in compat mode
+                if cls.glop_version == grid2op.__version__:
+                    raise exc_
+                else:
+                    # TODO be more specific on the version
+                    warnings.warn(f"Ignored error on storage units, because "
+                                  f"you are in a backward compatibility mode.")
+                    
     def _digest_curtailment(self, dict_):
         if "curtail" in dict_:
-            self.curtail = dict_["curtail"]
+            try:
+                self.curtail = dict_["curtail"]
+            except IllegalAction as exc_:
+                cls = type(self)
+                # only raise the error if I am not in compat mode
+                if cls.glop_version == grid2op.__version__:
+                    raise exc_
+                else:
+                    # TODO be more specific on the version
+                    warnings.warn(f"Ignored error on curtailment, because "
+                                  f"you are in a backward compatibility mode.")
 
     def _digest_alarm(self, dict_):
         """

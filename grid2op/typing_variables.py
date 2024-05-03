@@ -25,10 +25,7 @@ STEP_INFO_TYPING = Dict[Literal["disc_lines",
                         Any]
 
 #: Dict representing an action
-DICT_ACT_TYPING = Dict[Literal["injection",
-                               "hazards",
-                               "maintenance",
-                               "set_line_status",
+DICT_ACT_TYPING = Dict[Literal["set_line_status",
                                "change_line_status",
                                "set_bus", 
                                "change_bus",
@@ -36,7 +33,11 @@ DICT_ACT_TYPING = Dict[Literal["injection",
                                "set_storage",
                                "curtail",
                                "raise_alarm",
-                               "raise_alert"],
+                               "raise_alert",
+                               "injection",
+                               "hazards",
+                               "maintenance",
+                               "shunt"],
                        Any]
 # TODO improve that (especially the Any part)
 

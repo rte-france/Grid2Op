@@ -1925,6 +1925,13 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
     def _compute_dispatch_vect(self, already_modified_gen, new_p):        
         except_ = None
+        
+        # handle the case where there are storage or redispatching
+        # action or curtailment action on the "init state"
+        # of the grid
+        if self.nb_time_step == 0:
+            self._gen_activeprod_t_redisp[:] = new_p
+            
         # first i define the participating generators
         # these are the generators that will be adjusted for redispatching
         gen_participating = (
@@ -2893,7 +2900,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             is_illegal_redisp = True
             except_.append(except_tmp)
 
-            if self.n_storage > 0:
+            if type(self).n_storage > 0:
                 # TODO curtailment: cancel it here too !
                 self._storage_current_charge[:] = self._storage_previous_charge
                 self._amount_storage -= self._amount_storage_prev
@@ -2915,7 +2922,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._storage_power_prev[:] = self._storage_power
         # case where the action modifies load (TODO maybe make a different env for that...)
         self._aux_handle_act_inj(action)
-
         valid_disp, except_tmp = self._make_redisp(already_modified_gen, new_p)
 
         if not valid_disp or except_tmp is not None:
@@ -3161,11 +3167,10 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                       the simulation of the "cascading failures".
                     - "rewards": dictionary of all "other_rewards" provided when the env was built.
                     - "time_series_id": id of the time series used (if any, similar to a call to `env.chronics_handler.get_id()`)
-
         Examples
         ---------
 
-        As any openAI gym environment, this is used like:
+        This is used like:
 
         .. code-block:: python
 

@@ -14,6 +14,10 @@ import grid2op
 from grid2op.tests.helper_path_test import *
 
 
+# TODO test with redispatching, curtailment or storage
+# TODO in the runner too
+
+
 class TestSetActOptionDefault(unittest.TestCase):        
     def _env_path(self):
         return os.path.join(
@@ -126,7 +130,7 @@ class TestSetActOptionDefault(unittest.TestCase):
         assert self.obs.topo_vect[self.obs.line_ex_pos_topo_vect[5]] == -1
         assert not self.obs.line_status[5]    
         
-    def test_combine_ts_set_status_opt_setstat_nopb(self):
+    def test_combine_ts_set_status_opt_setstat_collision(self):
         # ts id 1 => set_status
         self.obs = self._aux_reset_env(seed=0, ep_id=1, init_state={"set_line_status": [(1, 1)]})
         
@@ -136,7 +140,6 @@ class TestSetActOptionDefault(unittest.TestCase):
         assert self.obs.line_status[1]
         return self.env.chronics_handler.get_init_action()
     
-    # TODO none of the "ignore" tests are coded
     def test_ignore_ts_set_bus_opt_setbus_nopb(self):
         # ts id 0 => set_bus (in the time series)
         self.obs = self._aux_reset_env(seed=0, ep_id=0, init_state={"set_bus": {"lines_or_id": [(5, 2)]}, "method": "ignore"})
@@ -148,6 +151,7 @@ class TestSetActOptionDefault(unittest.TestCase):
         assert self.obs.topo_vect[self.obs.line_or_pos_topo_vect[5]] == 2
     
     def test_ignore_ts_set_bus_opt_setbus_collision(self):
+        # TODO not tested for method = ignore (because action here totally erased action in ts)
         # ts id 0 => set_bus (in the time series)
         self.obs = self._aux_reset_env(seed=0, ep_id=0, init_state={"set_bus": {"lines_or_id": [(1, 1)],
                                                                                 "loads_id": [(0, 1)]},
@@ -164,10 +168,12 @@ class TestSetActOptionDefault(unittest.TestCase):
                                                    "method": "ignore"})
         
         # in the time series
-        assert self.obs.topo_vect[self.obs.line_or_pos_topo_vect[1]] == 2
-        assert self.obs.topo_vect[self.obs.load_pos_topo_vect[0]] == 2
+        assert self.obs.topo_vect[self.obs.line_or_pos_topo_vect[1]] == 1
+        assert self.obs.topo_vect[self.obs.load_pos_topo_vect[0]] == 1
         # in the action
         assert self.obs.topo_vect[self.obs.line_or_pos_topo_vect[5]] == -1
+        assert self.obs.topo_vect[self.obs.line_ex_pos_topo_vect[5]] == -1
+        assert not self.obs.line_status[5]
     
     def test_ignore_ts_set_bus_opt_setstat_collision(self):
         # ts id 0 => set_bus (in the time series)
@@ -179,7 +185,7 @@ class TestSetActOptionDefault(unittest.TestCase):
         assert self.obs.topo_vect[self.obs.line_or_pos_topo_vect[1]] == -1
         assert self.obs.topo_vect[self.obs.line_ex_pos_topo_vect[1]] == -1
         assert not self.obs.line_status[1]
-        # in the time series
+        # in the time series (ignored)
         assert self.obs.topo_vect[self.obs.load_pos_topo_vect[0]] == 1
         
     def test_ignore_ts_set_status_opt_setbus_nopb(self):
@@ -187,14 +193,15 @@ class TestSetActOptionDefault(unittest.TestCase):
         self.obs = self._aux_reset_env(seed=0, ep_id=1, init_state={"set_bus": {"lines_or_id": [(5, 2)]},
                                                                     "method": "ignore"})
         
-        # in the time series
-        assert self.obs.topo_vect[self.obs.line_or_pos_topo_vect[1]] == -1
-        assert self.obs.topo_vect[self.obs.line_ex_pos_topo_vect[1]] == -1
-        assert not self.obs.line_status[1]
+        # in the time series (ignored)
+        assert self.obs.topo_vect[self.obs.line_or_pos_topo_vect[1]] == 1
+        assert self.obs.topo_vect[self.obs.line_ex_pos_topo_vect[1]] == 1
+        assert self.obs.line_status[1]
         # in the action
         assert self.obs.topo_vect[self.obs.line_or_pos_topo_vect[5]] == 2
         
     def test_ignore_ts_set_status_opt_setbus_collision(self):
+        # TODO not tested for method = ignore (because action here totally erased action in ts)
         # ts id 1 => set_status
         self.obs = self._aux_reset_env(seed=0, ep_id=1, init_state={"set_bus": {"lines_or_id": [(1, 1)]},
                                                                     "method": "ignore"})
@@ -216,16 +223,18 @@ class TestSetActOptionDefault(unittest.TestCase):
         self.obs = self._aux_reset_env(seed=0, ep_id=1, init_state={"set_line_status": [(5, -1)],
                                                                     "method": "ignore"})
         
-        # in the time series
-        assert self.obs.topo_vect[self.obs.line_or_pos_topo_vect[1]] == -1
-        assert self.obs.topo_vect[self.obs.line_ex_pos_topo_vect[1]] == -1
-        assert not self.obs.line_status[1]
+        # in the time series (ignored)
+        assert self.obs.topo_vect[self.obs.line_or_pos_topo_vect[1]] == 1
+        assert self.obs.topo_vect[self.obs.line_ex_pos_topo_vect[1]] == 1
+        assert self.obs.line_status[1]
         # in the action
         assert self.obs.topo_vect[self.obs.line_or_pos_topo_vect[5]] == -1
         assert self.obs.topo_vect[self.obs.line_ex_pos_topo_vect[5]] == -1
         assert not self.obs.line_status[5]    
         
-    def test_ignore_ts_set_status_opt_setstat_nopb(self):
+    def test_ignore_ts_set_status_opt_setstat_collision(self):
+        # TODO not tested for method = ignore (because action here totally erased action in ts)
+        
         # ts id 1 => set_status
         self.obs = self._aux_reset_env(seed=0, ep_id=1, init_state={"set_line_status": [(1, 1)],
                                                                     "method": "ignore"})
