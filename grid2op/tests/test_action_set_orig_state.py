@@ -6,10 +6,7 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-
-from os import PathLike
 import tempfile
-from typing import Union
 import numpy as np
 import warnings
 import unittest

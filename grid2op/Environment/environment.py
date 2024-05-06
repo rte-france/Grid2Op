@@ -10,7 +10,7 @@ import copy
 import warnings
 import numpy as np
 import re
-from typing import Union, Any, Dict, Literal
+from typing import Optional, Union, Any, Dict, Literal
 
 import grid2op
 from grid2op.Opponent import OpponentSpace
@@ -808,7 +808,9 @@ class Environment(BaseEnv):
         return "<{} instance named {}>".format(type(self).__name__, self.name)
         # TODO be closer to original gym implementation
 
-    def reset_grid(self, init_state_dict=None, method="combine"):
+    def reset_grid(self,
+                   init_act_opt : Optional[BaseAction]=None, 
+                   method:Literal["combine", "ignore"]="combine"):
         """
         INTERNAL
 
@@ -839,8 +841,7 @@ class Environment(BaseEnv):
         else:
             init_action.remove_change()
             
-        if init_state_dict is not None:
-            init_act_opt : BaseAction = self._helper_action_env(init_state_dict)
+        if init_act_opt is not None:
             init_act_opt.remove_change()
             if method == "combine":
                 init_action._add_act_and_remove_line_status_only_set(init_act_opt)
@@ -1058,7 +1059,7 @@ class Environment(BaseEnv):
         self._reset_redispatching()
         self._reset_vectors_and_timings()  # it need to be done BEFORE to prevent cascading failure when there has been
             
-        self.reset_grid(act_as_dict, method)
+        self.reset_grid(init_state, method)
         if self.viewer_fig is not None:
             del self.viewer_fig
             self.viewer_fig = None

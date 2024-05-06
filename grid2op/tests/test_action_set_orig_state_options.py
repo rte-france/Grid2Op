@@ -138,7 +138,7 @@ class TestSetActOptionDefault(unittest.TestCase):
         assert self.obs.topo_vect[self.obs.line_or_pos_topo_vect[1]] == 1
         assert self.obs.topo_vect[self.obs.line_ex_pos_topo_vect[1]] == 1
         assert self.obs.line_status[1]
-        return self.env.chronics_handler.get_init_action()
+        return self.env.chronics_handler.get_init_action()  
     
     def test_ignore_ts_set_bus_opt_setbus_nopb(self):
         # ts id 0 => set_bus (in the time series)
@@ -243,6 +243,17 @@ class TestSetActOptionDefault(unittest.TestCase):
         assert self.obs.topo_vect[self.obs.line_or_pos_topo_vect[1]] == 1
         assert self.obs.topo_vect[self.obs.line_ex_pos_topo_vect[1]] == 1
         assert self.obs.line_status[1]
+        
+    def test_byact(self):
+        # ts id 1 => set_status
+        act = self.env.action_space({"set_line_status": [(1, 1)]})
+        self.obs = self._aux_reset_env(seed=0, ep_id=1, init_state=act)
+        
+        # in the time series (bus overriden by the action)
+        assert self.obs.topo_vect[self.obs.line_or_pos_topo_vect[1]] == 1
+        assert self.obs.topo_vect[self.obs.line_ex_pos_topo_vect[1]] == 1
+        assert self.obs.line_status[1]
+        return self.env.chronics_handler.get_init_action()
 
 
 class TestSetInitRunner(unittest.TestCase):
@@ -462,6 +473,45 @@ class TestSetInitRunner(unittest.TestCase):
                                 max_iter=self.max_iter,
                                 add_detailed_output=True,
                                 )
+        
+
+class TestSetActOptionDefaultComplexAction(unittest.TestCase):
+    def setUp(self) -> None:
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env = grid2op.make("educ_case14_storage", test=True, _add_to_name=type(self).__name__)
+        return super().setUp()
+    
+    def tearDown(self) -> None:
+        self.env.close()
+        return super().tearDown()
+
+    def test_storage(self):
+        obs = self.env.reset(seed=0,
+                             options={"time serie id": 0,
+                                      "init state": {"set_storage": [(0, 5.)]}})
+        assert abs(obs.storage_power[0] - 5.) <= 1e-6
+        obs, reward, done, info = self.env.step(self.env.action_space())
+        assert abs(obs.storage_power[0] - 0.) <= 1e-6
+    
+    def test_curtail(self):
+        obs = self.env.reset(seed=0,
+                             options={"time serie id": 0,
+                                      "init state": {"curtail": [(3, 0.1)]}})
+        assert abs(obs.curtailment_limit[3] - 0.1) <= 1e-6
+        obs, reward, done, info = self.env.step(self.env.action_space())
+        assert abs(obs.curtailment_limit[3] - 0.1) <= 1e-6
+        
+    def test_redispatching(self):
+        obs = self.env.reset(seed=0,
+                             options={"time serie id": 0,
+                                      "init state": {"redispatch": [(0, -1)]}})
+        assert abs(obs.target_dispatch[0] - -1.) <= 1e-6
+        assert abs(obs.actual_dispatch[0] - -1.) <= 1e-6
+        obs, reward, done, info = self.env.step(self.env.action_space())
+        assert abs(obs.target_dispatch[0] - -1.) <= 1e-6
+        assert abs(obs.actual_dispatch[0] - -1.) <= 1e-6
+        
         
 if __name__ == "__main__":
     unittest.main()
