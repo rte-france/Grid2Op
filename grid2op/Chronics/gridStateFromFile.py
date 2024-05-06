@@ -9,7 +9,7 @@
 import json
 import os
 import copy
-from typing import Union
+from typing import Union, Optional, Dict, Literal
 import numpy as np
 import pandas as pd
 import warnings
@@ -1230,7 +1230,7 @@ class GridStateFromFile(GridValue):
         with open(os.path.join(path_out, "time_interval.info"), "w") as f:
             f.write("{:%H:%M}\n".format(tmp_for_time_delta))
 
-    def get_init_action(self) -> Union["grid2op.Action.playableAction.PlayableAction", None]:
+    def get_init_action(self, names_chronics_to_backend: Optional[Dict[Literal["loads", "prods", "lines"], Dict[str, str]]]=None) -> Union["grid2op.Action.playableAction.PlayableAction", None]:
         from grid2op.Action import BaseAction
         maybe_path = os.path.join(self.path, "init_state.json")
         if not os.path.exists(maybe_path):
@@ -1247,7 +1247,9 @@ class GridStateFromFile(GridValue):
                                    f"Check file located at {maybe_path}") from exc_
         
         try:
-            act : BaseAction = self.action_space(maybe_act_dict)
+            act : BaseAction = self.action_space(maybe_act_dict,
+                                                 _names_chronics_to_backend=names_chronics_to_backend,
+                                                 check_legal=False)
         except Grid2OpException as exc_:
             raise Grid2OpException(f"Impossible to build the action to set the grid. Please fix the "
                                    f"file located at {maybe_path}.") from exc_

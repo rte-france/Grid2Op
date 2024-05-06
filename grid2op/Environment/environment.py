@@ -834,7 +834,7 @@ class Environment(BaseEnv):
 
         self._backend_action = self._backend_action_class()
         self.nb_time_step = -1  # to have init obs at step 1 (and to prevent 'setting to proper state' "action" to be illegal)
-        init_action : BaseAction = self.chronics_handler.get_init_action()
+        init_action : BaseAction = self.chronics_handler.get_init_action(self._names_chronics_to_backend)
         if init_action is None:
             # default behaviour for grid2op < 1.10.2
             init_action = self._helper_action_env({})
@@ -857,7 +857,11 @@ class Environment(BaseEnv):
                 "Impossible to initialize the powergrid, the powerflow diverge at iteration 0. "
                 "Available information are: {}".format(info)
             )
-            
+        if info["exception"] and init_action.can_affect_something():
+            raise Grid2OpException(f"There has been an error at the initialization, most likely due to a "
+                                   f"incorrect 'init state'. You need to change either the time series used (chronics, chronics_handler, "
+                                   f"gridvalue, etc.) or the 'init state' option provided in "
+                                   f"`env.reset(..., options={'init state': XXX, ...})`. Error was: {info['exception']}")
         # assign the right
         self._observation_space.set_real_env_kwargs(self)
 
@@ -1025,7 +1029,7 @@ class Environment(BaseEnv):
         # (if there is an init state then I need to process it to remove the 
         # some keys)
         method = "combine"
-        act_as_dict = None
+        init_state = None
         if options is not None and "init state" in options:
             act_as_dict = options["init state"]
             if isinstance(act_as_dict, dict):

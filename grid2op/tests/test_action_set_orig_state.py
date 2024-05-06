@@ -19,6 +19,7 @@ except ImportError:
 import grid2op
 from grid2op.Environment import TimedOutEnvironment, MaskedEnvironment, SingleEnvMultiProcess
 from grid2op.Backend import PandaPowerBackend
+from grid2op.Backend.educPandaPowerBackend import EducPandaPowerBackend
 from grid2op.Episode import EpisodeData
 from grid2op.Opponent import FromEpisodeDataOpponent
 from grid2op.Runner import Runner
@@ -56,20 +57,34 @@ class TestSetActOrigDefault(unittest.TestCase):
             PATH_DATA_TEST, "5bus_example_act_topo_set_init"
         )
     
+    def _names_ch_to_bk(self):
+        return None
+    
     def _get_backend(self):
         return PandaPowerBackend()
     
+    def _get_gridpath(self):
+        return None
+    
     def setUp(self) -> None:
         self.env_nm = self._env_path()
+        tmp_path = self._get_gridpath()
+        env_params = dict(test=True,
+                          backend=self._get_backend(),
+                          action_class=self._get_act_cls(),
+                          chronics_class=self._get_ch_cls(),
+                          data_feeding_kwargs={"gridvalueClass": self._get_c_cls()},
+                          _add_to_name=type(self).__name__
+                         )
+        if tmp_path is not None:
+            env_params["grid_path"] = tmp_path
+        ch_to_bk = self._names_ch_to_bk()
+        if ch_to_bk is not None:
+            env_params["names_chronics_to_grid"] = ch_to_bk
+            
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env = grid2op.make(self.env_nm,
-                                    test=True,
-                                    backend=self._get_backend(),
-                                    action_class=self._get_act_cls(),
-                                    chronics_class=self._get_ch_cls(),
-                                    data_feeding_kwargs={"gridvalueClass": self._get_c_cls()}
-                                    )
+            self.env = grid2op.make(self.env_nm, **env_params)
         if issubclass(self._get_ch_cls(), MultifolderWithCache):
             self.env.chronics_handler.set_filter(lambda x: True)
             self.env.chronics_handler.reset()
@@ -95,6 +110,12 @@ class TestSetActOrigDefault(unittest.TestCase):
     def _aux_get_init_act(self):
         return self.env.chronics_handler.get_init_action()
     
+    def _aux_get_act_valid(self):
+        # check the action in the time series folder is valid   
+        with warnings.catch_warnings():
+            warnings.filterwarnings("error")
+            act_init = self._aux_get_init_act()
+            
     def test_working_setbus(self):
         # ts id 0 => set_bus
         self.obs = self._aux_reset_env(seed=0, ep_id=0)
@@ -110,6 +131,8 @@ class TestSetActOrigDefault(unittest.TestCase):
         assert obs.topo_vect[self.obs.load_pos_topo_vect[0]] == 2
         assert (obs.time_before_cooldown_line == 0).all()
         assert (obs.time_before_cooldown_sub == 0).all()
+        # check the action in the time series folder is valid
+        self._aux_get_act_valid()
         
     def test_working_setstatus(self):
         # ts id 1 => set_status
@@ -128,6 +151,8 @@ class TestSetActOrigDefault(unittest.TestCase):
         assert not obs.line_status[1]
         assert (obs.time_before_cooldown_line == 0).all()
         assert (obs.time_before_cooldown_sub == 0).all()
+        # check the action in the time series folder is valid
+        self._aux_get_act_valid()
         
     def test_rules_ok(self):
         """test that even if the action to set is illegal, it works (case of ts id 2)"""
@@ -148,7 +173,30 @@ class TestSetActOrigDefault(unittest.TestCase):
         assert obs.topo_vect[self.obs.line_ex_pos_topo_vect[5]] == 2
         assert (obs.time_before_cooldown_line == 0).all()
         assert (obs.time_before_cooldown_sub == 0).all()
+        # check the action in the time series folder is valid
+        self._aux_get_act_valid()
 
+    def test_change_bus_ignored(self, catch_warning=True):
+        """test that if the action to set uses change_bus then nothing is done"""
+        if catch_warning:
+            with self.assertWarns(UserWarning):
+                # it raises the warning "be carefull, change stuff are ignored"
+                self.obs = self._aux_reset_env(seed=0, ep_id=3)
+        else:
+            # no warning in the main process in multiprocessing
+            self.obs = self._aux_reset_env(seed=0, ep_id=3)
+        assert self.obs.topo_vect[self.obs.line_or_pos_topo_vect[1]] == 1
+        assert self.obs.topo_vect[self.obs.line_ex_pos_topo_vect[1]] == 1
+        assert self.obs.topo_vect[self.obs.line_or_pos_topo_vect[2]] == 1
+        assert self.obs.topo_vect[self.obs.line_ex_pos_topo_vect[2]] == 1
+        assert self.obs.topo_vect[self.obs.line_or_pos_topo_vect[5]] == 1
+        assert self.obs.topo_vect[self.obs.line_ex_pos_topo_vect[5]] == 1
+        assert self.obs.line_status[1] == 1
+        assert self.obs.line_status[2] == 1
+        assert self.obs.line_status[5] == 1
+        # check the action in the time series folder is valid   
+        self._aux_get_act_valid()
+        
 
 class TestSetActOrigDifferentActionCLS(TestSetActOrigDefault):
     def _get_act_cls(self):
@@ -200,6 +248,7 @@ class TestSetActOrigFromOneEpisodeData(TestSetActOrigDefault):
                                     data_feeding_kwargs={"ep_data": ep_data},
                                     opponent_class=FromEpisodeDataOpponent,
                                     opponent_attack_cooldown=1,
+                                    _add_to_name=type(self).__name__
                                     )
         
     def setUp(self) -> None:
@@ -227,6 +276,9 @@ class TestSetActOrigFromOneEpisodeData(TestSetActOrigDefault):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             super().test_rules_ok()
+                        
+    def test_change_bus_ignored(self):
+        self.skipTest("This make no sense for this class (change is not used internally)")
 
 
 class TestSetActOrigFromMultiEpisodeData(TestSetActOrigDefault):
@@ -248,6 +300,7 @@ class TestSetActOrigFromMultiEpisodeData(TestSetActOrigDefault):
                                     data_feeding_kwargs={"li_ep_data": li_episode},
                                     opponent_class=FromEpisodeDataOpponent,
                                     opponent_attack_cooldown=1,
+                                    _add_to_name=type(self).__name__
                                     )
         
         
@@ -261,6 +314,9 @@ class TestSetActOrigFromMultiEpisodeData(TestSetActOrigDefault):
         obs, reward, done, info = self.env.step(self.env.action_space())
         self.test_working_setstatus()
         obs, reward, done, info = self.env.step(self.env.action_space())
+        
+    def test_change_bus_ignored(self):
+        self.skipTest("This make no sense for this class (change is not used internally)")
         
         
 class TestSetActOrigFromNPY(TestSetActOrigDefault):
@@ -282,7 +338,8 @@ class TestSetActOrigFromNPY(TestSetActOrigDefault):
                                                          "prod_p": gen_p,
                                                          "prod_v": gen_v,
                                                          "init_state": act
-                                                         })
+                                                         },
+                                    _add_to_name=type(self).__name__)
     def setUp(self) -> None:
         self.max_iter = 5
         super().setUp()
@@ -308,6 +365,12 @@ class TestSetActOrigFromNPY(TestSetActOrigDefault):
             warnings.filterwarnings("ignore")
             super().test_rules_ok()
     
+    def test_change_bus_ignored(self):
+        self._aux_make_env(3)  # episode id 3 is used for this test
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            super().test_change_bus_ignored()
+    
 
 class TestSetActOrigEnvCopy(TestSetActOrigDefault):
     def setUp(self) -> None:
@@ -328,7 +391,8 @@ class TestSetActOrigFromHandlers(TestSetActOrigDefault):
                                                          "gen_v_handler": CSVHandler("prod_v"),
                                                          "load_q_handler": CSVHandler("load_q"),
                                                          "init_state_handler": JSONInitStateHandler("init_state_handler")
-                                                        }
+                                                        },
+                                    _add_to_name=type(self).__name__
                                     )
 
 
@@ -337,6 +401,26 @@ class TestSetActOrigLightsim(TestSetActOrigDefault):
         if not LS_AVAIL:
             self.skipTest("LightSimBackend is not available")
         return LightSimBackend()
+
+
+class TestSetActOrigDiffNames(TestSetActOrigDefault):
+    def _get_gridpath(self):
+        # just to have a grid with different names
+        return os.path.join(PATH_DATA_TEST, "5bus_example_diff_name", "grid.json")
+    
+    def _names_ch_to_bk(self):
+        res = {"loads": {'load_0_0': 'tata', 'load_3_1': 'toto', 'load_4_2': 'tutu'},
+               "prods": {"gen_0_0": "othername_0_0", "gen_1_1": "othername_1_1"},
+               "lines": {"0_1_0": 'l_0_1_0',
+                         "0_2_1": 'l_0_2_1',
+                         "0_3_2": 'l_0_3_2',
+                         "0_4_3": 'l_0_4_3',
+                         "1_2_4": 'l_1_2_4', 
+                         "2_3_5": 'l_2_3_5',
+                         "2_3_6": 'l_2_3_6',
+                         "3_4_7": 'l_3_4_7'}
+                }
+        return res
     
     
 class TestSetActOrigTOEnv(TestSetActOrigDefault):
@@ -391,6 +475,9 @@ class TestSetActOrigMultiProcEnv(TestSetActOrigDefault):
     def tearDown(self) -> None:
         self.env_init.close()
         return super().tearDown()
+    
+    def test_change_bus_ignored(self):
+        super().test_change_bus_ignored(catch_warning=False)
 
 
 class TestSetActOrigForcastEnv(TestSetActOrigDefault):
@@ -408,6 +495,11 @@ class TestSetActOrigForcastEnv(TestSetActOrigDefault):
         super().test_rules_ok()
         for_env = self.env.get_obs().get_forecast_env()
         obs, reward, done, info = for_env.step(self.env.action_space())
+    
+    def test_change_bus_ignored(self):
+        super().test_change_bus_ignored()
+        for_env = self.env.get_obs().get_forecast_env()
+        obs, reward, done, info = for_env.step(self.env.action_space())
 
 
 class TestSetActOrigRunner(unittest.TestCase):
@@ -419,7 +511,8 @@ class TestSetActOrigRunner(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self.env = grid2op.make(self.env_nm,
-                                    test=True
+                                    test=True,
+                                    _add_to_name=type(self).__name__
                                     )
     def tearDown(self) -> None:
         self.env.close()
@@ -472,14 +565,17 @@ class TestSetSuntState(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self.env = grid2op.make(self.env_nm,
-                                    test=True
+                                    test=True,
+                                    _add_to_name=type(self).__name__
                                     )   
             self.env_noshunt = grid2op.make(self.env_nm,
                                             test=True,
-                                            backend=_PPNoShunt_Test()
+                                            backend=_PPNoShunt_Test(),
+                                            _add_to_name=type(self).__name__
                                             )   
             self.env_nostor = grid2op.make(self.env_nm,
                                            test=True,
+                                           _add_to_name=type(self).__name__,
                                            _compat_glop_version="neurips_2020_compat"
                                            )   
         assert type(self.env_noshunt).shunts_data_available is False

@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 import os
 import numpy as np
 import copy
-from typing import Optional, Union
+from typing import Optional, Union, Dict, Literal
 
 import grid2op
 from grid2op.Exceptions import (
@@ -531,7 +531,7 @@ class FromHandlers(GridValue):
             # for this class I suppose the real data AND the forecast are read each step
             self.forecasts()
 
-    def get_init_action(self) -> Union["grid2op.Action.playableAction.PlayableAction", None]:
+    def get_init_action(self, names_chronics_to_backend: Optional[Dict[Literal["loads", "prods", "lines"], Dict[str, str]]]=None) -> Union["grid2op.Action.playableAction.PlayableAction", None]:
         from grid2op.Action import BaseAction
         if self.init_state_handler is None:
             return None
@@ -546,7 +546,9 @@ class FromHandlers(GridValue):
                                    f"serie is not set.")
             
         try:
-            act : BaseAction = self.action_space(act_as_dict)
+            act : BaseAction = self.action_space(act_as_dict,
+                                                 check_legal=False,
+                                                 _names_chronics_to_backend=names_chronics_to_backend)
         except Grid2OpException as exc_:
             raise Grid2OpException(f"Impossible to build the action to set the grid. Please fix the "
                                    f"file located at {self.init_state_handler.path}.") from exc_

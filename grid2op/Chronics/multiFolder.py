@@ -8,11 +8,12 @@
 
 import os
 import json
-from typing import Union
+from typing import Union, Optional, Dict, Literal
 import warnings
 import numpy as np
 from datetime import timedelta, datetime
 
+import grid2op
 from grid2op.dtypes import dt_int, dt_float
 from grid2op.Exceptions import ChronicsNotFoundError, ChronicsError
 from grid2op.Chronics.gridValue import GridValue
@@ -781,8 +782,8 @@ class Multifolder(GridValue):
     def fast_forward(self, nb_timestep):
         self.data.fast_forward(nb_timestep)
 
-    def get_init_action(self) -> Union["grid2op.Action.playableAction.PlayableAction", None]:
-        return self.data.get_init_action()
+    def get_init_action(self, names_chronics_to_backend: Optional[Dict[Literal["loads", "prods", "lines"], Dict[str, str]]]=None) -> Union["grid2op.Action.playableAction.PlayableAction", None]:
+        return self.data.get_init_action(names_chronics_to_backend)
 
     def cleanup_action_space(self):
         super().cleanup_action_space()

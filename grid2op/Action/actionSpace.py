@@ -8,7 +8,7 @@
 
 import warnings
 import copy
-from typing import Dict, List, Any, Literal
+from typing import Dict, List, Any, Literal, Optional
 
 import grid2op
 from grid2op.typing_variables import DICT_ACT_TYPING
@@ -78,7 +78,8 @@ class ActionSpace(SerializableActionSpace):
         self,
         dict_: DICT_ACT_TYPING = None,
         check_legal: bool = False,
-        env: "grid2op.Environment.BaseEnv" = None
+        env: "grid2op.Environment.BaseEnv" = None,
+        _names_chronics_to_backend: Optional[Dict[Literal["loads", "prods", "lines"], Dict[str, str]]]=None,
     ) -> BaseAction:
         """
         This utility allows you to build a valid action, with the proper sizes if you provide it with a valid
@@ -129,7 +130,7 @@ class ActionSpace(SerializableActionSpace):
         
         """
         # build the action
-        res : BaseAction = self.actionClass()
+        res : BaseAction = self.actionClass(_names_chronics_to_backend)
         
         # update the action
         res.update(dict_)

@@ -71,6 +71,8 @@ Change Log
   and most of the time incorrectly)
 - [FIXED] on `RemoteEnv` class (impact all multi process environment): the kwargs used to build then backend
   where not used which could lead to"wrong" backends being used in the sub processes.
+- [FIXED] a bug when the name of the times series and the names of the elements in the backend were 
+  different: it was not possible to set `names_chronics_to_grid` correctly when calling `env.make`
 - [IMPROVED] documentation about `obs.simulate` to make it clearer the 
   difference between env.step and obs.simulate on some cases
 - [IMPROVED] type hints on some methods of `GridObjects`

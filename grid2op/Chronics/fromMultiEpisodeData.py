@@ -11,7 +11,7 @@ import os
 import numpy as np
 import copy
 import warnings
-from typing import Optional, Union, List
+from typing import Optional, Union, List, Dict, Literal
 from pathlib import Path
 
 from grid2op.Exceptions import (
@@ -190,8 +190,8 @@ class FromMultiEpisodeData(GridValue):
     def fast_forward(self, nb_timestep):
         self.data.fast_forward(nb_timestep)
         
-    def get_init_action(self) -> Union["grid2op.Action.playableAction.PlayableAction", None]:
-        return self.data.get_init_action()
+    def get_init_action(self, names_chronics_to_backend: Optional[Dict[Literal["loads", "prods", "lines"], Dict[str, str]]]=None) -> Union["grid2op.Action.playableAction.PlayableAction", None]:
+        return self.data.get_init_action(names_chronics_to_backend)
     
     def cleanup_action_space(self):
         super().cleanup_action_space()

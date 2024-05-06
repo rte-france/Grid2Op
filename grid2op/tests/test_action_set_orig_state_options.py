@@ -15,10 +15,6 @@ from grid2op.Runner import Runner
 from grid2op.tests.helper_path_test import *
 
 
-# TODO test with redispatching, curtailment or storage
-# TODO in the runner too
-
-
 class TestSetActOptionDefault(unittest.TestCase):        
     def _env_path(self):
         return os.path.join(
@@ -515,4 +511,3 @@ class TestSetActOptionDefaultComplexAction(unittest.TestCase):
         
 if __name__ == "__main__":
     unittest.main()
-
