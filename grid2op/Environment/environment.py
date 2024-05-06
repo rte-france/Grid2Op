@@ -887,7 +887,18 @@ class Environment(BaseEnv):
         to ensure the episode is fully over.
 
         This method should be called only at the end of an episode.
-
+        
+        Parameters
+        ----------
+        seed: int
+            The seed to used (new in version 1.9.8), see examples for more details. Ignored if not set (meaning no seeds will 
+            be used, experiments might not be reproducible)
+            
+        options: dict
+            Some options to "customize" the reset call. For example specifying the "time serie id" (grid2op >= 1.9.8) to use 
+            or the "initial state of the grid" (grid2op >= 1.10.2). See examples for more information about this. Ignored if 
+            not set.
+        
         Examples
         --------
         The standard "gym loop" can be done with the following code:
@@ -946,6 +957,8 @@ class Environment(BaseEnv):
             time_serie_id = ...
             obs = env.reset(options={"time serie id": time_serie_id})
             ... 
+        
+        .. versionadded:: 1.10.2
         
         Another feature has been added in version 1.10.2, which is the possibility to set the 
         grid to a given "topological" state at the first observation (before this version, 
@@ -1014,10 +1027,17 @@ class Environment(BaseEnv):
         act_as_dict = None
         if options is not None and "init state" in options:
             act_as_dict = options["init state"]
-            if "method" in act_as_dict:
-                method = act_as_dict["method"]
-                del act_as_dict["method"]
-            init_state : BaseAction = self._helper_action_env(act_as_dict)
+            if isinstance(act_as_dict, dict):
+                if "method" in act_as_dict:
+                    method = act_as_dict["method"]
+                    del act_as_dict["method"]
+                init_state : BaseAction = self._helper_action_env(act_as_dict)
+            elif isinstance(act_as_dict, BaseAction):
+                init_state = act_as_dict
+            else:
+                raise Grid2OpException("`init state` kwargs in `env.reset(, options=XXX) should either be a "
+                                       "grid2op action (instance of grid2op.Action.BaseAction) or a dictionaray "
+                                       f"representing an action. You provided {act_as_dict} which is a {type(act_as_dict)}")
             ambiguous, except_tmp = init_state.is_ambiguous()
             if ambiguous:
                 raise Grid2OpException("You provided an invalid (ambiguous) action to set the 'init state'") from except_tmp

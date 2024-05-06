@@ -46,6 +46,7 @@ def _aux_one_process_parrallel(
     max_iter=None,
     add_detailed_output=False,
     add_nb_highres_sim=False,
+    init_states=None
 ):
     """this is out of the runner, otherwise it does not work on windows / macos"""
     # chronics_handler = ChronicsHandler(
@@ -65,9 +66,16 @@ def _aux_one_process_parrallel(
             env_seed = None
             if env_seeds is not None:
                 env_seed = env_seeds[i]
+                
             agt_seed = None
             if agent_seeds is not None:
                 agt_seed = agent_seeds[i]
+                
+            if init_states is not None:
+                init_state = init_states[i]
+            else:
+                init_state = None
+                
             tmp_ = _aux_run_one_episode(
                 env,
                 agent,
@@ -79,6 +87,7 @@ def _aux_one_process_parrallel(
                 agent_seed=agt_seed,
                 detailed_output=add_detailed_output,
                 use_compact_episode_data=runner.use_compact_episode_data,
+                init_state=init_state
             )
             (name_chron, cum_reward, nb_time_step, max_ts, episode_data, nb_highres_sim)  = tmp_
             id_chron = env.chronics_handler.get_id()
@@ -105,6 +114,7 @@ def _aux_run_one_episode(
     max_iter=None,
     detailed_output=False,
     use_compact_episode_data=False,
+    init_state=None
 ):
     done = False
     time_step = int(0)
@@ -120,9 +130,13 @@ def _aux_run_one_episode(
     # handle max_iter
     if max_iter is not None:
         env.chronics_handler.set_max_iter(max_iter)
-        
+    
     # reset it
-    obs = env.reset()
+    if init_state is None:
+        obs = env.reset()
+    else:
+        obs = env.reset(options={"init state": init_state})
+        
     # reset the number of calls to high resolution simulator
     env._highres_sim_counter._HighResSimCounter__nb_highres_called = 0
     

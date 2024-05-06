@@ -43,8 +43,8 @@ DICT_ACT_TYPING = Dict[Literal["set_line_status",
 # TODO improve that (especially the Any part)
 
 #: type hints for the "options" flag of reset function
-RESET_OPTIONS_TYPING = Union[Dict[Literal["time serie id", "init state"],
-                                  Union[int, DICT_ACT_TYPING]],
+RESET_OPTIONS_TYPING = Union[Dict[Literal["time serie id"], int],
+                             Dict[Literal["init state"], DICT_ACT_TYPING],
                              None]
 
 #: type hints for a "GridObject" when converted to a dictionary
