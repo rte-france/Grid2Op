@@ -52,6 +52,9 @@ Change Log
   and `FromChronix2grid` are not supported at the moment.
 - [ADDED] an "Handler" (`JSONInitStateHandler`) that can set the grid to an initial state (so as to make
   compatible the `FromHandlers` time series class with this new feature)
+- [ADDED] some more type hints in the `GridObject` class 
+- [ADDED] Possibility to deactive the support of shunts if subclassing `PandaPowerBackend`
+  (and add some basic tests)
 - [FIXED] a small issue that could lead to having 
   "redispatching_unit_commitment_availble" flag set even if the redispatching
   data was not loaded correctly
@@ -79,6 +82,8 @@ Change Log
 - [IMPROVED] the way the "grid2op compat" mode is handled
 - [IMPROVED] the coverage of the tests in the "test_basic_env_ls.py" to test more in depth lightsim2grid
   (creation of multiple environments, grid2op compatibility mode)
+- [IMPROVED] the function to test the backend interface in case when shunts are not supported 
+  (improved test `AAATestBackendAPI.test_01load_grid`)
 
 [1.10.1] - 2024-03-xx
 ----------------------

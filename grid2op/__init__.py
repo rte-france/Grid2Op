@@ -11,7 +11,7 @@
 Grid2Op
 
 """
-__version__ = '1.10.2.dev2'
+__version__ = '1.10.2.dev3'
 
 __all__ = [
     "Action",
@@ -45,15 +45,14 @@ __all__ = [
 ]
 
 
-
-from grid2op.MakeEnv import  (make,
-                              update_env,
-                              list_available_remote_env,
-                              list_available_local_env,
-                              get_current_local_dir,
-                              change_local_dir,
-                              list_available_test_env
-                             )
+from grid2op.MakeEnv import (make,
+                             update_env,
+                             list_available_remote_env,
+                             list_available_local_env,
+                             get_current_local_dir,
+                             change_local_dir,
+                             list_available_test_env
+                            )
 
 try:
     from grid2op._create_test_suite import create_test_suite

@@ -6,7 +6,8 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-from typing import Dict, Literal, Any, Union
+from typing import Dict, Literal, Any, Union, List
+import numpy as np
 
 #: type hints corresponding to the "info" part of the env.step return value
 STEP_INFO_TYPING = Dict[Literal["disc_lines",
@@ -45,3 +46,11 @@ DICT_ACT_TYPING = Dict[Literal["set_line_status",
 RESET_OPTIONS_TYPING = Union[Dict[Literal["time serie id", "init state"],
                                   Union[int, DICT_ACT_TYPING]],
                              None]
+
+#: type hints for a "GridObject" when converted to a dictionary
+CLS_AS_DICT_TYPING = Dict[str,
+                          Union[int,  # eg n_sub, or n_line
+                                str,  # eg name_shunt, name_load
+                                np.ndarray,  # eg load_to_subid, gen_pos_topo_vect
+                                List[Union[int, str, float, bool]]]
+                          ]

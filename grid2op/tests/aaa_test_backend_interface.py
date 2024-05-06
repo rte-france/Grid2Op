@@ -11,6 +11,7 @@ import numpy as np
 import warnings
 import grid2op
 from grid2op.Backend import Backend
+from grid2op.dtypes import dt_int
 from grid2op.tests.helper_path_test import HelperTests, MakeBackend, PATH_DATA
 from grid2op.Exceptions import BackendError, Grid2OpException
 
@@ -96,7 +97,33 @@ class AAATestBackendAPI(MakeBackend):
         backend = self.make_backend()
         with self.assertRaises(Exception):
             backend.load_grid()  # should raise if nothing is loaded 
+            
+        if backend.shunts_data_available and not cls.shunts_data_available:
+            raise RuntimeError("You backend object inform grid2op that it supports shunt, but the class apparently does not. "
+                               "Have you called `self._compute_pos_big_topo()` at the end of `load_grid` implementation ?")
+        if not backend.shunts_data_available and cls.shunts_data_available:
+            raise RuntimeError("You backend object inform grid2op that it does not support shunt, but the class apparently does. "
+                               "Have you called `self._compute_pos_big_topo()` at the end of `load_grid` implementation ?")
 
+        if not backend.shunts_data_available:
+            # object does not support shunts
+            assert not cls.shunts_data_available
+            assert cls.n_shunt is None, f"Your backend does not support shunt, the class should not define `n_shunt` (cls.n_shunt should be None and not {cls.n_shunt})"
+            assert cls.name_shunt is None, f"Your backend does not support shunt, the class should not define `name_shunt` (cls.name_shunt should be None and not {cls.name_shunt})"
+            assert cls.shunt_to_subid is None, f"Your backend does not support shunt, the class should not define `shunt_to_subid` (cls.shunt_to_subid should be None and not {cls.shunt_to_subid})"
+            assert backend.n_shunt is None, f"Your backend does not support shunt, backend.n_shunt should be None and not {backend.n_shunt}"
+            assert backend.name_shunt is None, f"Your backend does not support shunt, backend.name_shunt should be None {backend.name_shunt}"
+            assert backend.shunt_to_subid is None, f"Your backend does not support shunt, backend.shunt_to_subid should be None {backend.shunt_to_subid}"
+        else:
+            # object does support shunts
+            assert cls.shunts_data_available
+            assert isinstante(cls.n_shunt, (int, dt_int)), f"Your backend does not support shunt, the class should define `n_shunt`as an int, found {cls.n_shunt}"
+            assert cls.name_shunt is not None, f"Your backend does not support shunt, the class should define `name_shunt` (cls.name_shunt should not be None)"
+            assert cls.shunt_to_subid is not None, f"Your backend does not support shunt, the class should define `shunt_to_subid` (cls.shunt_to_subid should not be None)"
+            assert isinstante(backend.n_shunt, (int, dt_int)), f"Your backend does support shunt, `backend.n_shunt` should be an int, found {cls.n_shunt}"
+            assert backend.name_shunt is not None, f"Your backend does not support shunt, backend.name_shunt should not be None"
+            assert backend.shunt_to_subid is not None, f"Your backend does not support shunt, backend.shunt_to_subid should not be None"
+            
     def test_02modify_load(self):
         """Tests the loads can be modified        
 

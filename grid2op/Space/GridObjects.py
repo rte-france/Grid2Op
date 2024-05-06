@@ -21,10 +21,11 @@ import warnings
 import copy
 import numpy as np
 from packaging import version
-from typing import Dict, Union, Literal, Any
+from typing import Dict, Union, Literal, Any, List, Optional, ClassVar, Tuple
     
 import grid2op
 from grid2op.dtypes import dt_int, dt_float, dt_bool
+from grid2op.typing_variables import CLS_AS_DICT_TYPING
 from grid2op.Exceptions import *
 from grid2op.Space.space_utils import extract_from_dict, save_to_dict
 
@@ -473,75 +474,75 @@ class GridObjects:
         .. versionadded:: 1.9.1
     """
 
-    BEFORE_COMPAT_VERSION = "neurips_2020_compat"
-    glop_version = grid2op.__version__
+    BEFORE_COMPAT_VERSION : ClassVar[str] = "neurips_2020_compat"
+    glop_version : ClassVar[str] = grid2op.__version__
     
     _INIT_GRID_CLS = None  # do not modify that, this is handled by grid2op automatically
-    _PATH_GRID_CLASSES = None  # especially do not modify that
-    _CLS_DICT = None  # init once to avoid yet another serialization of the class as dict (in make_cls_dict)
-    _CLS_DICT_EXTENDED = None  # init once to avoid yet another serialization of the class as dict  (in make_cls_dict)
+    _PATH_GRID_CLASSES : ClassVar[Optional[str]] = None  # especially do not modify that
+    _CLS_DICT : ClassVar[Optional[CLS_AS_DICT_TYPING]] = None  # init once to avoid yet another serialization of the class as dict (in make_cls_dict)
+    _CLS_DICT_EXTENDED : ClassVar[Optional[CLS_AS_DICT_TYPING]] = None  # init once to avoid yet another serialization of the class as dict  (in make_cls_dict)
 
-    SUB_COL = 0
-    LOA_COL = 1
-    GEN_COL = 2
-    LOR_COL = 3
-    LEX_COL = 4
-    STORAGE_COL = 5
+    SUB_COL : ClassVar[int] = 0
+    LOA_COL : ClassVar[int] = 1
+    GEN_COL : ClassVar[int] = 2
+    LOR_COL : ClassVar[int] = 3
+    LEX_COL : ClassVar[int] = 4
+    STORAGE_COL : ClassVar[int] = 5
 
-    attr_list_vect = None
+    attr_list_vect : ClassVar[Optional[List[str]]] = None
     attr_list_set = {}
-    attr_list_json = []
+    attr_list_json : ClassVar[Optional[List[str]]] = []
     attr_nan_list_set = set()
 
     # name of the objects
-    env_name = "unknown"
-    name_load = None
-    name_gen = None
-    name_line = None
-    name_sub = None
-    name_storage = None
+    env_name : ClassVar[str] = "unknown"
+    name_load : ClassVar[np.ndarray] = None
+    name_gen : ClassVar[np.ndarray] = None
+    name_line : ClassVar[np.ndarray] = None
+    name_sub : ClassVar[np.ndarray] = None
+    name_storage : ClassVar[np.ndarray] = None
 
-    n_busbar_per_sub = DEFAULT_N_BUSBAR_PER_SUB
-    n_gen = -1
-    n_load = -1
-    n_line = -1
-    n_sub = -1
-    n_storage = -1
+    n_busbar_per_sub : ClassVar[int] = DEFAULT_N_BUSBAR_PER_SUB
+    n_gen : ClassVar[int] = -1
+    n_load : ClassVar[int] = -1
+    n_line : ClassVar[int] = -1
+    n_sub : ClassVar[int] = -1
+    n_storage : ClassVar[int] = -1
 
-    sub_info = None
-    dim_topo = -1
+    sub_info : ClassVar[np.ndarray] = None
+    dim_topo : ClassVar[np.ndarray] = -1
 
     # to which substation is connected each element
-    load_to_subid = None
-    gen_to_subid = None
-    line_or_to_subid = None
-    line_ex_to_subid = None
-    storage_to_subid = None
+    load_to_subid : ClassVar[np.ndarray] = None
+    gen_to_subid : ClassVar[np.ndarray] = None
+    line_or_to_subid : ClassVar[np.ndarray] = None
+    line_ex_to_subid : ClassVar[np.ndarray] = None
+    storage_to_subid : ClassVar[np.ndarray] = None
 
     # which index has this element in the substation vector
-    load_to_sub_pos = None
-    gen_to_sub_pos = None
-    line_or_to_sub_pos = None
-    line_ex_to_sub_pos = None
-    storage_to_sub_pos = None
+    load_to_sub_pos : ClassVar[np.ndarray] = None
+    gen_to_sub_pos : ClassVar[np.ndarray] = None
+    line_or_to_sub_pos : ClassVar[np.ndarray] = None
+    line_ex_to_sub_pos : ClassVar[np.ndarray] = None
+    storage_to_sub_pos : ClassVar[np.ndarray] = None
 
     # which index has this element in the topology vector
-    load_pos_topo_vect = None
-    gen_pos_topo_vect = None
-    line_or_pos_topo_vect = None
-    line_ex_pos_topo_vect = None
-    storage_pos_topo_vect = None
+    load_pos_topo_vect : ClassVar[np.ndarray] = None
+    gen_pos_topo_vect : ClassVar[np.ndarray] = None
+    line_or_pos_topo_vect : ClassVar[np.ndarray] = None
+    line_ex_pos_topo_vect : ClassVar[np.ndarray] = None
+    storage_pos_topo_vect : ClassVar[np.ndarray] = None
 
     # "convenient" way to retrieve information of the grid
-    grid_objects_types = None
+    grid_objects_types : ClassVar[np.ndarray] = None
     # to which substation each element of the topovect is connected
-    _topo_vect_to_sub = None
+    _topo_vect_to_sub : ClassVar[np.ndarray] = None
 
     # list of attribute to convert it from/to a vector
     _vectorized = None
 
     # for redispatching / unit commitment
-    _li_attr_disp = [
+    _li_attr_disp : ClassVar[List[str]] = [
         "gen_type",
         "gen_pmin",
         "gen_pmax",
@@ -556,7 +557,7 @@ class GridObjects:
         "gen_renewable",
     ]
 
-    _type_attr_disp = [
+    _type_attr_disp : ClassVar[List] = [
         str,
         float,
         float,
@@ -572,39 +573,39 @@ class GridObjects:
     ]
 
     # redispatch data, not available in all environment
-    redispatching_unit_commitment_availble = False
-    gen_type = None
-    gen_pmin = None
-    gen_pmax = None
-    gen_redispatchable = None
-    gen_max_ramp_up = None
-    gen_max_ramp_down = None
-    gen_min_uptime = None
-    gen_min_downtime = None
-    gen_cost_per_MW = None  # marginal cost (in currency / (power.step) and not in $/(MW.h) it would be $ / (MW.5mins) )
-    gen_startup_cost = None  # start cost (in currency)
-    gen_shutdown_cost = None  # shutdown cost (in currency)
-    gen_renewable = None
+    redispatching_unit_commitment_availble : ClassVar[bool] = False
+    gen_type : ClassVar[Optional[np.ndarray]] = None
+    gen_pmin : ClassVar[Optional[np.ndarray]] = None
+    gen_pmax : ClassVar[Optional[np.ndarray]] = None
+    gen_redispatchable : ClassVar[Optional[np.ndarray]] = None
+    gen_max_ramp_up : ClassVar[Optional[np.ndarray]] = None
+    gen_max_ramp_down : ClassVar[Optional[np.ndarray]] = None
+    gen_min_uptime : ClassVar[Optional[np.ndarray]] = None
+    gen_min_downtime : ClassVar[Optional[np.ndarray]] = None
+    gen_cost_per_MW : ClassVar[Optional[np.ndarray]] = None  # marginal cost (in currency / (power.step) and not in $/(MW.h) it would be $ / (MW.5mins) )
+    gen_startup_cost : ClassVar[Optional[np.ndarray]] = None  # start cost (in currency)
+    gen_shutdown_cost : ClassVar[Optional[np.ndarray]] = None  # shutdown cost (in currency)
+    gen_renewable : ClassVar[Optional[np.ndarray]] = None
 
     # storage unit static data
-    storage_type = None
-    storage_Emax = None
-    storage_Emin = None
-    storage_max_p_prod = None
-    storage_max_p_absorb = None
-    storage_marginal_cost = None
-    storage_loss = None
-    storage_charging_efficiency = None
-    storage_discharging_efficiency = None
+    storage_type : ClassVar[Optional[np.ndarray]] = None
+    storage_Emax : ClassVar[Optional[np.ndarray]] = None
+    storage_Emin : ClassVar[Optional[np.ndarray]] = None
+    storage_max_p_prod : ClassVar[Optional[np.ndarray]] = None
+    storage_max_p_absorb : ClassVar[Optional[np.ndarray]] = None
+    storage_marginal_cost : ClassVar[Optional[np.ndarray]] = None
+    storage_loss : ClassVar[Optional[np.ndarray]] = None
+    storage_charging_efficiency : ClassVar[Optional[np.ndarray]] = None
+    storage_discharging_efficiency : ClassVar[Optional[np.ndarray]] = None
 
     # grid layout
-    grid_layout = None
+    grid_layout : ClassVar[Optional[Dict[str, Tuple[float, float]]]] = None
 
     # shunt data, not available in every backend
-    shunts_data_available = False
-    n_shunt = None
-    name_shunt = None
-    shunt_to_subid = None
+    shunts_data_available : ClassVar[bool] = False
+    n_shunt : ClassVar[Optional[int]] = None
+    name_shunt : ClassVar[Optional[np.ndarray]] = None
+    shunt_to_subid : ClassVar[Optional[np.ndarray]] = None
 
     # alarm / alert
     assistant_warning_type = None
@@ -627,7 +628,7 @@ class GridObjects:
     alertable_line_ids = []
     
     # test
-    _IS_INIT = False
+    _IS_INIT : ClassVar[Optional[bool]] = False
     
     def __init__(self):
         """nothing to do when an object of this class is created, the information is held by the class attributes"""
@@ -3979,7 +3980,7 @@ class GridObjects:
         return res
 
     @staticmethod
-    def _make_cls_dict_extended(cls, res, as_list=True, copy_=True, _topo_vect_only=False):
+    def _make_cls_dict_extended(cls, res: CLS_AS_DICT_TYPING, as_list=True, copy_=True, _topo_vect_only=False):
         """add the n_gen and all in the class created
         
         Notes
