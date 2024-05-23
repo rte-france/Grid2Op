@@ -4681,7 +4681,7 @@ class BaseAction(GridObjects):
         self.line_change_status = values
 
     def _aux_affect_object_bool(
-        self, values, name_el, nb_els, name_els, inner_vect, outer_vect, _nm_ch_bk_key
+        self, values, name_el, nb_els, name_els, inner_vect, outer_vect, _nm_ch_bk_key=None
     ):
         """
         NB : this do not set the _modif_set_bus attribute. It is expected to be set in the property setter.
