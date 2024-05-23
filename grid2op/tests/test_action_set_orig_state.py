@@ -409,7 +409,7 @@ class TestSetActOrigDiffNames(TestSetActOrigDefault):
         return os.path.join(PATH_DATA_TEST, "5bus_example_diff_name", "grid.json")
     
     def _names_ch_to_bk(self):
-        res = {"loads": {'load_0_0': 'tata', 'load_3_1': 'toto', 'load_4_2': 'tutu'},
+        res = {"loads": {'load_0_0': 'tutu', 'load_3_1': 'toto', 'load_4_2': 'tata'},
                "prods": {"gen_0_0": "othername_0_0", "gen_1_1": "othername_1_1"},
                "lines": {"0_1_0": 'l_0_1_0',
                          "0_2_1": 'l_0_2_1',

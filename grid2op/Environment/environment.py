@@ -851,6 +851,7 @@ class Environment(BaseEnv):
                 raise Grid2OpException(f"kwargs `method` used to set the initial state of the grid "
                                        f"is not understood (use one of `combine` or `ignore` and "
                                        f"not `{method}`)")
+        init_action._set_topo_vect.nonzero()
         *_, fail_to_start, info = self.step(init_action)
         if fail_to_start:
             raise Grid2OpException(

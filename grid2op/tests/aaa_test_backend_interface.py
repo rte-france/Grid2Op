@@ -117,10 +117,10 @@ class AAATestBackendAPI(MakeBackend):
         else:
             # object does support shunts
             assert cls.shunts_data_available
-            assert isinstante(cls.n_shunt, (int, dt_int)), f"Your backend does not support shunt, the class should define `n_shunt`as an int, found {cls.n_shunt}"
+            assert isinstance(cls.n_shunt, (int, dt_int)), f"Your backend does not support shunt, the class should define `n_shunt`as an int, found {cls.n_shunt}"
             assert cls.name_shunt is not None, f"Your backend does not support shunt, the class should define `name_shunt` (cls.name_shunt should not be None)"
             assert cls.shunt_to_subid is not None, f"Your backend does not support shunt, the class should define `shunt_to_subid` (cls.shunt_to_subid should not be None)"
-            assert isinstante(backend.n_shunt, (int, dt_int)), f"Your backend does support shunt, `backend.n_shunt` should be an int, found {cls.n_shunt}"
+            assert isinstance(backend.n_shunt, (int, dt_int)), f"Your backend does support shunt, `backend.n_shunt` should be an int, found {cls.n_shunt}"
             assert backend.name_shunt is not None, f"Your backend does not support shunt, backend.name_shunt should not be None"
             assert backend.shunt_to_subid is not None, f"Your backend does not support shunt, backend.shunt_to_subid should not be None"
             
