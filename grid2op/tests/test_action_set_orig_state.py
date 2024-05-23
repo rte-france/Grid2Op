@@ -108,7 +108,7 @@ class TestSetActOrigDefault(unittest.TestCase):
         return self.env.step(act)
         
     def _aux_get_init_act(self):
-        return self.env.chronics_handler.get_init_action()
+        return self.env.chronics_handler.get_init_action(names_chronics_to_backend=self._names_ch_to_bk())
     
     def _aux_get_act_valid(self):
         # check the action in the time series folder is valid   

@@ -4054,7 +4054,7 @@ class BaseAction(GridObjects):
                     if self._names_chronics_to_backend is not None and _nm_ch_bk_key in self._names_chronics_to_backend:
                         # initial action to set the state, might use the name in the time series...
                         nms_conv = self._names_chronics_to_backend[_nm_ch_bk_key]
-                        el_id_or_name = nms_conv[el_id_or_name]
+                        el_id = nms_conv[el_id]
                     tmp = (name_els == el_id).nonzero()[0]
                     if len(tmp) == 0:
                         raise IllegalAction(f"No known {name_el} with name {el_id}")
@@ -4077,7 +4077,7 @@ class BaseAction(GridObjects):
                     if self._names_chronics_to_backend is not None and _nm_ch_bk_key in self._names_chronics_to_backend:
                         # initial action to set the state, might use the name in the time series...
                         nms_conv = self._names_chronics_to_backend[_nm_ch_bk_key]
-                        el_id_or_name = nms_conv[el_id_or_name]
+                        key = nms_conv[key]
                     tmp = (name_els == key).nonzero()[0]
                     if len(tmp) == 0:
                         raise IllegalAction(f"No known {name_el} with name {key}")
@@ -5506,7 +5506,7 @@ class BaseAction(GridObjects):
                     if self._names_chronics_to_backend is not None and _nm_ch_bk_key in self._names_chronics_to_backend:
                         # initial action to set the state, might use the name in the time series...
                         nms_conv = self._names_chronics_to_backend[_nm_ch_bk_key]
-                        el_id_or_name = nms_conv[el_id_or_name]
+                        key = nms_conv[key]
                     tmp = (name_els == key).nonzero()[0]
                     if len(tmp) == 0:
                         raise IllegalAction(f"No known {name_el} with name {key}")
