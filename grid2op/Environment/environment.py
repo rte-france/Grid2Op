@@ -10,7 +10,7 @@ import copy
 import warnings
 import numpy as np
 import re
-from typing import Union, Any, Dict, Literal
+from typing import Optional, Union, Any, Dict, Literal
 
 import grid2op
 from grid2op.Opponent import OpponentSpace
@@ -808,7 +808,9 @@ class Environment(BaseEnv):
         return "<{} instance named {}>".format(type(self).__name__, self.name)
         # TODO be closer to original gym implementation
 
-    def reset_grid(self, init_state_dict=None, method="combine"):
+    def reset_grid(self,
+                   init_act_opt : Optional[BaseAction]=None, 
+                   method:Literal["combine", "ignore"]="combine"):
         """
         INTERNAL
 
@@ -832,15 +834,14 @@ class Environment(BaseEnv):
 
         self._backend_action = self._backend_action_class()
         self.nb_time_step = -1  # to have init obs at step 1 (and to prevent 'setting to proper state' "action" to be illegal)
-        init_action : BaseAction = self.chronics_handler.get_init_action()
+        init_action : BaseAction = self.chronics_handler.get_init_action(self._names_chronics_to_backend)
         if init_action is None:
             # default behaviour for grid2op < 1.10.2
             init_action = self._helper_action_env({})
         else:
             init_action.remove_change()
             
-        if init_state_dict is not None:
-            init_act_opt : BaseAction = self._helper_action_env(init_state_dict)
+        if init_act_opt is not None:
             init_act_opt.remove_change()
             if method == "combine":
                 init_action._add_act_and_remove_line_status_only_set(init_act_opt)
@@ -850,13 +851,18 @@ class Environment(BaseEnv):
                 raise Grid2OpException(f"kwargs `method` used to set the initial state of the grid "
                                        f"is not understood (use one of `combine` or `ignore` and "
                                        f"not `{method}`)")
+        init_action._set_topo_vect.nonzero()
         *_, fail_to_start, info = self.step(init_action)
         if fail_to_start:
             raise Grid2OpException(
                 "Impossible to initialize the powergrid, the powerflow diverge at iteration 0. "
                 "Available information are: {}".format(info)
             )
-            
+        if info["exception"] and init_action.can_affect_something():
+            raise Grid2OpException(f"There has been an error at the initialization, most likely due to a "
+                                   f"incorrect 'init state'. You need to change either the time series used (chronics, chronics_handler, "
+                                   f"gridvalue, etc.) or the 'init state' option provided in "
+                                   f"`env.reset(..., options={'init state': XXX, ...})`. Error was: {info['exception']}")
         # assign the right
         self._observation_space.set_real_env_kwargs(self)
 
@@ -887,7 +893,18 @@ class Environment(BaseEnv):
         to ensure the episode is fully over.
 
         This method should be called only at the end of an episode.
-
+        
+        Parameters
+        ----------
+        seed: int
+            The seed to used (new in version 1.9.8), see examples for more details. Ignored if not set (meaning no seeds will 
+            be used, experiments might not be reproducible)
+            
+        options: dict
+            Some options to "customize" the reset call. For example specifying the "time serie id" (grid2op >= 1.9.8) to use 
+            or the "initial state of the grid" (grid2op >= 1.10.2). See examples for more information about this. Ignored if 
+            not set.
+        
         Examples
         --------
         The standard "gym loop" can be done with the following code:
@@ -946,6 +963,8 @@ class Environment(BaseEnv):
             time_serie_id = ...
             obs = env.reset(options={"time serie id": time_serie_id})
             ... 
+        
+        .. versionadded:: 1.10.2
         
         Another feature has been added in version 1.10.2, which is the possibility to set the 
         grid to a given "topological" state at the first observation (before this version, 
@@ -1011,13 +1030,20 @@ class Environment(BaseEnv):
         # (if there is an init state then I need to process it to remove the 
         # some keys)
         method = "combine"
-        act_as_dict = None
+        init_state = None
         if options is not None and "init state" in options:
             act_as_dict = options["init state"]
-            if "method" in act_as_dict:
-                method = act_as_dict["method"]
-                del act_as_dict["method"]
-            init_state : BaseAction = self._helper_action_env(act_as_dict)
+            if isinstance(act_as_dict, dict):
+                if "method" in act_as_dict:
+                    method = act_as_dict["method"]
+                    del act_as_dict["method"]
+                init_state : BaseAction = self._helper_action_env(act_as_dict)
+            elif isinstance(act_as_dict, BaseAction):
+                init_state = act_as_dict
+            else:
+                raise Grid2OpException("`init state` kwargs in `env.reset(, options=XXX) should either be a "
+                                       "grid2op action (instance of grid2op.Action.BaseAction) or a dictionaray "
+                                       f"representing an action. You provided {act_as_dict} which is a {type(act_as_dict)}")
             ambiguous, except_tmp = init_state.is_ambiguous()
             if ambiguous:
                 raise Grid2OpException("You provided an invalid (ambiguous) action to set the 'init state'") from except_tmp
@@ -1038,7 +1064,7 @@ class Environment(BaseEnv):
         self._reset_redispatching()
         self._reset_vectors_and_timings()  # it need to be done BEFORE to prevent cascading failure when there has been
             
-        self.reset_grid(act_as_dict, method)
+        self.reset_grid(init_state, method)
         if self.viewer_fig is not None:
             del self.viewer_fig
             self.viewer_fig = None

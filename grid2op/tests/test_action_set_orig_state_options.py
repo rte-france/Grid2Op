@@ -11,11 +11,8 @@ import warnings
 import unittest
     
 import grid2op
+from grid2op.Runner import Runner
 from grid2op.tests.helper_path_test import *
-
-
-# TODO test with redispatching, curtailment or storage
-# TODO in the runner too
 
 
 class TestSetActOptionDefault(unittest.TestCase):        
@@ -137,7 +134,7 @@ class TestSetActOptionDefault(unittest.TestCase):
         assert self.obs.topo_vect[self.obs.line_or_pos_topo_vect[1]] == 1
         assert self.obs.topo_vect[self.obs.line_ex_pos_topo_vect[1]] == 1
         assert self.obs.line_status[1]
-        return self.env.chronics_handler.get_init_action()
+        return self.env.chronics_handler.get_init_action()  
     
     def test_ignore_ts_set_bus_opt_setbus_nopb(self):
         # ts id 0 => set_bus (in the time series)
@@ -242,3 +239,275 @@ class TestSetActOptionDefault(unittest.TestCase):
         assert self.obs.topo_vect[self.obs.line_or_pos_topo_vect[1]] == 1
         assert self.obs.topo_vect[self.obs.line_ex_pos_topo_vect[1]] == 1
         assert self.obs.line_status[1]
+        
+    def test_byact(self):
+        # ts id 1 => set_status
+        act = self.env.action_space({"set_line_status": [(1, 1)]})
+        self.obs = self._aux_reset_env(seed=0, ep_id=1, init_state=act)
+        
+        # in the time series (bus overriden by the action)
+        assert self.obs.topo_vect[self.obs.line_or_pos_topo_vect[1]] == 1
+        assert self.obs.topo_vect[self.obs.line_ex_pos_topo_vect[1]] == 1
+        assert self.obs.line_status[1]
+        return self.env.chronics_handler.get_init_action()
+
+
+class TestSetInitRunner(unittest.TestCase):
+    def _env_path(self):
+        return os.path.join(
+            PATH_DATA_TEST, "5bus_example_act_topo_set_init"
+        )
+    
+    def setUp(self) -> None:
+        self.env_nm = self._env_path()
+        self.max_iter = 5
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env = grid2op.make(self.env_nm,
+                                    test=True
+                                    )
+        self.runner = Runner(**self.env.get_params_for_runner())
+        
+    def tearDown(self) -> None:
+        self.env.close()
+        self.runner._clean_up()
+        return super().tearDown()
+    
+    def test_run_one_episode(self):
+        res = self.runner.run_one_episode(init_state={"set_line_status": [(1, 1)], "method": "ignore"},
+                                          episode_id=1,
+                                          max_iter=self.max_iter,
+                                          detailed_output=True
+                                         )
+        ep_data = res[-1]
+        init_obs = ep_data.observations[0]
+        assert init_obs.topo_vect[init_obs.line_or_pos_topo_vect[1]] == 1
+        assert init_obs.topo_vect[init_obs.line_ex_pos_topo_vect[1]] == 1
+        assert init_obs.line_status[1]
+        
+    def test_run_onesingle_ep_onesingle_act(self):
+        # one action
+        res = self.runner.run(nb_episode=1,
+                              init_states={"set_line_status": [(1, 1)], "method": "ignore"},
+                              episode_id=[1],
+                              max_iter=self.max_iter,
+                              add_detailed_output=True
+                              )
+        ep_data = res[0][-1]
+        init_obs = ep_data.observations[0]
+        assert init_obs.topo_vect[init_obs.line_or_pos_topo_vect[1]] == 1
+        assert init_obs.topo_vect[init_obs.line_ex_pos_topo_vect[1]] == 1
+        assert init_obs.line_status[1]
+        
+        # one list (of one element here)
+        res = self.runner.run(nb_episode=1,
+                              init_states=[{"set_line_status": [(1, 1)], "method": "ignore"}],
+                              episode_id=[1],
+                              max_iter=self.max_iter,
+                              add_detailed_output=True
+                              )
+        ep_data = res[0][-1]
+        init_obs = ep_data.observations[0]
+        assert init_obs.topo_vect[init_obs.line_or_pos_topo_vect[1]] == 1
+        assert init_obs.topo_vect[init_obs.line_ex_pos_topo_vect[1]] == 1
+        assert init_obs.line_status[1]
+        
+        # one tuple (of one element here)
+        res = self.runner.run(nb_episode=1,
+                              init_states=({"set_line_status": [(1, 1)], "method": "ignore"}, ),
+                              episode_id=[1],
+                              max_iter=self.max_iter,
+                              add_detailed_output=True
+                              )
+        ep_data = res[0][-1]
+        init_obs = ep_data.observations[0]
+        assert init_obs.topo_vect[init_obs.line_or_pos_topo_vect[1]] == 1
+        assert init_obs.topo_vect[init_obs.line_ex_pos_topo_vect[1]] == 1
+        assert init_obs.line_status[1]
+        
+    def test_run_two_eps_seq_onesingle_act(self, nb_process=1):
+        # one action
+        res = self.runner.run(nb_episode=2,
+                              init_states={"set_line_status": [(1, 1)], "method": "ignore"},
+                              episode_id=[1, 1],
+                              max_iter=self.max_iter,
+                              add_detailed_output=True,
+                              nb_process=nb_process
+                              )
+        for el in res:
+            ep_data = el[-1]
+            init_obs = ep_data.observations[0]
+            assert init_obs.topo_vect[init_obs.line_or_pos_topo_vect[1]] == 1
+            assert init_obs.topo_vect[init_obs.line_ex_pos_topo_vect[1]] == 1
+            assert init_obs.line_status[1]
+        
+        # one list
+        res = self.runner.run(nb_episode=2,
+                              init_states=[{"set_line_status": [(1, 1)], "method": "ignore"},
+                                           {"set_line_status": [(1, 1)], "method": "ignore"}],
+                              episode_id=[1, 1],
+                              max_iter=self.max_iter,
+                              add_detailed_output=True,
+                              nb_process=nb_process
+                              )
+        for el in res:
+            ep_data = el[-1]
+            init_obs = ep_data.observations[0]
+            assert init_obs.topo_vect[init_obs.line_or_pos_topo_vect[1]] == 1
+            assert init_obs.topo_vect[init_obs.line_ex_pos_topo_vect[1]] == 1
+            assert init_obs.line_status[1]
+        
+        # one tuple
+        res = self.runner.run(nb_episode=2,
+                              init_states=({"set_line_status": [(1, 1)], "method": "ignore"},
+                                           {"set_line_status": [(1, 1)], "method": "ignore"}),
+                              episode_id=[1, 1],
+                              max_iter=self.max_iter,
+                              add_detailed_output=True,
+                              nb_process=nb_process
+                              )
+        for el in res:
+            ep_data = el[-1]
+            init_obs = ep_data.observations[0]
+            assert init_obs.topo_vect[init_obs.line_or_pos_topo_vect[1]] == 1
+            assert init_obs.topo_vect[init_obs.line_ex_pos_topo_vect[1]] == 1
+            assert init_obs.line_status[1]
+        
+    def test_run_two_eps_seq_two_acts(self, nb_process=1):  
+        # given as list
+        res = self.runner.run(nb_episode=2,
+                              init_states=[{"set_bus": {"loads_id": [(0, 1)]}, "set_line_status": [(1, -1)], "method": "ignore"},
+                                           {"set_line_status": [(1, 1)], "method": "ignore"}],
+                              episode_id=[0, 1],
+                              max_iter=self.max_iter,
+                              add_detailed_output=True,
+                              nb_process=nb_process
+                              )
+        
+        # check for ep 0
+        ep_data = res[0][-1]
+        init_obs = ep_data.observations[0]
+        assert init_obs.topo_vect[init_obs.line_or_pos_topo_vect[1]] == -1
+        assert init_obs.topo_vect[init_obs.line_ex_pos_topo_vect[1]] == -1
+        assert not init_obs.line_status[1]
+        assert init_obs.topo_vect[init_obs.load_pos_topo_vect[0]] == 1
+        # check for ep 1
+        ep_data = res[1][-1]
+        init_obs = ep_data.observations[0]
+        assert init_obs.topo_vect[init_obs.line_or_pos_topo_vect[1]] == 1
+        assert init_obs.topo_vect[init_obs.line_ex_pos_topo_vect[1]] == 1
+        assert init_obs.line_status[1]
+        
+        # one tuple
+        res = self.runner.run(nb_episode=2,
+                              init_states=({"set_bus": {"loads_id": [(0, 1)]}, "set_line_status": [(1, -1)], "method": "ignore"},
+                                           {"set_line_status": [(1, 1)], "method": "ignore"}),
+                              episode_id=[0, 1],
+                              max_iter=self.max_iter,
+                              add_detailed_output=True,
+                              nb_process=nb_process
+                              )
+        # check for ep 0
+        ep_data = res[0][-1]
+        init_obs = ep_data.observations[0]
+        assert init_obs.topo_vect[init_obs.line_or_pos_topo_vect[1]] == -1
+        assert init_obs.topo_vect[init_obs.line_ex_pos_topo_vect[1]] == -1
+        assert not init_obs.line_status[1]
+        assert init_obs.topo_vect[init_obs.load_pos_topo_vect[0]] == 1
+        # check for ep 1
+        ep_data = res[1][-1]
+        init_obs = ep_data.observations[0]
+        assert init_obs.topo_vect[init_obs.line_or_pos_topo_vect[1]] == 1
+        assert init_obs.topo_vect[init_obs.line_ex_pos_topo_vect[1]] == 1
+        assert init_obs.line_status[1]
+        
+    def test_run_two_eps_par_onesingle_act(self):
+        self.test_run_two_eps_seq_onesingle_act(nb_process=2)
+        
+    def test_run_two_eps_par_two_acts(self):
+        self.test_run_two_eps_seq_two_acts(nb_process=2)
+    
+    def test_fail_when_needed(self):
+        # wrong type
+        with self.assertRaises(RuntimeError):
+            res = self.runner.run(nb_episode=2,
+                                  init_states=1,
+                                  episode_id=[0, 1],
+                                  max_iter=self.max_iter,
+                                  add_detailed_output=True,
+                                  )
+        with self.assertRaises(RuntimeError):
+            res = self.runner.run(nb_episode=2,
+                                init_states=[1, {"set_line_status": [(1, 1)], "method": "ignore"}],
+                                episode_id=[0, 1],
+                                max_iter=self.max_iter,
+                                add_detailed_output=True,
+                                )
+        with self.assertRaises(RuntimeError):
+            res = self.runner.run(nb_episode=2,
+                                init_states=[{"set_line_status": [(1, 1)], "method": "ignore"}, 1],
+                                episode_id=[0, 1],
+                                max_iter=self.max_iter,
+                                add_detailed_output=True,
+                                )
+            
+        # wrong size (too big)
+        with self.assertRaises(RuntimeError):
+            res = self.runner.run(nb_episode=2,
+                                init_states=[{"set_line_status": [(1, 1)], "method": "ignore"},
+                                             {"set_line_status": [(1, 1)], "method": "ignore"},
+                                             {"set_line_status": [(1, 1)], "method": "ignore"}],
+                                episode_id=[0, 1],
+                                max_iter=self.max_iter,
+                                add_detailed_output=True,
+                                )
+        # wrong size (too small)
+        with self.assertRaises(RuntimeError):
+            res = self.runner.run(nb_episode=2,
+                                init_states=[{"set_line_status": [(1, 1)], "method": "ignore"}],
+                                episode_id=[0, 1],
+                                max_iter=self.max_iter,
+                                add_detailed_output=True,
+                                )
+        
+
+class TestSetActOptionDefaultComplexAction(unittest.TestCase):
+    def setUp(self) -> None:
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env = grid2op.make("educ_case14_storage", test=True, _add_to_name=type(self).__name__)
+        return super().setUp()
+    
+    def tearDown(self) -> None:
+        self.env.close()
+        return super().tearDown()
+
+    def test_storage(self):
+        obs = self.env.reset(seed=0,
+                             options={"time serie id": 0,
+                                      "init state": {"set_storage": [(0, 5.)]}})
+        assert abs(obs.storage_power[0] - 5.) <= 1e-6
+        obs, reward, done, info = self.env.step(self.env.action_space())
+        assert abs(obs.storage_power[0] - 0.) <= 1e-6
+    
+    def test_curtail(self):
+        obs = self.env.reset(seed=0,
+                             options={"time serie id": 0,
+                                      "init state": {"curtail": [(3, 0.1)]}})
+        assert abs(obs.curtailment_limit[3] - 0.1) <= 1e-6
+        obs, reward, done, info = self.env.step(self.env.action_space())
+        assert abs(obs.curtailment_limit[3] - 0.1) <= 1e-6
+        
+    def test_redispatching(self):
+        obs = self.env.reset(seed=0,
+                             options={"time serie id": 0,
+                                      "init state": {"redispatch": [(0, -1)]}})
+        assert abs(obs.target_dispatch[0] - -1.) <= 1e-6
+        assert abs(obs.actual_dispatch[0] - -1.) <= 1e-6
+        obs, reward, done, info = self.env.step(self.env.action_space())
+        assert abs(obs.target_dispatch[0] - -1.) <= 1e-6
+        assert abs(obs.actual_dispatch[0] - -1.) <= 1e-6
+        
+        
+if __name__ == "__main__":
+    unittest.main()

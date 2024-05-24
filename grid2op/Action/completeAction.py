@@ -5,6 +5,8 @@
 # you can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
+
+from typing import Optional, Dict, Literal
 from grid2op.Action.baseAction import BaseAction
 
 
@@ -16,5 +18,5 @@ class CompleteAction(BaseAction):
     class is used by the chronics, the environment the opponent or the voltage controler for example.
     """
 
-    def __init__(self):
-        BaseAction.__init__(self)
+    def __init__(self, _names_chronics_to_backend: Optional[Dict[Literal["loads", "prods", "lines"], Dict[str, str]]]=None):
+        BaseAction.__init__(self, _names_chronics_to_backend)

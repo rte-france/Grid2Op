@@ -408,6 +408,8 @@ grid2op/tests/20240429_failed_tests_small.txt
 grid2op/tests/20240429_teq_test.txt
 grid2op/tests/req_38_np121
 test_make_2_envs.py
+getting_started/env_py38_grid2op110_ray110.ipynb
+getting_started/env_py38_grid2op110_ray210.ipynb
 
 # profiling files
 **.prof

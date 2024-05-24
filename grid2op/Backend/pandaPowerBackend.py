@@ -556,7 +556,7 @@ class PandaPowerBackend(Backend):
         if type(self).shunts_data_available:
             self.n_shunt = self._grid.shunt.shape[0]
         else:
-            self.n_shunt = 0
+            self.n_shunt = None
             
         # "hack" to handle topological changes, for now only 2 buses per substation
         add_topo = copy.deepcopy(self._grid.bus)

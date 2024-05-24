@@ -125,7 +125,19 @@ class SerializableActionSpace(SerializableSpace):
             rnd_types.append(cls.RAISE_ALERT_ID)
         return rnd_types
 
-    def supports_type(self, action_type):
+    def supports_type(self,
+                      action_type: Literal["set_line_status",
+                                           "change_line_status",
+                                           "set_bus",
+                                           "change_bus",
+                                           "redispatch",
+                                           "storage_power",
+                                           "set_storage",
+                                           "curtail",
+                                           "curtail_mw",
+                                           "raise_alarm",
+                                           "raise_alert"]
+                    ):
         """
         Returns if the current action_space supports the current action type.
 
@@ -133,7 +145,7 @@ class SerializableActionSpace(SerializableSpace):
         ----------
         action_type: ``str``
             One of "set_line_status", "change_line_status", "set_bus", "change_bus", "redispatch",
-            "storage_power", "set_storage", "curtail" or "curtail_mw"
+            "storage_power", "set_storage", "curtail", "curtail_mw", "raise_alarm" or "raise_alert"
             A string representing the action types you want to inspect.
 
         Returns
@@ -181,7 +193,7 @@ class SerializableActionSpace(SerializableSpace):
                 "set_storage" in self.actionClass.authorized_keys
             )
         elif action_type == "curtail_mw":
-            return "curtail" in self.actionClass.authorized_keys
+            return self.supports_type("curtail")
         else:
             return action_type in self.actionClass.authorized_keys
 

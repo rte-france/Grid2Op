@@ -6,6 +6,7 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
+from typing import Optional, Dict, Literal
 import warnings
 
 from grid2op.Exceptions import AmbiguousAction
@@ -32,13 +33,13 @@ class VoltageOnlyAction(BaseAction):
     _shunt_added = False
     _first_init = True
 
-    def __init__(self):
+    def __init__(self, _names_chronics_to_backend: Optional[Dict[Literal["loads", "prods", "lines"], Dict[str, str]]]=None):
         """
         See the definition of :func:`BaseAction.__init__` and of :class:`BaseAction` for more information. Nothing more is done
         in this constructor.
 
         """
-        BaseAction.__init__(self)
+        BaseAction.__init__(self, _names_chronics_to_backend)
 
         if VoltageOnlyAction._shunt_added is False and type(self).shunts_data_available:
             VoltageOnlyAction.attr_list_vect += ["shunt_p", "shunt_q", "shunt_bus"]

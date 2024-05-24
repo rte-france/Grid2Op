@@ -9,7 +9,7 @@
 import copy
 import numpy as np
 import warnings
-from typing import Tuple, Dict, Literal, Any, List
+from typing import Tuple, Dict, Literal, Any, List, Optional
 
 
 try:
@@ -400,7 +400,7 @@ class BaseAction(GridObjects):
     ERR_ACTION_CUT = 'The action added to me will be cut, because i don\'t support modification of "{}"'
     ERR_NO_STOR_SET_BUS = 'Impossible to modify the storage bus (with "set") with this action type.'
     
-    def __init__(self):
+    def __init__(self, _names_chronics_to_backend: Optional[Dict[Literal["loads", "prods", "lines"], Dict[str, str]]]=None):
         """
         INTERNAL USE ONLY
 
@@ -416,7 +416,12 @@ class BaseAction(GridObjects):
 
         """
         GridObjects.__init__(self)
-
+        if _names_chronics_to_backend is not None:
+            # should only be the case for the "init state" action
+            self._names_chronics_to_backend = _names_chronics_to_backend
+        else:
+            self._names_chronics_to_backend = None
+            
         # False(line is disconnected) / True(line is connected)
         self._set_line_status = np.full(shape=self.n_line, fill_value=0, dtype=dt_int)
         self._switch_line_status = np.full(
@@ -2150,7 +2155,9 @@ class BaseAction(GridObjects):
         self._subs_impacted = None
         self._lines_impacted = None
 
-    def update(self, dict_: DICT_ACT_TYPING):
+    def update(self,
+               dict_: DICT_ACT_TYPING
+               ):
         """
         Update the action with a comprehensible format specified by a dictionary.
 
@@ -3908,6 +3915,7 @@ class BaseAction(GridObjects):
         outer_vect,
         min_val=-1,
         max_val=2,
+        _nm_ch_bk_key: Optional[Dict[Literal["loads", "prods", "lines"], Dict[str, str]]]=None,
     ):
         """
         NB : this do not set the _modif_set_bus attribute. It is expected to be set in the property setter.
@@ -4030,6 +4038,7 @@ class BaseAction(GridObjects):
                         outer_vect=outer_vect,
                         min_val=min_val,
                         max_val=max_val,
+                        _nm_ch_bk_key=_nm_ch_bk_key
                     )
                     return
 
@@ -4042,6 +4051,10 @@ class BaseAction(GridObjects):
                     )
                 el_id, new_bus = el
                 if isinstance(el_id, str) and name_els is not None:
+                    if self._names_chronics_to_backend is not None and _nm_ch_bk_key in self._names_chronics_to_backend:
+                        # initial action to set the state, might use the name in the time series...
+                        nms_conv = self._names_chronics_to_backend[_nm_ch_bk_key]
+                        el_id = nms_conv[el_id]
                     tmp = (name_els == el_id).nonzero()[0]
                     if len(tmp) == 0:
                         raise IllegalAction(f"No known {name_el} with name {el_id}")
@@ -4055,11 +4068,16 @@ class BaseAction(GridObjects):
                     outer_vect=outer_vect,
                     min_val=min_val,
                     max_val=max_val,
+                    _nm_ch_bk_key=_nm_ch_bk_key
                 )
         elif isinstance(values, dict):
             # 2 cases: either key = load_id and value = new_bus or key = load_name and value = new bus
             for key, new_bus in values.items():
                 if isinstance(key, str) and name_els is not None:
+                    if self._names_chronics_to_backend is not None and _nm_ch_bk_key in self._names_chronics_to_backend:
+                        # initial action to set the state, might use the name in the time series...
+                        nms_conv = self._names_chronics_to_backend[_nm_ch_bk_key]
+                        key = nms_conv[key]
                     tmp = (name_els == key).nonzero()[0]
                     if len(tmp) == 0:
                         raise IllegalAction(f"No known {name_el} with name {key}")
@@ -4073,6 +4091,7 @@ class BaseAction(GridObjects):
                     outer_vect=outer_vect,
                     min_val=min_val,
                     max_val=max_val,
+                    _nm_ch_bk_key=_nm_ch_bk_key,
                 )
         else:
             raise IllegalAction(
@@ -4133,7 +4152,8 @@ class BaseAction(GridObjects):
                 cls.name_load,
                 cls.load_pos_topo_vect,
                 self._set_topo_vect,
-                max_val=cls.n_busbar_per_sub
+                max_val=cls.n_busbar_per_sub,
+                _nm_ch_bk_key="loads"
             )
             self._modif_set_bus = True
         except Exception as exc_:
@@ -4144,12 +4164,13 @@ class BaseAction(GridObjects):
                 cls.name_load,
                 cls.load_pos_topo_vect,
                 self._set_topo_vect,
-                max_val=cls.n_busbar_per_sub
+                max_val=cls.n_busbar_per_sub,
+                _nm_ch_bk_key="loads"
             )
             raise IllegalAction(
                 f"Impossible to modify the load bus with your input. Please consult the documentation. "
                 f'The error was "{exc_}"'
-            )
+            ) from exc_
 
     @property
     def gen_set_bus(self) -> np.ndarray:
@@ -4273,7 +4294,8 @@ class BaseAction(GridObjects):
                 cls.name_gen,
                 cls.gen_pos_topo_vect,
                 self._set_topo_vect,
-                max_val=cls.n_busbar_per_sub
+                max_val=cls.n_busbar_per_sub,
+                _nm_ch_bk_key="prods"
             )
             self._modif_set_bus = True
         except Exception as exc_:
@@ -4284,12 +4306,13 @@ class BaseAction(GridObjects):
                 cls.name_gen,
                 cls.gen_pos_topo_vect,
                 self._set_topo_vect,
-                max_val=cls.n_busbar_per_sub
+                max_val=cls.n_busbar_per_sub,
+                _nm_ch_bk_key="prods"
             )
             raise IllegalAction(
                 f"Impossible to modify the gen bus with your input. Please consult the documentation. "
                 f'The error was:\n"{exc_}"'
-            )
+            ) from exc_
 
     @property
     def storage_set_bus(self) -> np.ndarray:
@@ -4363,7 +4386,7 @@ class BaseAction(GridObjects):
                 f"Impossible to modify the storage bus with your input. "
                 f"Please consult the documentation. "
                 f'The error was:\n"{exc_}"'
-            )
+            ) from exc_
 
     @property
     def line_or_set_bus(self) -> np.ndarray:
@@ -4418,7 +4441,8 @@ class BaseAction(GridObjects):
                 self.name_line,
                 self.line_or_pos_topo_vect,
                 self._set_topo_vect,
-                max_val=cls.n_busbar_per_sub
+                max_val=cls.n_busbar_per_sub,
+                _nm_ch_bk_key="lines"
             )
             self._modif_set_bus = True
         except Exception as exc_:
@@ -4429,13 +4453,14 @@ class BaseAction(GridObjects):
                 cls.name_line,
                 cls.line_or_pos_topo_vect,
                 self._set_topo_vect,
-                max_val=cls.n_busbar_per_sub
+                max_val=cls.n_busbar_per_sub,
+                _nm_ch_bk_key="lines"
             )
             raise IllegalAction(
                 f"Impossible to modify the line origin bus with your input. "
                 f"Please consult the documentation. "
                 f'The error was:\n"{exc_}"'
-            )
+            ) from exc_
 
     @property
     def line_ex_set_bus(self) -> np.ndarray:
@@ -4464,7 +4489,8 @@ class BaseAction(GridObjects):
                 cls.name_line,
                 cls.line_ex_pos_topo_vect,
                 self._set_topo_vect,
-                max_val=cls.n_busbar_per_sub
+                max_val=cls.n_busbar_per_sub,
+                _nm_ch_bk_key="lines"
             )
             self._modif_set_bus = True
         except Exception as exc_:
@@ -4475,13 +4501,14 @@ class BaseAction(GridObjects):
                 cls.name_line,
                 cls.line_ex_pos_topo_vect,
                 self._set_topo_vect,
-                max_val=cls.n_busbar_per_sub
+                max_val=cls.n_busbar_per_sub,
+                _nm_ch_bk_key="lines"
             )
             raise IllegalAction(
                 f"Impossible to modify the line extrmity bus with your input. "
                 f"Please consult the documentation. "
                 f'The error was:\n"{exc_}"'
-            )
+            ) from exc_
 
     @property
     def set_bus(self) -> np.ndarray:
@@ -4561,7 +4588,7 @@ class BaseAction(GridObjects):
                 f"Impossible to modify the bus with your input. "
                 f"Please consult the documentation. "
                 f'The error was:\n"{exc_}"'
-            )
+            ) from exc_
 
     @property
     def line_set_status(self) -> np.ndarray:
@@ -4615,6 +4642,7 @@ class BaseAction(GridObjects):
                 np.arange(self.n_line),
                 self._set_line_status,
                 max_val=1,
+                _nm_ch_bk_key="lines"
             )
             self._modif_set_status = True
         except Exception as exc_:
@@ -4626,12 +4654,13 @@ class BaseAction(GridObjects):
                 np.arange(self.n_line),
                 self._set_line_status,
                 max_val=1,
+                _nm_ch_bk_key="lines"
             )
             raise IllegalAction(
                 f"Impossible to modify the line status with your input. "
                 f"Please consult the documentation. "
                 f'The error was:\n"{exc_}"'
-            )
+            ) from exc_
 
     @property
     def set_line_status(self) -> np.ndarray:
@@ -4652,7 +4681,7 @@ class BaseAction(GridObjects):
         self.line_change_status = values
 
     def _aux_affect_object_bool(
-        self, values, name_el, nb_els, name_els, inner_vect, outer_vect
+        self, values, name_el, nb_els, name_els, inner_vect, outer_vect, _nm_ch_bk_key=None
     ):
         """
         NB : this do not set the _modif_set_bus attribute. It is expected to be set in the property setter.
@@ -4749,6 +4778,10 @@ class BaseAction(GridObjects):
             # (note: i cannot convert to numpy array other I could mix types...)
             for el_id_or_name in values:
                 if isinstance(el_id_or_name, str):
+                    if self._names_chronics_to_backend is not None and _nm_ch_bk_key in self._names_chronics_to_backend:
+                        # initial action to set the state, might use the name in the time series...
+                        nms_conv = self._names_chronics_to_backend[_nm_ch_bk_key]
+                        el_id_or_name = nms_conv[el_id_or_name]
                     tmp = (name_els == el_id_or_name).nonzero()[0]
                     if len(tmp) == 0:
                         raise IllegalAction(
@@ -4776,6 +4809,7 @@ class BaseAction(GridObjects):
                     name_els,
                     inner_vect=inner_vect,
                     outer_vect=outer_vect,
+                    _nm_ch_bk_key=_nm_ch_bk_key
                 )
         elif isinstance(values, set):
             # 2 cases: either set of load_id or set of load_name
@@ -4787,6 +4821,7 @@ class BaseAction(GridObjects):
                 name_els,
                 inner_vect=inner_vect,
                 outer_vect=outer_vect,
+                _nm_ch_bk_key=_nm_ch_bk_key
             )
         else:
             raise IllegalAction(
@@ -4889,6 +4924,7 @@ class BaseAction(GridObjects):
                 self.name_load,
                 self.load_pos_topo_vect,
                 self._change_bus_vect,
+                _nm_ch_bk_key="loads",
             )
             self._modif_change_bus = True
         except Exception as exc_:
@@ -5011,6 +5047,7 @@ class BaseAction(GridObjects):
                 self.name_gen,
                 self.gen_pos_topo_vect,
                 self._change_bus_vect,
+                _nm_ch_bk_key="prods",
             )
             self._modif_change_bus = True
         except Exception as exc_:
@@ -5086,6 +5123,7 @@ class BaseAction(GridObjects):
                 self.name_line,
                 self.line_or_pos_topo_vect,
                 self._change_bus_vect,
+                _nm_ch_bk_key="lines",
             )
             self._modif_change_bus = True
         except Exception as exc_:
@@ -5122,6 +5160,7 @@ class BaseAction(GridObjects):
                 self.name_line,
                 self.line_ex_pos_topo_vect,
                 self._change_bus_vect,
+                _nm_ch_bk_key="lines",
             )
             self._modif_change_bus = True
         except Exception as exc_:
@@ -5163,6 +5202,7 @@ class BaseAction(GridObjects):
                 self.name_line,
                 np.arange(self.n_line),
                 self._switch_line_status,
+                _nm_ch_bk_key="lines",
             )
             self._modif_change_status = True
         except Exception as exc_:
@@ -5291,6 +5331,7 @@ class BaseAction(GridObjects):
         name_els,
         inner_vect,
         outer_vect,
+        _nm_ch_bk_key=None,
     ):
         """
         INTERNAL USE ONLY
@@ -5362,7 +5403,7 @@ class BaseAction(GridObjects):
             except Exception as exc_:
                 raise IllegalAction(
                     f'{name_el}_id should be convertible to integer. Error was : "{exc_}"'
-                )
+                ) from exc_
             if el_id < 0:
                 raise IllegalAction(
                     f"Impossible to set the bus of a {name_el} with negative id"
@@ -5393,7 +5434,7 @@ class BaseAction(GridObjects):
             except Exception as exc_:
                 raise IllegalAction(
                     f'{name_el}_id should be convertible to float. Error was : "{exc_}"'
-                )
+                ) from exc_
             indx_ok = np.isfinite(values)
             outer_vect[inner_vect[indx_ok]] = values[indx_ok]
             return
@@ -5428,6 +5469,7 @@ class BaseAction(GridObjects):
                         name_els,
                         inner_vect=inner_vect,
                         outer_vect=outer_vect,
+                        _nm_ch_bk_key=_nm_ch_bk_key
                     )
                     return
 
@@ -5440,6 +5482,10 @@ class BaseAction(GridObjects):
                     )
                 el_id, new_val = el
                 if isinstance(el_id, str):
+                    if self._names_chronics_to_backend is not None and _nm_ch_bk_key in self._names_chronics_to_backend:
+                        # initial action to set the state, might use the name in the time series...
+                        nms_conv = self._names_chronics_to_backend[_nm_ch_bk_key]
+                        el_id_or_name = nms_conv[el_id_or_name]
                     tmp = (name_els == el_id).nonzero()[0]
                     if len(tmp) == 0:
                         raise IllegalAction(f"No known {name_el} with name {el_id}")
@@ -5451,11 +5497,16 @@ class BaseAction(GridObjects):
                     name_els,
                     inner_vect=inner_vect,
                     outer_vect=outer_vect,
+                    _nm_ch_bk_key=_nm_ch_bk_key,
                 )
         elif isinstance(values, dict):
             # 2 cases: either key = load_id and value = new_bus or key = load_name and value = new bus
             for key, new_val in values.items():
                 if isinstance(key, str):
+                    if self._names_chronics_to_backend is not None and _nm_ch_bk_key in self._names_chronics_to_backend:
+                        # initial action to set the state, might use the name in the time series...
+                        nms_conv = self._names_chronics_to_backend[_nm_ch_bk_key]
+                        key = nms_conv[key]
                     tmp = (name_els == key).nonzero()[0]
                     if len(tmp) == 0:
                         raise IllegalAction(f"No known {name_el} with name {key}")
@@ -5467,6 +5518,7 @@ class BaseAction(GridObjects):
                     name_els,
                     inner_vect=inner_vect,
                     outer_vect=outer_vect,
+                    _nm_ch_bk_key=_nm_ch_bk_key
                 )
         else:
             raise IllegalAction(
@@ -5587,6 +5639,7 @@ class BaseAction(GridObjects):
                 self.name_gen,
                 np.arange(self.n_gen),
                 self._redispatch,
+                _nm_ch_bk_key="prods",
             )
             self._modif_redispatch = True
         except Exception as exc_:
@@ -5694,6 +5747,7 @@ class BaseAction(GridObjects):
                 self.name_gen,
                 np.arange(self.n_gen),
                 self._curtail,
+                _nm_ch_bk_key="prods",
             )
             self._modif_curtailment = True
         except Exception as exc_:
@@ -6023,6 +6077,7 @@ class BaseAction(GridObjects):
             self.name_gen,
             np.arange(self.n_gen),
             values,
+            _nm_ch_bk_key="prods",
         )
         values /= self.gen_pmax
         values[values >= 1.0] = 1.0

@@ -5,11 +5,12 @@
 # you can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
+
 import numpy as np
 import warnings
 from datetime import datetime, timedelta
 from abc import ABC, abstractmethod
-from typing import Union
+from typing import Union, Dict, Literal
 
 import grid2op
 from grid2op.dtypes import dt_int
@@ -820,7 +821,7 @@ class GridValue(RandomObject, ABC):
         for _ in range(nb_timestep):
             self.load_next()
 
-    def get_init_action(self) -> Union["grid2op.Action.playableAction.PlayableAction", None]:
+    def get_init_action(self, names_chronics_to_backend: Dict[Literal["loads", "prods", "lines"], Dict[str, str]]) -> Union["grid2op.Action.playableAction.PlayableAction", None]:
         """
         It is used when the environment is reset (*ie* when :func:`grid2op.Environment.Environment.reset` is called)
         to set the grid in its "original" state.

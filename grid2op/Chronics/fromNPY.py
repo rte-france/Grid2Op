@@ -6,7 +6,7 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-from typing import Optional, Union
+from typing import Optional, Union, Dict, Literal
 import numpy as np
 import hashlib
 from datetime import datetime, timedelta
@@ -694,5 +694,8 @@ class FromNPY(GridValue):
         else:
             self.__new_iend = None
 
-    def get_init_action(self) -> Union["grid2op.Action.playableAction.PlayableAction", None]:
+    def get_init_action(self, names_chronics_to_backend: Optional[Dict[Literal["loads", "prods", "lines"], Dict[str, str]]]=None) -> Union["grid2op.Action.playableAction.PlayableAction", None]:
+        # names_chronics_to_backend is ignored, names should be consistent between the environment 
+        # and the initial state
+        
         return self._init_state
