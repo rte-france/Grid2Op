@@ -8,10 +8,12 @@
 
 import os
 import json
+from typing import Union, Optional, Dict, Literal
 import warnings
 import numpy as np
 from datetime import timedelta, datetime
 
+import grid2op
 from grid2op.dtypes import dt_int, dt_float
 from grid2op.Exceptions import ChronicsNotFoundError, ChronicsError
 from grid2op.Chronics.gridValue import GridValue
@@ -352,7 +354,7 @@ class Multifolder(GridValue):
         probabilities /= sum_prob
         # take one at "random" among these
         selected = self.space_prng.choice(self._order, p=probabilities)
-        id_sel = np.nonzero(self._order == selected)[0]
+        id_sel = (self._order == selected).nonzero()[0]
         self._prev_cache_id = selected - 1
         return id_sel
 
@@ -437,6 +439,8 @@ class Multifolder(GridValue):
             order_backend_subs,
             names_chronics_to_backend=names_chronics_to_backend,
         )
+        if self.action_space is not None:
+            self.data.action_space = self.action_space
 
     def done(self):
         """
@@ -777,3 +781,10 @@ class Multifolder(GridValue):
                 
     def fast_forward(self, nb_timestep):
         self.data.fast_forward(nb_timestep)
+
+    def get_init_action(self, names_chronics_to_backend: Optional[Dict[Literal["loads", "prods", "lines"], Dict[str, str]]]=None) -> Union["grid2op.Action.playableAction.PlayableAction", None]:
+        return self.data.get_init_action(names_chronics_to_backend)
+
+    def cleanup_action_space(self):
+        super().cleanup_action_space()
+        self.data.cleanup_action_space()

@@ -176,7 +176,6 @@ class PandaPowerBackend(Backend):
         self._number_true_line = -1
         self._corresp_name_fun = {}
         self._get_vector_inj = {}
-        self.dim_topo = -1
         self._vars_action = BaseAction.attr_list_vect
         self._vars_action_set = BaseAction.attr_list_vect
         self.cst_1 = dt_float(1.0)
@@ -437,7 +436,7 @@ class PandaPowerBackend(Backend):
                         # TODO here i force the distributed slack bus too, by removing the other from the ext_grid...
                         self._grid.ext_grid = self._grid.ext_grid.iloc[:1]
         else:
-            self.slack_id = np.nonzero(self._grid.gen["slack"])[0]
+            self.slack_id = (self._grid.gen["slack"].values).nonzero()[0]
 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -554,6 +553,11 @@ class PandaPowerBackend(Backend):
         self.name_sub = ["sub_{}".format(i) for i, row in self._grid.bus.iterrows()]
         self.name_sub = np.array(self.name_sub)
 
+        if type(self).shunts_data_available:
+            self.n_shunt = self._grid.shunt.shape[0]
+        else:
+            self.n_shunt = None
+            
         # "hack" to handle topological changes, for now only 2 buses per substation
         add_topo = copy.deepcopy(self._grid.bus)
         # TODO n_busbar: what if non contiguous indexing ???
@@ -565,9 +569,9 @@ class PandaPowerBackend(Backend):
         self._init_private_attrs()
         
         # do this at the end
-        self._in_service_line_col_id = int(np.nonzero(self._grid.line.columns == "in_service")[0][0])
-        self._in_service_trafo_col_id = int(np.nonzero(self._grid.trafo.columns == "in_service")[0][0])
-        self._in_service_storage_cold_id = int(np.nonzero(self._grid.storage.columns == "in_service")[0][0])
+        self._in_service_line_col_id = int((self._grid.line.columns == "in_service").nonzero()[0][0])
+        self._in_service_trafo_col_id = int((self._grid.trafo.columns == "in_service").nonzero()[0][0])
+        self._in_service_storage_cold_id = int((self._grid.storage.columns == "in_service").nonzero()[0][0])
 
     def _init_private_attrs(self) -> None:
         #  number of elements per substation
@@ -653,6 +657,21 @@ class PandaPowerBackend(Backend):
                 self._what_object_where[sub_id].append(("storage", "bus", i))
 
         self.dim_topo = self.sub_info.sum()
+        
+        # shunts data
+        if type(self).shunts_data_available:
+            self.shunt_to_subid = np.zeros(self.n_shunt, dtype=dt_int) - 1
+            name_shunt = []
+            # TODO read name from the grid if provided
+            for i, (_, row) in enumerate(self._grid.shunt.iterrows()):
+                bus = int(row["bus"])
+                name_shunt.append("shunt_{bus}_{index_shunt}".format(**row, index_shunt=i))
+                self.shunt_to_subid[i] = bus
+            self.name_shunt = np.array(name_shunt).astype(str)
+            self._sh_vnkv = self._grid.bus["vn_kv"][self.shunt_to_subid].values.astype(
+                dt_float
+            )
+        
         self._compute_pos_big_topo()
 
         # utilities for imeplementing apply_action
@@ -717,21 +736,6 @@ class PandaPowerBackend(Backend):
         self.storage_v = np.full(self.n_storage, dtype=dt_float, fill_value=np.NaN)
         self._nb_bus_before = None
 
-        # shunts data
-        self.n_shunt = self._grid.shunt.shape[0]
-        self.shunt_to_subid = np.zeros(self.n_shunt, dtype=dt_int) - 1
-        name_shunt = []
-        # TODO read name from the grid if provided
-        for i, (_, row) in enumerate(self._grid.shunt.iterrows()):
-            bus = int(row["bus"])
-            name_shunt.append("shunt_{bus}_{index_shunt}".format(**row, index_shunt=i))
-            self.shunt_to_subid[i] = bus
-        self.name_shunt = np.array(name_shunt)
-        self._sh_vnkv = self._grid.bus["vn_kv"][self.shunt_to_subid].values.astype(
-            dt_float
-        )
-        # self.shunts_data_available = True  # TODO shunts_data_available
-
         # store the topoid -> objid
         self._big_topo_to_obj = [(None, None) for _ in range(self.dim_topo)]
         nm_ = "load"
@@ -792,7 +796,12 @@ class PandaPowerBackend(Backend):
             )  # will be initialized in the "assert_grid_correct"
 
     def storage_deact_for_backward_comaptibility(self) -> None:
-        self._init_private_attrs()
+        cls = type(self)
+        self.storage_theta = np.full(cls.n_storage, fill_value=np.NaN, dtype=dt_float)
+        self.storage_p = np.full(cls.n_storage, dtype=dt_float, fill_value=np.NaN)
+        self.storage_q = np.full(cls.n_storage, dtype=dt_float, fill_value=np.NaN)
+        self.storage_v = np.full(cls.n_storage, dtype=dt_float, fill_value=np.NaN)
+        self._topo_vect = self._get_topo_vect()
 
     def _convert_id_topo(self, id_big_topo):
         """
@@ -1016,14 +1025,14 @@ class PandaPowerBackend(Backend):
                 raise pp.powerflow.LoadflowNotConverged("Disconnected load: for now grid2op cannot handle properly"
                                                         " disconnected load. If you want to disconnect one, say it"
                                                         " consumes 0. instead. Please check loads: "
-                                                        f"{np.nonzero(~self._grid.load['in_service'])[0]}"
+                                                        f"{(~self._grid.load['in_service'].values).nonzero()[0]}"
                                                         )
             if (~self._grid.gen["in_service"]).any():
                 # TODO see if there is a better way here -> do not handle this here, but rather in Backend._next_grid_state
                 raise pp.powerflow.LoadflowNotConverged("Disconnected gen: for now grid2op cannot handle properly"
                                                         " disconnected generators. If you want to disconnect one, say it"
                                                         " produces 0. instead. Please check generators: "
-                                                        f"{np.nonzero(~self._grid.gen['in_service'])[0]}"
+                                                        f"{(~self._grid.gen['in_service'].values).nonzero()[0]}"
                                                         )
             try:
                 if is_dc:
@@ -1105,9 +1114,9 @@ class PandaPowerBackend(Backend):
                 # see https://github.com/e2nIEE/pandapower/issues/1996 for a fix
                 for l_id in range(cls.n_load):
                     if cls.load_to_subid[l_id] in cls.gen_to_subid:
-                        ind_gens = np.nonzero(
+                        ind_gens = (
                             cls.gen_to_subid == cls.load_to_subid[l_id]
-                        )[0]
+                        ).nonzero()[0]
                         for g_id in ind_gens:
                             if (
                                 self._topo_vect[cls.load_pos_topo_vect[l_id]]
@@ -1177,16 +1186,6 @@ class PandaPowerBackend(Backend):
             self._reset_all_nan()
             msg = exc_.__str__()
             return False, BackendError(f'powerflow diverged with error :"{msg}"')
-
-    def assert_grid_correct(self) -> None:
-        """
-        INTERNAL
-
-        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
-
-            This is done as it should be by the Environment
-        """
-        super().assert_grid_correct()
 
     def _reset_all_nan(self) -> None:
         self.p_or[:] = np.NaN

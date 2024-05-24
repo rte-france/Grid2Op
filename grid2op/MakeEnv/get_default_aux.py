@@ -143,7 +143,7 @@ def _get_default_aux(
                         res = defaultClassApp(res)
                     except Exception as exc_:
                         # if there is any error, i raise the error message
-                        raise EnvError(msg_error)
+                        raise EnvError(msg_error) from exc_
                 else:
                     # if there is any error, i raise the error message
                     raise EnvError(msg_error)

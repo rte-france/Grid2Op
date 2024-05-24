@@ -87,13 +87,18 @@ class RulesByArea(BaseRules):
             raise Grid2OpException("The number of listed ids of substations in rule initialization does not match the number of "
                                    "substations of the chosen environement. Look for missing ids or doublon")
         else:
-            self.lines_id_by_area = {key : sorted(list(chain(*[[item for item in np.nonzero(env.line_or_to_subid == subid)[0]
+            self.lines_id_by_area = {key : sorted(list(chain(*[[item for item in (env.line_or_to_subid == subid).nonzero()[0]
                                     ] for subid in subid_list]))) for key,subid_list in self.substations_id_by_area.items()}
 
 
     def __call__(self, action, env):
         """
         See :func:`BaseRules.__call__` for a definition of the _parameters of this function.
+        
+        ..versionchanged:: 1.10.2
+            In grid2op 1.10.2 this function is not called when the environment is reset:
+            The "action" made by the environment to set the environment in the desired state is always legal
+            
         """
         is_legal, reason = PreventDiscoStorageModif.__call__(self, action, env)
         if not is_legal:
@@ -120,13 +125,13 @@ class RulesByArea(BaseRules):
 
         aff_lines, aff_subs = action.get_topological_impact(powerline_status)
         if any([(aff_lines[line_ids]).sum() > env._parameters.MAX_LINE_STATUS_CHANGED for line_ids in self.lines_id_by_area.values()]):
-            ids = [[k for k in np.nonzero(aff_lines)[0] if k in line_ids] for line_ids in self.lines_id_by_area.values()]
+            ids = [[k for k in (aff_lines).nonzero()[0] if k in line_ids] for line_ids in self.lines_id_by_area.values()]
             return False, IllegalAction(
                 "More than {} line status affected by the action in one area: {}"
                 "".format(env.parameters.MAX_LINE_STATUS_CHANGED, ids)
             )
         if any([(aff_subs[sub_ids]).sum() > env._parameters.MAX_SUB_CHANGED for sub_ids in self.substations_id_by_area.values()]):
-            ids = [[k for k in np.nonzero(aff_subs)[0] if k in sub_ids] for sub_ids in self.substations_id_by_area.values()]
+            ids = [[k for k in (aff_subs).nonzero()[0] if k in sub_ids] for sub_ids in self.substations_id_by_area.values()]
             return False, IllegalAction(
                 "More than {} substation affected by the action in one area: {}"
                 "".format(env.parameters.MAX_SUB_CHANGED, ids)

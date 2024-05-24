@@ -298,7 +298,7 @@ class TestBasisObsBehaviour(unittest.TestCase):
             "alertable_line_names": [],
             "alertable_line_ids": [],
             "assistant_warning_type": None,
-            "_PATH_ENV": None,
+            "_PATH_GRID_CLASSES": None,
         }
 
         self.json_ref = {
@@ -2200,9 +2200,9 @@ class TestBasisObsBehaviour(unittest.TestCase):
             val = dict_[el]
             val_res = self.dict_[el]
             if val is None and val_res is not None:
-                raise AssertionError(f"val is None and val_res is not None: val_res: {val_res}")
+                raise AssertionError(f"{el}: val is None and val_res is not None: val_res: {val_res}")
             if val is not None and val_res is None:
-                raise AssertionError(f"val is not None and val_res is None: val {val}")
+                raise AssertionError(f"{el}: val is not None and val_res is None: val {val}")
             if val is None and val_res is None:
                 continue
             
@@ -2978,6 +2978,9 @@ class TestSimulateEqualsStepStorageCurtail(TestSimulateEqualsStep):
         self.obs = self._make_forecast_perfect(self.env)
         self.sim_obs = None
         self.step_obs = None
+        
+    def tearDown(self):
+        self.env.close()
 
     def test_storage_act(self):
         """test i can do storage actions in simulate"""

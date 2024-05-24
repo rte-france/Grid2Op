@@ -22,6 +22,7 @@ except ImportError:
     # python version is probably bellow 3.11
     from typing_extensions import Self
     
+import grid2op
 from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Exceptions import (
     EnvError,
@@ -66,19 +67,22 @@ class Backend(GridObjects, ABC):
     All the abstract methods (that need to be implemented for a backend to work properly) are (more information given
     in the :ref:`create-backend-module` page):
 
-    - :func:`Backend.load_grid`
-    - :func:`Backend.apply_action`
-    - :func:`Backend.runpf`
-    - :func:`Backend.get_topo_vect`
-    - :func:`Backend.generators_info`
-    - :func:`Backend.loads_info`
-    - :func:`Backend.lines_or_info`
-    - :func:`Backend.lines_ex_info`
+    - :func:`Backend.load_grid` (called once per episode, or if :func:`Backend.reset` is implemented, once for the entire 
+       lifetime of the environment)
+    - :func:`Backend.apply_action` (called once per episode -initialization- and at least once per step)
+    - :func:`Backend.runpf` (called once per episode -initialization- and at least once per step)
+    - :func:`Backend.get_topo_vect` (called once per episode -initialization- and at least once per step)
+    - :func:`Backend.generators_info` (called once per episode -initialization- and at least once per step)
+    - :func:`Backend.loads_info`  (called once per episode -initialization- and at least once per step)
+    - :func:`Backend.lines_or_info`  (called once per episode -initialization- and at least once per step)
+    - :func:`Backend.lines_ex_info`  (called once per episode -initialization- and at least once per step)
 
     And optionally:
 
+    - :func:`Backend.reset`  will reload the powergrid from the hard drive by default. This is rather slow and we
+      recommend to overload it.
     - :func:`Backend.close` (this is mandatory if your backend implementation (`self._grid`) is relying on some
-      c / c++ code that do not free memory automatically.
+      c / c++ code that do not free memory automatically.)
     - :func:`Backend.copy` (not that this is mandatory if your backend implementation (in `self._grid`) cannot be
       deep copied using the python copy.deepcopy function) [as of grid2op >= 1.7.1 it is no more
       required. If not implemented, you won't be able to use some of grid2op feature however]
@@ -88,8 +92,6 @@ class Backend(GridObjects, ABC):
       at the "origin" side and just return the "a_or" vector. You want to do something smarter here.
     - :func:`Backend._disconnect_line`: has a default slow implementation using "apply_action" that might
       can most likely be optimized in your backend.
-    - :func:`Backend.reset`  will reload the powergrid from the hard drive by default. This is rather slow and we
-      recommend to overload it.
 
     And, if the flag :attr:Backend.shunts_data_available` is set to ``True`` the method :func:`Backend.shunt_info`
     should also be implemented.
@@ -98,12 +100,6 @@ class Backend(GridObjects, ABC):
         ``True`` in that case, you also need to implement all the relevant shunt information (attributes `n_shunt`,
         `shunt_to_subid`, `name_shunt` and function `shunt_info` and handle the modification of shunts
         bus, active value and reactive value in the "apply_action" function).
-
-
-    In order to be valid and carry out some computations, you should call :func:`Backend.load_grid` and later
-    :func:`grid2op.Spaces.GridObjects.assert_grid_correct`. It is also more than recommended to call
-    :func:`Backend.assert_grid_correct_after_powerflow` after the first powerflow. This is all carried ou in the
-    environment properly.
 
     Attributes
     ----------
@@ -119,9 +115,7 @@ class Backend(GridObjects, ABC):
 
     """
     IS_BK_CONVERTER : bool = False
-
-    env_name : str = "unknown"
-
+    
     # action to set me
     my_bk_act_class : "Optional[grid2op.Action._backendAction._BackendAction]"= None
     _complete_action_class : "Optional[grid2op.Action.CompleteAction]"= None
@@ -224,7 +218,7 @@ class Backend(GridObjects, ABC):
         If not called, then the `environment` will not be able to use more than 2 busbars per substations.
         
         .. seealso::
-            :func:`Backend.cnot_handle_more_than_2_busbar`
+            :func:`Backend.cannot_handle_more_than_2_busbar`
 
         .. note::
             From grid2op 1.10.0 it is preferable that your backend calls one of
@@ -1418,6 +1412,119 @@ class Backend(GridObjects, ABC):
         diff_v_bus[:, :] = v_bus[:, :, 1] - v_bus[:, :, 0]
         return p_subs, q_subs, p_bus, q_bus, diff_v_bus
 
+    def _fill_names_obj(self):
+        """fill the name vectors (**eg** name_line) if not done already in the backend.
+        This function is used to fill the name of an object of a class. It will also check the existence
+        of these vectors in the class.
+        """
+        cls = type(self)
+        if self.name_line is None:
+            if cls.name_line is None:
+                line_or_to_subid = cls.line_or_to_subid if cls.line_or_to_subid is not None else self.line_or_to_subid
+                line_ex_to_subid = cls.line_ex_to_subid if cls.line_ex_to_subid is not None else self.line_ex_to_subid
+                self.name_line = [
+                    "{}_{}_{}".format(or_id, ex_id, l_id)
+                    for l_id, (or_id, ex_id) in enumerate(
+                        zip(line_or_to_subid, line_ex_to_subid)
+                    )
+                ]
+                self.name_line = np.array(self.name_line)
+                warnings.warn(
+                    "name_line is None so default line names have been assigned to your grid. "
+                    "(FYI: Line names are used to make the correspondence between the chronics and the backend)"
+                    "This might result in impossibility to load data."
+                    '\n\tIf "env.make" properly worked, you can safely ignore this warning.'
+                )
+            else:
+                self.name_line = cls.name_line
+            
+        if self.name_load is None:
+            if cls.name_load is None:
+                load_to_subid = cls.load_to_subid if cls.load_to_subid is not None else self.load_to_subid
+                self.name_load = [
+                    "load_{}_{}".format(bus_id, load_id)
+                    for load_id, bus_id in enumerate(load_to_subid)
+                ]
+                self.name_load = np.array(self.name_load)
+                warnings.warn(
+                    "name_load is None so default load names have been assigned to your grid. "
+                    "(FYI: load names are used to make the correspondence between the chronics and the backend)"
+                    "This might result in impossibility to load data."
+                    '\n\tIf "env.make" properly worked, you can safely ignore this warning.'
+                )
+            else:
+                self.name_load = cls.name_load
+            
+        if self.name_gen is None:
+            if cls.name_gen is None:
+                gen_to_subid = cls.gen_to_subid if cls.gen_to_subid is not None else self.gen_to_subid
+                self.name_gen = [
+                    "gen_{}_{}".format(bus_id, gen_id)
+                    for gen_id, bus_id in enumerate(gen_to_subid)
+                ]
+                self.name_gen = np.array(self.name_gen)
+                warnings.warn(
+                    "name_gen is None so default generator names have been assigned to your grid. "
+                    "(FYI: generator names are used to make the correspondence between the chronics and "
+                    "the backend)"
+                    "This might result in impossibility to load data."
+                    '\n\tIf "env.make" properly worked, you can safely ignore this warning.'
+                )
+            else:
+                self.name_gen = cls.name_gen
+            
+        if self.name_sub is None:
+            if cls.name_sub is None:
+                n_sub = cls.n_sub if cls.n_sub is not None and cls.n_sub > 0 else self.n_sub
+                self.name_sub = ["sub_{}".format(sub_id) for sub_id in range(n_sub)]
+                self.name_sub = np.array(self.name_sub)
+                warnings.warn(
+                    "name_sub is None so default substation names have been assigned to your grid. "
+                    "(FYI: substation names are used to make the correspondence between the chronics and "
+                    "the backend)"
+                    "This might result in impossibility to load data."
+                    '\n\tIf "env.make" properly worked, you can safely ignore this warning.'
+                )
+            else:
+                self.name_sub = cls.name_sub
+            
+        if self.name_storage is None:
+            if cls.name_storage is None:
+                storage_to_subid = cls.storage_to_subid if cls.storage_to_subid is not None else self.storage_to_subid
+                self.name_storage = [
+                    "storage_{}_{}".format(bus_id, sto_id)
+                    for sto_id, bus_id in enumerate(storage_to_subid)
+                ]
+                self.name_storage = np.array(self.name_storage)
+                warnings.warn(
+                    "name_storage is None so default storage unit names have been assigned to your grid. "
+                    "(FYI: storage names are used to make the correspondence between the chronics and "
+                    "the backend)"
+                    "This might result in impossibility to load data."
+                    '\n\tIf "env.make" properly worked, you can safely ignore this warning.'
+                )
+            else:
+                self.name_storage = cls.name_storage
+            
+        if cls.shunts_data_available:
+            if self.name_shunt is None:
+                if cls.name_shunt is None:
+                    shunt_to_subid = cls.shunt_to_subid if cls.shunt_to_subid is not None else self.shunt_to_subid
+                    self.name_shunt = [
+                        "shunt_{}_{}".format(bus_id, sh_id)
+                        for sh_id, bus_id in enumerate(shunt_to_subid)
+                    ]
+                    self.name_shunt = np.array(self.name_shunt)
+                    warnings.warn(
+                        "name_shunt is None so default storage unit names have been assigned to your grid. "
+                        "(FYI: storage names are used to make the correspondence between the chronics and "
+                        "the backend)"
+                        "This might result in impossibility to load data."
+                        '\n\tIf "env.make" properly worked, you can safely ignore this warning.'
+                    )
+                else:
+                    self.name_shunt = cls.name_shunt
+                    
     def load_redispacthing_data(self,
                                 path : Union[os.PathLike, str],
                                 name : Optional[str]="prods_charac.csv") -> None:
@@ -1430,6 +1537,13 @@ class Backend(GridObjects, ABC):
 
         We don't recommend at all to modify this function.
 
+        Notes
+        -----
+        Before you use this function, make sure the names of the generators are properly set.
+        
+        For example you can either read them from the grid (setting self.name_gen) or call 
+        self._fill_names_obj() beforehand (this later is done in the environment.)
+        
         Parameters
         ----------
         path: ``str``
@@ -1458,7 +1572,6 @@ class Backend(GridObjects, ABC):
             to change it.
 
         """
-        self._fill_names()
         self.redispatching_unit_commitment_availble = False
 
         # for redispatching
@@ -1510,7 +1623,6 @@ class Backend(GridObjects, ABC):
                 "min_up_time": row["min_up_time"],
                 "min_down_time": row["min_down_time"],
             }
-        self.redispatching_unit_commitment_availble = True
 
         self.gen_type = np.full(self.n_gen, fill_value="aaaaaaaaaa")
         self.gen_pmin = np.full(self.n_gen, fill_value=1.0, dtype=dt_float)
@@ -1575,6 +1687,13 @@ class Backend(GridObjects, ABC):
         This method will load everything needed in presence of storage unit on the grid.
 
         We don't recommend at all to modify this function.
+        
+        Notes
+        -----
+        Before you use this function, make sure the names of the generators are properly set.
+        
+        For example you can either read them from the grid (setting self.name_gen) or call 
+        self._fill_names_obj() beforehand (this later is done in the environment.)
 
         Parameters
         ----------
@@ -1624,7 +1743,7 @@ class Backend(GridObjects, ABC):
         fullpath = os.path.join(path, name)
         if not os.path.exists(fullpath):
             raise BackendError(
-                f"There are storage unit on the grid, yet we could not locate their description."
+                f"There are {self.n_storage} storage unit(s) on the grid, yet we could not locate their description."
                 f'Please make sure to have a file "{name}" where the environment data are located.'
                 f'For this environment the location is "{path}"'
             )
@@ -1984,19 +2103,44 @@ class Backend(GridObjects, ABC):
                 self.__class__.__name__,
                 self.__class__,
             )
+            
             # reset the attribute of the grid2op.Backend.Backend class
             # that can be messed up with depending on the initialization of the backend
             Backend._clear_class_attribute()  # reset totally the grid2op Backend type
-            # orig_type._clear_class_attribute()
-            orig_type._clear_grid_dependant_class_attributes()  # only reset the attributes that could be modified by user
-
+            
+            # only reset the attributes that could be modified by the environment while keeping the 
+            # attribute that can be defined in the Backend implementation (eg support of shunt)
+            orig_type._clear_grid_dependant_class_attributes() 
+            
         my_cls = type(self)
         my_cls.my_bk_act_class = _BackendAction.init_grid(my_cls)
         my_cls._complete_action_class = CompleteAction.init_grid(my_cls)
         my_cls._complete_action_class._add_shunt_data()
         my_cls._complete_action_class._update_value_set()
         my_cls.assert_grid_correct_cls()
+        self._remove_my_attr_cls()
 
+    def _remove_my_attr_cls(self):
+        """
+        INTERNAL
+
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+            
+        This function is called at the end of :func:`Backend.assert_grid_correct` and it "cleans" the attribute of the
+        backend object that are stored in the class now, to avoid discrepency between what has been read from the 
+        grid and what have been processed by grid2op (for example in "compatibility" mode, storage are deactivated, so
+        `self.n_storage` would be different that `type(self).n_storage`)
+        
+        For this to work, the grid must first be initialized correctly, with the proper type (name of the environment
+        in the class name !)
+        """
+        cls = type(self)
+        if cls._CLS_DICT_EXTENDED is not None:
+            for attr_nm, val in cls._CLS_DICT_EXTENDED.items():
+                if hasattr(self, attr_nm) and hasattr(cls, attr_nm):
+                    if id(getattr(self, attr_nm)) != id(getattr(cls, attr_nm)):
+                        delattr(self, attr_nm)
+        
     def assert_grid_correct_after_powerflow(self) -> None:
         """
         INTERNAL

@@ -23,7 +23,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 pkgs = {
     "required": [
-        "numpy>=1.20",
+        "numpy>=1.20,<2",  # disable numpy 2 for now
         "scipy>=1.4.1",
         "pandas>=1.0.3",
         "pandapower>=2.2.2",

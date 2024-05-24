@@ -8,13 +8,13 @@ __all__ = [
     "list_available_test_env",
     "update_env",
 ]
-try:
-    from grid2op.MakeEnv.MakeOld import make_old
-    
-    # deprecated in v 0.8.0
-    __all__.append("make_old")
-except ImportError:
-    pass
+
+# try:
+#     from grid2op.MakeEnv.MakeOld import make_old
+#     # deprecated in v 0.8.0
+#     __all__.append("make_old")
+# except ImportError:
+#     pass
 
 from grid2op.MakeEnv.MakeFromPath import make_from_dataset_path
 from grid2op.MakeEnv.Make import make

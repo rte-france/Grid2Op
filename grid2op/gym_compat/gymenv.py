@@ -108,10 +108,11 @@ class __AuxGymEnv(Generic[ObsType, ActType]):
                  env_init: Environment,
                  shuffle_chronics:Optional[bool]=True,
                  render_mode: Literal["rgb_array"]="rgb_array"):
-        check_gym_version(type(self)._gymnasium)
+        cls = type(self)
+        check_gym_version(cls._gymnasium)
         self.init_env = env_init.copy()
-        self.action_space = type(self)._ActionSpaceType(self.init_env)
-        self.observation_space = type(self)._ObservationSpaceType(self.init_env)
+        self.action_space = cls._ActionSpaceType(self.init_env)
+        self.observation_space = cls._ObservationSpaceType(self.init_env)
         self.reward_range = self.init_env.reward_range
         self.metadata = self.init_env.metadata
         self.init_env.render_mode = render_mode
@@ -141,7 +142,7 @@ class __AuxGymEnv(Generic[ObsType, ActType]):
     def _aux_reset(self,
                    seed: Optional[int]=None,
                    return_info: Optional[bool]=None,
-                   options: Optional[Dict[Any, Any]]=None) -> Union[ObsType, Tuple[ObsType, RESET_INFO_GYM_TYPING]]:
+                   options: RESET_OPTIONS_TYPING=None) -> Union[ObsType, Tuple[ObsType, RESET_INFO_GYM_TYPING]]:
         # used for gym < 0.26
         if self._shuffle_chronics and isinstance(
             self.init_env.chronics_handler.real_data, Multifolder
@@ -151,7 +152,7 @@ class __AuxGymEnv(Generic[ObsType, ActType]):
         if seed is not None:
             seed_, next_seed, underlying_env_seeds = self._aux_seed(seed)
             
-        g2op_obs = self.init_env.reset()
+        g2op_obs = self.init_env.reset(options=options)
         gym_obs = self.observation_space.to_gym(g2op_obs)
             
         if return_info:
@@ -300,6 +301,23 @@ if GYMNASIUM_AVAILABLE:
                      ObsType,
                      RESET_INFO_GYM_TYPING
                   ]:
+            """This function will reset the underlying grid2op environment
+            and return the next state of the grid (as the gymnasium observation)
+            and some other information.
+
+            Parameters
+            ----------
+            seed : Optional[int], optional
+                The seed for this new environment, by default None
+            options : RESET_OPTIONS_TYPING, optional
+                See the documentation of :func:`grid2op.Environment.Environment.reset`
+                for more information about it, by default None
+
+            Returns
+            -------
+            Tuple[ ObsType, RESET_INFO_GYM_TYPING ]
+                _description_
+            """
             return self._aux_reset_new(seed, options)
 
         def step(self, action: ActType) -> Tuple[ObsType, float, bool, bool, STEP_INFO_TYPING]:

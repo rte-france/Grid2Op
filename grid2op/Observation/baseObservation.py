@@ -508,8 +508,9 @@ class BaseObservation(GridObjects):
         self._forecasted_inj = []
         self._env_internal_params = {}
         
-        self._obs_env = obs_env
-        self._ptr_kwargs_env = kwargs_env
+        from grid2op.Environment._obsEnv import _ObsEnv
+        self._obs_env : _ObsEnv = obs_env
+        self._ptr_kwargs_env : Dict = kwargs_env
 
         # calendar data
         self.year = dt_int(1970)
@@ -699,6 +700,33 @@ class BaseObservation(GridObjects):
         for attr_nm in attr_vect:
             getattr(other, attr_nm)[:] = getattr(self, attr_nm)
 
+    def change_reward(self, reward_func: "grid2op.Reward.BaseReward"):
+        """Allow to change the reward used when calling :func:`BaseObservation.simulate`
+        without having to access the observation space.
+        
+        .. versionadded:: 1.10.2
+        
+        .. seealso:: :func:`grid2op.ObservationSpace.change_reward`
+            It has the same effet as :func:`grid2op.ObservationSpace.change_reward`
+        
+        Parameters
+        ----------
+        reward_func : grid2op.Reward.BaseReward
+            _description_
+
+        Raises
+        ------
+        BaseObservationError
+            _description_
+        """
+        if self._obs_env is not None:
+            if self._obs_env.is_valid():
+                self._obs_env._reward_helper.change_reward(reward_func)
+            else:
+                raise BaseObservationError("Impossible to change the reward of the simulate "
+                                           "function when you cannot simulate (because the "
+                                           "backend could not be copied)")
+                
     def __copy__(self) -> Self:
         res = type(self)(obs_env=self._obs_env,
                          action_helper=self.action_helper,
@@ -3087,7 +3115,34 @@ class BaseObservation(GridObjects):
             If the data of the :class:`grid2op.Environment.Environment` you are using supports it
             (**ie** you can access multiple steps ahead forecasts), then you can
             now "chain" the simulate calls.
-        
+            
+        .. danger::
+            A simulation can be different from the reality, even in case of perfect forecast or if
+            you "simulate" an action on the current step (time_step=0).
+            
+            For example, the solver used can be different for "simulate" and for the environment
+            "step" or you can be a setting with noisy action.
+            
+            A more subtle difference includes the "initialization" of the solver which is different 
+            in env.step and in obs.simulate so the outcomes of the solver might be different 
+            (this is especially relevant for larger grid).
+            
+            Even more subtle is the behaviour of the ramps for some generators. 
+            
+            More concretely,
+            say you want to dispatch upward a generator (with a ramp of +5) of +5MW at a given 
+            step. But in the same time this generator would see its production increased by +2MW
+            "naturally" in the time series. Then, grid2op would limit the increase of +5MW (instead
+            of +7 = +5 +2) by limiting the redispatching action to +3MW. 
+            
+            If you simulate the same action on the resulting step, as there are no "previous step"
+            then your action will not be limited and the +5MW of redispatching will be given.
+            
+            You have the same phenomenon for storage losses: they are applied even if you simulate
+            at the current step and conversely are not applied "multiple times" if you simulate
+            for an horizon longer than 1 (say time_step=2) or if you chain two or more
+            calls to "simulate".
+            
         Examples
         ---------
         
@@ -3307,7 +3362,7 @@ class BaseObservation(GridObjects):
                 "Forecast for {} timestep(s) ahead is not possible with your chronics."
                 "".format(time_step)
             )
-
+            
         if time_step not in self._forecasted_grid_act:
             timestamp, inj_forecasted = self._forecasted_inj[time_step]
             self._forecasted_grid_act[time_step] = {
@@ -3723,7 +3778,7 @@ class BaseObservation(GridObjects):
             & (res.topo_vect[cls.line_ex_pos_topo_vect] == -1)
         )
         if tmp.any():
-            id_issue_ex = np.nonzero(tmp)[0]
+            id_issue_ex = tmp.nonzero()[0]
             if issue_warn:
                 warnings.warn(error_no_bus_set.format(id_issue_ex))
             if "set_bus" in cls_act.authorized_keys:
@@ -3735,7 +3790,7 @@ class BaseObservation(GridObjects):
             & (res.topo_vect[cls.line_or_pos_topo_vect] == -1)
         )
         if tmp.any():
-            id_issue_or = np.nonzero(tmp)[0]
+            id_issue_or = tmp.nonzero()[0]
             if issue_warn:
                 warnings.warn(error_no_bus_set.format(id_issue_or))
             if "set_bus" in cls_act.authorized_keys:
@@ -4156,9 +4211,6 @@ class BaseObservation(GridObjects):
         self.storage_charge[:] = env._storage_current_charge
         self.storage_power_target[:] = env._action_storage
         self.storage_power[:] = env._storage_power
-
-        # handles forecasts here
-        self._update_forecast(env, with_forecast)
         
         # cool down and reconnection time after hard overflow, soft overflow or cascading failure
         self.time_before_cooldown_line[:] = env._times_before_line_status_actionable
@@ -4197,10 +4249,15 @@ class BaseObservation(GridObjects):
             self.curtailment_limit[:] = 1.0
             self.curtailment_limit_effective[:] = 1.0
 
-        self._update_alarm(env)
-
         self.delta_time = dt_float(1.0 * env.delta_time_seconds / 60.0)
         
+        # handles forecasts here
+        self._update_forecast(env, with_forecast)
+        
+        # handle alarms
+        self._update_alarm(env)
+
+        # handle alerts
         self._update_alert(env)
 
     def _update_forecast(self, env: "grid2op.Environment.BaseEnv", with_forecast: bool) -> None:

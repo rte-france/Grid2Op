@@ -5,14 +5,17 @@
 # you can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
+
 import numpy as np
 import warnings
 from datetime import datetime, timedelta
 from abc import ABC, abstractmethod
+from typing import Union, Dict, Literal
 
+import grid2op
 from grid2op.dtypes import dt_int
 from grid2op.Space import RandomObject
-from grid2op.Exceptions import EnvError
+from grid2op.Exceptions import EnvError, Grid2OpException
 
 # TODO sous echantillonner ou sur echantilloner les scenario: need to modify everything that affect the number
 # TODO of time steps there, for example "Space.gen_min_time_on" or "params.NB_TIMESTEP_POWERFLOW_ALLOWED" for
@@ -106,6 +109,23 @@ class GridValue(RandomObject, ABC):
         self.maintenance_time = None
         self.maintenance_duration = None
         self.hazard_duration = None
+        
+        # complete action space set by the environment
+        self.__action_space : Union["grid2op.Action.SerializableActionSpace", None] = None  
+        
+    @property
+    def action_space(self)-> Union["grid2op.Action.SerializableActionSpace", None]:
+        return self.__action_space
+    
+    @action_space.setter
+    def action_space(self, values):
+        from grid2op.Action import SerializableActionSpace
+        if not isinstance(values, SerializableActionSpace):
+            raise EnvError(f"Impossible to set the action space with a value of type {type(values)}")
+        if self.__action_space is not None:
+            raise EnvError(f"Impossible to change the action space once initialized.")
+        # TODO maybe raise a warning if the underlying action class is not CompleteAction
+        self.__action_space = values
 
     def get_kwargs(self, dict_):
         """
@@ -115,7 +135,7 @@ class GridValue(RandomObject, ABC):
         pass
 
     @property
-    def max_iter(self):
+    def max_iter(self) -> int:
         return self._max_iter
     
     @max_iter.setter
@@ -130,7 +150,7 @@ class GridValue(RandomObject, ABC):
         order_backend_lines,
         order_backend_subs,
         names_chronics_to_backend,
-    ):
+    ) -> None:
         """
         This function is used to initialize the data generator.
         It can be use to load scenarios, or to initialize noise if scenarios are generated on the fly. It must also
@@ -288,8 +308,8 @@ class GridValue(RandomObject, ABC):
         a = np.diff(maintenance)
         # +1 is because numpy does the diff `t+1` - `t` so to get index of the initial array
         # I need to "+1"
-        start = np.nonzero(a == 1)[0] + 1  # start of maintenance
-        end = np.nonzero(a == -1)[0] + 1  # end of maintenance
+        start = (a == 1).nonzero()[0] + 1  # start of maintenance
+        end = (a == -1).nonzero()[0] + 1  # end of maintenance
         prev_ = 0
         # it's efficient here as i do a loop only on the number of time there is a maintenance
         # and maintenance are quite rare
@@ -362,8 +382,8 @@ class GridValue(RandomObject, ABC):
         a = np.diff(maintenance)
         # +1 is because numpy does the diff `t+1` - `t` so to get index of the initial array
         # I need to "+1"
-        start = np.nonzero(a == 1)[0] + 1  # start of maintenance
-        end = np.nonzero(a == -1)[0] + 1  # end of maintenance
+        start = (a == 1).nonzero()[0] + 1  # start of maintenance
+        end = (a == -1).nonzero()[0] + 1  # end of maintenance
         prev_ = 0
         # it's efficient here as i do a loop only on the number of time there is a maintenance
         # and maintenance are quite rare
@@ -440,8 +460,8 @@ class GridValue(RandomObject, ABC):
         a = np.diff(hazard)
         # +1 is because numpy does the diff `t+1` - `t` so to get index of the initial array
         # I need to "+1"
-        start = np.nonzero(a == 1)[0] + 1  # start of maintenance
-        end = np.nonzero(a == -1)[0] + 1  # end of maintenance
+        start = (a == 1).nonzero()[0] + 1  # start of maintenance
+        end = (a == -1).nonzero()[0] + 1  # end of maintenance
         prev_ = 0
         # it's efficient here as i do a loop only on the number of time there is a maintenance
         # and maintenance are quite rare
@@ -800,3 +820,34 @@ class GridValue(RandomObject, ABC):
         """
         for _ in range(nb_timestep):
             self.load_next()
+
+    def get_init_action(self, names_chronics_to_backend: Dict[Literal["loads", "prods", "lines"], Dict[str, str]]) -> Union["grid2op.Action.playableAction.PlayableAction", None]:
+        """
+        It is used when the environment is reset (*ie* when :func:`grid2op.Environment.Environment.reset` is called)
+        to set the grid in its "original" state.
+        
+        .. versionadded 1.10.2
+        
+        Before grid2op 1.10.2 the original state is necessarily "everything connected together".
+        
+        For later version, we let the possibility to set, in the "time series folder" (or time series generators)
+        the possibility to change the initial condition of the grid.
+        
+        Returns
+        -------
+        grid2op.Action.playableAction.PlayableAction
+            The desired intial configuration of the grid
+        """
+        return None
+
+    def cleanup_action_space(self):
+        """
+        INTERNAL
+        
+        Used internally, do not overide
+        
+        It is for example used when making a deepcopy of a `chronics_handler` to make sure
+        the new copy references the proper action space of the new environment.
+        """
+        self.__action_space = None
+        # NB the action space is not closed as it is NOT own by this class

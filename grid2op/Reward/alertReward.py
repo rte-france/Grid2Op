@@ -157,7 +157,7 @@ class AlertReward(BaseReward):
             
     def _compute_score_attack_blackout(self, env, ts_attack_in_order, indexes_to_look):
         # retrieve the lines that have been attacked in the time window
-        ts_ind, line_ind = np.nonzero(ts_attack_in_order)
+        ts_ind, line_ind = (ts_attack_in_order).nonzero()
         line_first_attack, first_ind_line_attacked = np.unique(line_ind, return_index=True)
         ts_first_line_attacked = ts_ind[first_ind_line_attacked]
         # now retrieve the array starting at the correct place

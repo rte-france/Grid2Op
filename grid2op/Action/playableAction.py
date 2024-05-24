@@ -7,6 +7,7 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 import warnings
+from typing import Optional, Dict, Literal
 
 from grid2op.Exceptions import AmbiguousAction
 from grid2op.Action.baseAction import BaseAction
@@ -44,8 +45,8 @@ class PlayableAction(BaseAction):
     attr_list_set = set(attr_list_vect)
     shunt_added = True  # no shunt here
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, _names_chronics_to_backend: Optional[Dict[Literal["loads", "prods", "lines"], Dict[str, str]]]=None):
+        super().__init__(_names_chronics_to_backend)
 
         self.authorized_keys_to_digest = {
             "set_line_status": self._digest_set_status,

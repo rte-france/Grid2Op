@@ -125,7 +125,19 @@ class SerializableActionSpace(SerializableSpace):
             rnd_types.append(cls.RAISE_ALERT_ID)
         return rnd_types
 
-    def supports_type(self, action_type):
+    def supports_type(self,
+                      action_type: Literal["set_line_status",
+                                           "change_line_status",
+                                           "set_bus",
+                                           "change_bus",
+                                           "redispatch",
+                                           "storage_power",
+                                           "set_storage",
+                                           "curtail",
+                                           "curtail_mw",
+                                           "raise_alarm",
+                                           "raise_alert"]
+                    ):
         """
         Returns if the current action_space supports the current action type.
 
@@ -133,7 +145,7 @@ class SerializableActionSpace(SerializableSpace):
         ----------
         action_type: ``str``
             One of "set_line_status", "change_line_status", "set_bus", "change_bus", "redispatch",
-            "storage_power", "set_storage", "curtail" or "curtail_mw"
+            "storage_power", "set_storage", "curtail", "curtail_mw", "raise_alarm" or "raise_alert"
             A string representing the action types you want to inspect.
 
         Returns
@@ -181,7 +193,7 @@ class SerializableActionSpace(SerializableSpace):
                 "set_storage" in self.actionClass.authorized_keys
             )
         elif action_type == "curtail_mw":
-            return "curtail" in self.actionClass.authorized_keys
+            return self.supports_type("curtail")
         else:
             return action_type in self.actionClass.authorized_keys
 
@@ -420,7 +432,7 @@ class SerializableActionSpace(SerializableSpace):
             )
 
         if line_id is None:
-            line_id = np.nonzero(cls.name_line == line_name)[0]
+            line_id = (cls.name_line == line_name).nonzero()[0]
             if not len(line_id):
                 raise AmbiguousAction(
                     'Line with name "{}" is not on the grid. The powerlines names are:\n{}'
@@ -522,7 +534,7 @@ class SerializableActionSpace(SerializableSpace):
             )
         cls = type(self)
         if line_id is None:
-            line_id = np.nonzero(cls.name_line == line_name)[0]
+            line_id = (cls.name_line == line_name).nonzero()[0]
 
         if previous_action is None:
             res = self.actionClass()
@@ -1511,7 +1523,7 @@ class SerializableActionSpace(SerializableSpace):
     def _aux_get_back_to_ref_state_line(self, res, obs):
         disc_lines = ~obs.line_status
         if disc_lines.any():
-            li_disc = np.nonzero(disc_lines)[0]
+            li_disc = (disc_lines).nonzero()[0]
             res["powerline"] = []
             for el in li_disc:
                 act = self.actionClass()
@@ -1555,7 +1567,7 @@ class SerializableActionSpace(SerializableSpace):
         # TODO this is ugly, probably slow and could definitely be optimized
         notredisp_setpoint = np.abs(obs.target_dispatch) >= 1e-7
         if notredisp_setpoint.any():
-            need_redisp = np.nonzero(notredisp_setpoint)[0]
+            need_redisp = (notredisp_setpoint).nonzero()[0]
             res["redispatching"] = []
             # combine generators and do not exceed ramps (up or down)
             rem = np.zeros(self.n_gen, dtype=dt_float)
@@ -1620,7 +1632,7 @@ class SerializableActionSpace(SerializableSpace):
         notredisp_setpoint = obs.storage_charge / obs.storage_Emax != storage_setpoint
         delta_time_hour = dt_float(obs.delta_time / 60.0)
         if notredisp_setpoint.any():
-            need_ajust = np.nonzero(notredisp_setpoint)[0]
+            need_ajust = (notredisp_setpoint).nonzero()[0]
             res["storage"] = []
             # combine storage units and do not exceed maximum power
             rem = np.zeros(self.n_storage, dtype=dt_float)
