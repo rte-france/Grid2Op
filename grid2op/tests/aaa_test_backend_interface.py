@@ -87,10 +87,10 @@ class AAATestBackendAPI(MakeBackend):
         backend.close()
         
         backend = self.make_backend()
+        backend.env_name = "BasicTest_load_grid2_" + type(self).__name__
         backend.load_grid(os.path.join(self.get_path(), self.get_casefile()))  # first argument filled, second None
         backend.load_redispacthing_data(self.get_path())
         backend.load_storage_data(self.get_path())
-        backend.env_name = "BasicTest_load_grid2_" + type(self).__name__
         backend.assert_grid_correct() 
         backend.close()
         
@@ -117,12 +117,14 @@ class AAATestBackendAPI(MakeBackend):
         else:
             # object does support shunts
             assert cls.shunts_data_available
-            assert isinstance(cls.n_shunt, (int, dt_int)), f"Your backend does not support shunt, the class should define `n_shunt`as an int, found {cls.n_shunt}"
+            assert isinstance(cls.n_shunt, (int, dt_int)), f"Your backend does not support shunt, the class should define `n_shunt`as an int, found {cls.n_shunt} ({type(cls.n_shunt)})"
             assert cls.name_shunt is not None, f"Your backend does not support shunt, the class should define `name_shunt` (cls.name_shunt should not be None)"
             assert cls.shunt_to_subid is not None, f"Your backend does not support shunt, the class should define `shunt_to_subid` (cls.shunt_to_subid should not be None)"
-            assert isinstance(backend.n_shunt, (int, dt_int)), f"Your backend does support shunt, `backend.n_shunt` should be an int, found {cls.n_shunt}"
-            assert backend.name_shunt is not None, f"Your backend does not support shunt, backend.name_shunt should not be None"
-            assert backend.shunt_to_subid is not None, f"Your backend does not support shunt, backend.shunt_to_subid should not be None"
+            # these attributes are "deleted" from the backend instance 
+            # and only stored in the class
+            # assert isinstance(backend.n_shunt, (int, dt_int)), f"Your backend does support shunt, `backend.n_shunt` should be an int, found {backend.n_shunt} ({type(backend.n_shunt)})"
+            # assert backend.name_shunt is not None, f"Your backend does not support shunt, backend.name_shunt should not be None"
+            # assert backend.shunt_to_subid is not None, f"Your backend does not support shunt, backend.shunt_to_subid should not be None"
             
     def test_02modify_load(self):
         """Tests the loads can be modified        

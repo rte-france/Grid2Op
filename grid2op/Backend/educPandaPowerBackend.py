@@ -62,7 +62,9 @@ class EducPandaPowerBackend(Backend):
     real :class:`grid2op.Backend.PandaPowerBackend` class.
 
     """
-
+    
+    shunts_data_available = False
+    
     def __init__(self,
                  detailed_infos_for_cascading_failures : Optional[bool]=False,
                  can_be_copied : Optional[bool]=True):
@@ -94,6 +96,7 @@ class EducPandaPowerBackend(Backend):
 
         # NB: this instance of backend is here for academic purpose only. For clarity, it does not handle
         # neither shunt nor storage unit.
+        self.shunts_data_available = False
 
     ####### load the grid
     def load_grid(self,
@@ -211,8 +214,8 @@ class EducPandaPowerBackend(Backend):
 
         # NB: this instance of backend is here for academic purpose only. For clarity, it does not handle
         # neither shunt nor storage unit.
-        type(self).shunts_data_available = False
-        type(self).set_no_storage()
+        # type(self).shunts_data_available = False
+        # type(self).set_no_storage()
 
     ###### modify the grid
     def apply_action(self, backendAction: Union["grid2op.Action._backendAction._BackendAction", None]) -> None:
