@@ -15,7 +15,7 @@ import argparse
 from grid2op.Exceptions import Grid2OpException
 from grid2op.PlotGrid.PlotMatplot import PlotMatplot
 from grid2op.Episode.EpisodeData import EpisodeData
-
+from grid2op.Episode.CompactEpisodeData import CompactEpisodeData
 
 class EpisodeReplay(object):
     """
@@ -198,7 +198,7 @@ class EpisodeReplay(object):
                     from pygifsicle import optimize
 
                     optimize(gif_path, options=["-w", "--no-conserve-memory"])
-                except:
+                except Exception as exc_:
                     warn_msg = (
                         "Failed to optimize .GIF size, but gif is still saved:\n"
                         "Install dependencies to reduce size by ~3 folds\n"

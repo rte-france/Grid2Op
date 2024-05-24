@@ -80,11 +80,13 @@ It has the following behavior:
    it will be used (see section :ref:`usage`)
 2) if you specify the name of an environment that you have already downloaded, it will use this environment (NB
    currently no checks are implemented if the environment has been updated remotely, which can happen if
-   we realize there were some issues with it.)
+   we realize there were some issues with it.). If you want to update the environments you downloaded
+   please use :func:`grid2op.update_env()`
 3) you are expected to provide an environment name (if you don't know what this is just put `"l2rpn_case14_sandbox"`)
 4) if the flag `test` is set to ``False`` (default behaviour) and none of the above conditions are met, the
    :func:`make` will download the data of this environment locally the first time it is called. If you don't want
-   to download anything then you can pass the flag ``test=True``
+   to download anything then you can pass the flag ``test=True`` (in this case only a small sample of 
+   time series will be available. We don't recommend to do that at all !)
 5) if ``test=True`` (NON default behaviour) nothing will be loaded, and the :func:`make` will attempt to use a
    pre defined environment provided with the python package. We want to emphasize that because the environments provided
    with this package contains only little data, they are not suitable for leaning a consistent agent / controler. That
@@ -134,11 +136,16 @@ context of the L2RPN competition, we don't recommend to modify them.
 
 - `dataset_path`: used to specify the name (or the path) of the environment you want to load
 - `backend`: a initialized backend that will carry out the computation related to power system [mainly use if you want
-  to change from PandapowerBackend (default) to a different one *eg* LightSim2Grid)
-- `reward_class`: change the type of reward you want to use for your agent
-- `other_reward`: tell "env.step" to return addition "rewards"
+  to change from PandapowerBackend (default) to a different one *eg* LightSim2Grid]
+- `reward_class`: change the type of reward you want to use for your agent (see section 
+  :ref:`reward-module` for more information).
+- `other_reward`: tell "env.step" to return addition "rewards"(see section 
+  :ref:`reward-module` for more information).
 - `difficulty`, `param`: control the difficulty level of the game (might not always be available)
-- `chronics_class`, `data_feeding_kwargs`: further customization to how the data will be generated
+- `chronics_class`, `data_feeding_kwargs`: further customization to how the data will be generated,
+  see section :ref:`environment-module-data-pipeline` for more information
+- `n_busbar`: (``int``, default 2) [new in version 1.9.9]  see section :ref:`substation-mod-el` 
+  for more information
 - \* `chronics_path`, `data_feeding`, : to overload default path for the data (**not recommended**)
 - \* `action_class`: which action class your agent is allowed to use (**not recommended**).
 - \* `gamerules_class`: the rules that are checked to declare an action legal / illegal (**not recommended**)

@@ -143,10 +143,10 @@ def draw_line(pos_sub_or, pos_sub_ex, rho, color_palette, status, line_color="gr
     Parameters
     ----------
     pos_sub_or: ``tuple``
-        Position (x,y) of the origin end of the powerline
+        Position (x,y) of the origin side of the powerline
 
     pos_sub_ex: ``tuple``
-        Position (x,y) of the extremity end of the powerline
+        Position (x,y) of the extremity side of the powerline
 
     rho: ``float``
         Line capacity usage

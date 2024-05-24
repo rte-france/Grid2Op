@@ -22,9 +22,9 @@ class Parameters:
     Attributes
     ----------
     NO_OVERFLOW_DISCONNECTION: ``bool``
-        If set to ``True`` then the :class:`grid2op.Environment.Environment` will not disconnect powerline above their
-        thermal
-        limit. Default is ``False``
+        If set to ``True`` then the :class:`grid2op.Environment.Environment` will **NOT** disconnect powerline above their
+        thermal limit. Default is ``False``, meaning that grid2op will disconnect powerlines above their limits
+        for too long or for "too much".
 
     NB_TIMESTEP_OVERFLOW_ALLOWED: ``int``
         Number of timesteps for which a soft overflow is allowed, default 2. This means that a powerline will be

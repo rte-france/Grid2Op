@@ -114,13 +114,13 @@ class ScoreL2RPN2023(ScoreL2RPN2020):
             score_names=score_names,
             add_nb_highres_sim=add_nb_highres_sim,
         )
-        weights=np.array([weight_op_score,weight_assistant_score,weight_nres_score])
+        weights=np.array([weight_op_score, weight_assistant_score, weight_nres_score])
         total_weights = weights.sum()
-        if total_weights != 1.0:
+        if abs(total_weights - 1.0) >= 1e-8:
             raise Grid2OpException(
                 'The weights of each component of the score shall sum to 1'
             )
-        if np.any(weights <0):
+        if np.any(weights < 0.):
             raise Grid2OpException(
                 'All weights should be positive'
             )

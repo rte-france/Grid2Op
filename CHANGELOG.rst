@@ -31,8 +31,117 @@ Change Log
 - [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
 
+[1.10.2] - 2024-xx-yy
+-------------------------
+- [BREAKING] the `runner.run_one_episode` now returns an extra first argument: 
+  `chron_id, chron_name, cum_reward, timestep, max_ts = runner.run_one_episode()` which 
+  is consistant with `runner.run(...)` (previously it returned only 
+  `chron_name, cum_reward, timestep, max_ts = runner.run_one_episode()`)
+- [BREAKING] the runner now has no `chronics_handler` attribute (`runner.chronics_handler` 
+  is not defined)
+- [ADDED] it is now possible to call `change_reward` directly from 
+  an observation (no need to do it from the Observation Space)
+- [ADDED] method to change the reward from the observation (observation_space
+  is not needed anymore): you can use `obs.change_reward`
+- [ADDED] a way to automatically set the `experimental_read_from_local_dir` flags 
+  (with automatic class creation). For now it is disable by default, but you can 
+  activate it transparently (see doc)
+- [ADDED] possibility to set the grid to an initial state (using an action) when using the
+  "time series" classes. The supported classes are `GridStateFromFile` - and all its derivative, 
+  `FromOneEpisodeData`, `FromMultiEpisodeData`, `FromNPY` and `FromHandlers`. The classes `ChangeNothing`
+  and `FromChronix2grid` are not supported at the moment.
+- [ADDED] an "Handler" (`JSONInitStateHandler`) that can set the grid to an initial state (so as to make
+  compatible the `FromHandlers` time series class with this new feature)
+- [ADDED] some more type hints in the `GridObject` class 
+- [ADDED] Possibility to deactive the support of shunts if subclassing `PandaPowerBackend`
+  (and add some basic tests)
+- [FIXED] a small issue that could lead to having 
+  "redispatching_unit_commitment_availble" flag set even if the redispatching
+  data was not loaded correctly
+- [FIXED] EducPandaPowerBackend now properly sends numpy array in the class attributes
+  (instead of pandas series)
+- [FIXED] an issue when loading back data (with `EpisodeData`): when there were no storage units
+  on the grid it did not set properly the "storage relevant" class attributes
+- [FIXED] a bug in the "gridobj.generate_classes()" function which crashes when no
+  grid layout was set
+- [FIXED] notebook 5 on loading back data with `EpisodeData`.
+- [FIXED] converter between backends (could not handle more than 2 busbars)
+- [FIXED] a bug in `BaseMultiProcessEnvironment`: set_filter had no impact
+- [FIXED] an issue in the `Runner` (`self.chronics_handler` was sometimes used, sometimes not
+  and most of the time incorrectly)
+- [FIXED] on `RemoteEnv` class (impact all multi process environment): the kwargs used to build then backend
+  where not used which could lead to"wrong" backends being used in the sub processes.
+- [FIXED] a bug when the name of the times series and the names of the elements in the backend were 
+  different: it was not possible to set `names_chronics_to_grid` correctly when calling `env.make`
+- [IMPROVED] documentation about `obs.simulate` to make it clearer the 
+  difference between env.step and obs.simulate on some cases
+- [IMPROVED] type hints on some methods of `GridObjects`
+- [IMPROVED] replace `np.nonzero(arr)` calls with `arr.nonzero()` which could
+  save up a bit of computation time.
+- [IMPROVED] force class attributes to be numpy arrays of proper types when the 
+  classes are initialized from the backend.
+- [IMPROVED] some (slight) speed improvments when comparing actions or deep copying objects
+- [IMPROVED] the way the "grid2op compat" mode is handled
+- [IMPROVED] the coverage of the tests in the "test_basic_env_ls.py" to test more in depth lightsim2grid
+  (creation of multiple environments, grid2op compatibility mode)
+- [IMPROVED] the function to test the backend interface in case when shunts are not supported 
+  (improved test `AAATestBackendAPI.test_01load_grid`)
 
-[1.9.8] - 20xx-yy-zz
+[1.10.1] - 2024-03-xx
+----------------------
+- [FIXED] issue https://github.com/rte-france/Grid2Op/issues/593
+- [FIXED] backward compatibility issues with "oldest" lightsim2grid versions
+  (now tested in basic settings)
+- [ADDED] a "compact" way to store the data in the Runner
+- [IMPROVED] the "`train_val_split`" functions, now more names (for the folders)
+  can be used
+
+[1.10.0] - 2024-03-06
+----------------------
+- [BREAKING] the order of the actions in `env.action_space.get_all_unitary_line_set` and 
+  `env.action_space.get_all_unitary_topologies_set` might have changed (this is caused 
+  by a rewriting of these functions in case there is not 2 busbars per substation)
+- [FIXED] github CI did not upload the source files
+- [FIXED] `l2rpn_utils` module did not stored correctly the order
+  of actions and observation for wcci_2020
+- [FIXED] 2 bugs detected by static code analysis (thanks sonar cloud)
+- [FIXED] a bug in `act.get_gen_modif` (vector of wrong size was used, could lead
+  to some crashes if `n_gen >= n_load`)
+- [FIXED] a bug in `act.as_dict` when shunts were modified
+- [FIXED] a bug affecting shunts: sometimes it was not possible to modify their p / q 
+  values for certain values of p or q (an AmbiguousAction exception was raised wrongly)
+- [FIXED] a bug in the `_BackendAction`: the "last known topoolgy" was not properly computed
+  in some cases (especially at the time where a line was reconnected)
+- [FIXED] `MultiDiscreteActSpace` and `DiscreteActSpace` could be the same classes
+  on some cases (typo in the code).
+- [FIXED] a bug in `MultiDiscreteActSpace` : the "do nothing" action could not be done if `one_sub_set` (or `one_sub_change`)
+  was selected in `attr_to_keep`
+- [ADDED] a method `gridobj.topo_vect_element()` that does the opposite of `gridobj.xxx_pos_topo_vect`
+- [ADDED] a mthod `gridobj.get_powerline_id(sub_id)` that gives the
+  id of all powerlines connected to a given substation
+- [ADDED] a convenience function `obs.get_back_to_ref_state(...)`
+  for the observation and not only the action_space.
+- [IMPROVED] handling of "compatibility" grid2op version
+  (by calling the relevant things done in the base class 
+  in `BaseAction` and `BaseObservation`) and by using the `from packaging import version`
+  to check version (instead of comparing strings)
+- [IMPROVED] slightly the code of `check_kirchoff` to make it slightly clearer
+- [IMRPOVED] typing and doc for some of the main classes of the `Action` module
+- [IMRPOVED] typing and doc for some of the main classes of the `Observation` module
+- [IMPROVED] methods `gridobj.get_lines_id`, `gridobj.get_generators_id`, `gridobj.get_loads_id`
+  `gridobj.get_storages_id` are now class methods and can be used with `type(env).get_lines_id(...)`
+  or `act.get_lines_id(...)` for example.
+- [IMPROVED] `obs.get_energy_graph()` by giving the "local_bus_id" and the "global_bus_id"
+  of the bus that represents each node of this graph.
+- [IMPROVED] `obs.get_elements_graph()` by giving access to the bus id (local, global and 
+  id of the node) where each element is connected.
+- [IMPROVED] description of the different graph of the grid in the documentation.
+- [IMPROVED] type hints for the `gym_compat` module (more work still required in this area)
+- [IMPROVED] the `MultiDiscreteActSpace` to have one "dimension" controling all powerlines
+  (see "one_line_set" and "one_line_change")
+- [IMPROVED] doc at different places, including the addition of the MDP implemented by grid2op.
+
+[1.9.8] - 2024-01-26
 ----------------------
 - [FIXED] the `backend.check_kirchoff` function was not correct when some elements were disconnected 
   (the wrong columns of the p_bus and q_bus was set in case of disconnected elements)
@@ -40,8 +149,14 @@ Change Log
 - [FIXED] the "BaseBackendTest" class did not correctly detect divergence in most cases (which lead 
   to weird bugs in failing tests)
 - [FIXED] an issue with imageio having deprecated the `fps` kwargs (see https://github.com/rte-france/Grid2Op/issues/569)
+- [FIXED] adding the "`loads_charac.csv`" in the package data
+- [FIXED] a bug when using grid2op, not "utils.py" script could be used (see 
+  https://github.com/rte-france/Grid2Op/issues/577). This was caused by the modification of
+  `sys.path` when importing the grid2op test suite.
 - [ADDED] A type of environment that does not perform the "emulation of the protections"
   for some part of the grid (`MaskedEnvironment`) see https://github.com/rte-france/Grid2Op/issues/571
+- [ADDED] a "gym like" API for reset allowing to set the seed and the time serie id directly when calling
+  `env.reset(seed=.., options={"time serie id": ...})`
 - [IMPROVED] the CI speed: by not testing every possible numpy version but only most ancient and most recent
 - [IMPROVED] Runner now test grid2op version 1.9.6 and 1.9.7
 - [IMPROVED] refacto `gridobj_cls._clear_class_attribute` and `gridobj_cls._clear_grid_dependant_class_attributes`

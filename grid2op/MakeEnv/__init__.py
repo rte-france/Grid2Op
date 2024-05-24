@@ -7,11 +7,15 @@ __all__ = [
     "change_local_dir",
     "list_available_test_env",
     "update_env",
-    # deprecated in v 0.8.0
-    "make_old",
 ]
 
-from grid2op.MakeEnv.MakeOld import make_old
+# try:
+#     from grid2op.MakeEnv.MakeOld import make_old
+#     # deprecated in v 0.8.0
+#     __all__.append("make_old")
+# except ImportError:
+#     pass
+
 from grid2op.MakeEnv.MakeFromPath import make_from_dataset_path
 from grid2op.MakeEnv.Make import make
 from grid2op.MakeEnv.UserUtils import (

@@ -62,7 +62,9 @@ class EducPandaPowerBackend(Backend):
     real :class:`grid2op.Backend.PandaPowerBackend` class.
 
     """
-
+    
+    shunts_data_available = False
+    
     def __init__(self,
                  detailed_infos_for_cascading_failures : Optional[bool]=False,
                  can_be_copied : Optional[bool]=True):
@@ -94,6 +96,7 @@ class EducPandaPowerBackend(Backend):
 
         # NB: this instance of backend is here for academic purpose only. For clarity, it does not handle
         # neither shunt nor storage unit.
+        self.shunts_data_available = False
 
     ####### load the grid
     def load_grid(self,
@@ -131,7 +134,8 @@ class EducPandaPowerBackend(Backend):
             example. (But of course  you can still use switches if you really want to)
 
         """
-
+        self.cannot_handle_more_than_2_busbar()
+        
         # first, handles different kind of path:
         full_path = self.make_complete_path(path, filename)
 
@@ -177,21 +181,21 @@ class EducPandaPowerBackend(Backend):
 
         # initialize the number of elements per substation
         # now export to grid2op the substation to which objects are connected
-        self.load_to_subid = copy.deepcopy(self._grid.load["bus"])
-        self.gen_to_subid = copy.deepcopy(self._grid.gen["bus"])
+        self.load_to_subid = copy.deepcopy(self._grid.load["bus"].values)
+        self.gen_to_subid = copy.deepcopy(self._grid.gen["bus"].values)
         # here we just decide (but that is a convention we could have done it differently)
         # that "origin side" (grid2op) corresponds to "from_bus" from pandapower line and "hv_bus" for
         # pandapower trafo.
         self.line_or_to_subid = np.concatenate(
             (
-                copy.deepcopy(self._grid.line["from_bus"]),
-                copy.deepcopy(self._grid.trafo["hv_bus"]),
+                copy.deepcopy(self._grid.line["from_bus"].values),
+                copy.deepcopy(self._grid.trafo["hv_bus"].values),
             )
         )
         self.line_ex_to_subid = np.concatenate(
             (
-                copy.deepcopy(self._grid.line["to_bus"]),
-                copy.deepcopy(self._grid.trafo["lv_bus"]),
+                copy.deepcopy(self._grid.line["to_bus"].values),
+                copy.deepcopy(self._grid.trafo["lv_bus"].values),
             )
         )
 
@@ -210,8 +214,8 @@ class EducPandaPowerBackend(Backend):
 
         # NB: this instance of backend is here for academic purpose only. For clarity, it does not handle
         # neither shunt nor storage unit.
-        type(self).shunts_data_available = False
-        type(self).set_no_storage()
+        # type(self).shunts_data_available = False
+        # type(self).set_no_storage()
 
     ###### modify the grid
     def apply_action(self, backendAction: Union["grid2op.Action._backendAction._BackendAction", None]) -> None:

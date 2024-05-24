@@ -11,6 +11,7 @@ import numpy as np
 import warnings
 import grid2op
 from grid2op.Backend import Backend
+from grid2op.dtypes import dt_int
 from grid2op.tests.helper_path_test import HelperTests, MakeBackend, PATH_DATA
 from grid2op.Exceptions import BackendError, Grid2OpException
 
@@ -38,9 +39,9 @@ class AAATestBackendAPI(MakeBackend):
         """do not run nor modify ! (used for this test class only)"""
         return "BasicTest_load_grid_" + type(self).__name__
 
-    def aux_make_backend(self) -> Backend:
+    def aux_make_backend(self, n_busbar=2) -> Backend:
         """do not run nor modify ! (used for this test class only)"""
-        backend = self.make_backend_with_glue_code()
+        backend = self.make_backend_with_glue_code(n_busbar=n_busbar)
         backend.load_grid(self.get_path(), self.get_casefile())
         backend.load_redispacthing_data("tmp")  # pretend there is no generator
         backend.load_storage_data(self.get_path())
@@ -86,17 +87,45 @@ class AAATestBackendAPI(MakeBackend):
         backend.close()
         
         backend = self.make_backend()
+        backend.env_name = "BasicTest_load_grid2_" + type(self).__name__
         backend.load_grid(os.path.join(self.get_path(), self.get_casefile()))  # first argument filled, second None
         backend.load_redispacthing_data(self.get_path())
         backend.load_storage_data(self.get_path())
-        backend.env_name = "BasicTest_load_grid2_" + type(self).__name__
         backend.assert_grid_correct() 
         backend.close()
         
         backend = self.make_backend()
         with self.assertRaises(Exception):
             backend.load_grid()  # should raise if nothing is loaded 
+            
+        if backend.shunts_data_available and not cls.shunts_data_available:
+            raise RuntimeError("You backend object inform grid2op that it supports shunt, but the class apparently does not. "
+                               "Have you called `self._compute_pos_big_topo()` at the end of `load_grid` implementation ?")
+        if not backend.shunts_data_available and cls.shunts_data_available:
+            raise RuntimeError("You backend object inform grid2op that it does not support shunt, but the class apparently does. "
+                               "Have you called `self._compute_pos_big_topo()` at the end of `load_grid` implementation ?")
 
+        if not backend.shunts_data_available:
+            # object does not support shunts
+            assert not cls.shunts_data_available
+            assert cls.n_shunt is None, f"Your backend does not support shunt, the class should not define `n_shunt` (cls.n_shunt should be None and not {cls.n_shunt})"
+            assert cls.name_shunt is None, f"Your backend does not support shunt, the class should not define `name_shunt` (cls.name_shunt should be None and not {cls.name_shunt})"
+            assert cls.shunt_to_subid is None, f"Your backend does not support shunt, the class should not define `shunt_to_subid` (cls.shunt_to_subid should be None and not {cls.shunt_to_subid})"
+            assert backend.n_shunt is None, f"Your backend does not support shunt, backend.n_shunt should be None and not {backend.n_shunt}"
+            assert backend.name_shunt is None, f"Your backend does not support shunt, backend.name_shunt should be None {backend.name_shunt}"
+            assert backend.shunt_to_subid is None, f"Your backend does not support shunt, backend.shunt_to_subid should be None {backend.shunt_to_subid}"
+        else:
+            # object does support shunts
+            assert cls.shunts_data_available
+            assert isinstance(cls.n_shunt, (int, dt_int)), f"Your backend does not support shunt, the class should define `n_shunt`as an int, found {cls.n_shunt} ({type(cls.n_shunt)})"
+            assert cls.name_shunt is not None, f"Your backend does not support shunt, the class should define `name_shunt` (cls.name_shunt should not be None)"
+            assert cls.shunt_to_subid is not None, f"Your backend does not support shunt, the class should define `shunt_to_subid` (cls.shunt_to_subid should not be None)"
+            # these attributes are "deleted" from the backend instance 
+            # and only stored in the class
+            # assert isinstance(backend.n_shunt, (int, dt_int)), f"Your backend does support shunt, `backend.n_shunt` should be an int, found {backend.n_shunt} ({type(backend.n_shunt)})"
+            # assert backend.name_shunt is not None, f"Your backend does not support shunt, backend.name_shunt should not be None"
+            # assert backend.shunt_to_subid is not None, f"Your backend does not support shunt, backend.shunt_to_subid should not be None"
+            
     def test_02modify_load(self):
         """Tests the loads can be modified        
 
@@ -594,7 +623,7 @@ class AAATestBackendAPI(MakeBackend):
         assert len(topo_vect) == dim_topo, (f"backend.get_topo_vect() should return a vector of size 'dim_topo' "
                                             f"({dim_topo}) but found size is {len(topo_vect)}. "
                                             f"Remember: shunt are not part of the topo_vect")
-        assert np.all(topo_vect <= 2), (f"For simple environment, we suppose there are 2 buses per substation / voltage levels. "
+        assert np.all(topo_vect <= type(backend).n_busbar_per_sub), (f"For simple environment, we suppose there are 2 buses per substation / voltage levels. "
                                         f"topo_vect is supposed to give the id of the busbar (in the substation) to "
                                         f"which the element is connected. This cannot be {np.max(topo_vect)}."
                                         f"NB: this test is expected to fail if you test on a grid where more "
@@ -1381,9 +1410,9 @@ class AAATestBackendAPI(MakeBackend):
     def _aux_aux_get_line(self, el_id, el_to_subid, line_xx_to_subid):
         sub_id = el_to_subid[el_id]
         if (line_xx_to_subid == sub_id).sum() >= 2:
-            return True, np.where(line_xx_to_subid == sub_id)[0][0]
+            return True, np.nonzero(line_xx_to_subid == sub_id)[0][0]
         elif (line_xx_to_subid == sub_id).sum() == 1:
-            return False, np.where(line_xx_to_subid == sub_id)[0][0]
+            return False, np.nonzero(line_xx_to_subid == sub_id)[0][0]
         else:
             return None
         
@@ -1555,4 +1584,119 @@ class AAATestBackendAPI(MakeBackend):
                                        el_nm, el_key, el_pos_topo_vect)
         else:
              warnings.warn(f"{type(self).__name__} test_28_topo_vect_set: This test is not performed in depth as your backend does not support storage units (or there are none on the grid)")
-            
+
+    def test_29_xxx_handle_more_than_2_busbar_called(self):    
+        """Tests that at least one of the function:
+        
+        - :func:`grid2op.Backend.Backend.can_handle_more_than_2_busbar`
+        - :func:`grid2op.Backend.Backend.cannot_handle_more_than_2_busbar`
+        
+        has been implemented in the :func:`grid2op.Backend.Backend.load_grid`
+        implementation.
+        
+        This test supposes that :
+        
+        - backend.load_grid(...) is implemented
+        
+        .. versionadded:: 1.10.0
+        
+        """
+        self.skip_if_needed()
+        backend = self.aux_make_backend()
+        assert not backend._missing_two_busbars_support_info
+    
+    def test_30_n_busbar_per_sub_ok(self):    
+        """Tests that your backend can properly handle more than
+        3 busbars (only applies if your backend supports the feature): basically that 
+        objects can be moved to busbar 3 without trouble.
+        
+        This test supposes that :
+        
+        - backend.load_grid(...) is implemented
+        - backend.runpf() (AC mode) is implemented
+        - backend.apply_action() for all types of action
+        - backend.reset() is implemented
+        - backend.get_topo_vect() is implemented       
+        
+        .. versionadded:: 1.10.0
+        
+        """    
+        self.skip_if_needed()
+        n_busbar = 3
+        backend = self.aux_make_backend(n_busbar=n_busbar)
+        cls = type(backend)
+        if cls.n_busbar_per_sub != n_busbar:
+            self.skipTest("Your backend does not support more than 2 busbars.")
+        
+        res = backend.runpf(is_dc=False)
+        assert res[0],  f"Your backend diverged in AC after loading the grid state, error was {res[1]}"    
+        topo_vect_orig = self._aux_check_topo_vect(backend)
+        
+        # line or
+        line_id = 0
+        busbar_id = n_busbar
+        backend.reset(self.get_path(), self.get_casefile())
+        action = cls._complete_action_class()
+        action.update({"set_bus": {"lines_or_id": [(line_id, busbar_id)]}})
+        bk_act = cls.my_bk_act_class()
+        bk_act += action
+        backend.apply_action(bk_act)
+        res = backend.runpf(is_dc=False)  
+        assert res[0],  f"Your backend diverged in AC after setting a line (or side) on busbar 3, error was {res[1]}"    
+        topo_vect = self._aux_check_topo_vect(backend)
+        error_msg = (f"Line {line_id} (or. side) has been moved to busbar {busbar_id}, yet according to 'topo_vect' "
+                     f"is still connected (origin side) to busbar {topo_vect[cls.line_or_pos_topo_vect[line_id]]}")
+        assert topo_vect[cls.line_or_pos_topo_vect[line_id]] == busbar_id, error_msg
+        
+        # line ex
+        line_id = 0
+        busbar_id = n_busbar
+        backend.reset(self.get_path(), self.get_casefile())
+        action = cls._complete_action_class()
+        action.update({"set_bus": {"lines_ex_id": [(line_id, busbar_id)]}})
+        bk_act = cls.my_bk_act_class()
+        bk_act += action
+        backend.apply_action(bk_act)
+        res = backend.runpf(is_dc=False)  
+        assert res[0],  f"Your backend diverged in AC after setting a line (ex side) on busbar 3, error was {res[1]}"    
+        topo_vect = self._aux_check_topo_vect(backend)
+        error_msg = (f"Line {line_id} (ex. side) has been moved to busbar {busbar_id}, yet according to 'topo_vect' "
+                     f"is still connected (ext side) to busbar {topo_vect[cls.line_ex_pos_topo_vect[line_id]]}")
+        assert topo_vect[cls.line_ex_pos_topo_vect[line_id]] == busbar_id, error_msg
+        
+        # load
+        backend.reset(self.get_path(), self.get_casefile())
+        busbar_id = n_busbar
+        nb_el = cls.n_load
+        el_to_subid = cls.load_to_subid
+        el_nm = "load"
+        el_key = "loads_id"
+        el_pos_topo_vect = cls.load_pos_topo_vect
+        self._aux_check_el_generic(backend, busbar_id, nb_el, el_to_subid, 
+                                   el_nm, el_key, el_pos_topo_vect)
+        
+        # generator
+        backend.reset(self.get_path(), self.get_casefile())
+        busbar_id = n_busbar
+        nb_el = cls.n_gen
+        el_to_subid = cls.gen_to_subid
+        el_nm = "generator"
+        el_key = "generators_id"
+        el_pos_topo_vect = cls.gen_pos_topo_vect
+        self._aux_check_el_generic(backend, busbar_id, nb_el, el_to_subid, 
+                                   el_nm, el_key, el_pos_topo_vect)
+        
+        # storage
+        if cls.n_storage > 0:
+            backend.reset(self.get_path(), self.get_casefile())
+            busbar_id = n_busbar
+            nb_el = cls.n_storage
+            el_to_subid = cls.storage_to_subid
+            el_nm = "storage"
+            el_key = "storages_id"
+            el_pos_topo_vect = cls.storage_pos_topo_vect
+            self._aux_check_el_generic(backend, busbar_id, nb_el, el_to_subid, 
+                                       el_nm, el_key, el_pos_topo_vect)
+        else:
+             warnings.warn(f"{type(self).__name__} test_30_n_busbar_per_sub_ok: This test is not performed in depth as your backend does not support storage units (or there are none on the grid)")
+        

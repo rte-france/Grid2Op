@@ -879,7 +879,7 @@ class PlotMatplot(BasePlot):
             )
             self._draw_powerline_bus(pos_ex_x, pos_ex_y, ex_dir_x, ex_dir_y, ex_bus)
             watt_value = observation.p_or[line_id]
-            if rho > 0.0 and watt_value != 0.0:
+            if rho > 0.0 and np.abs(watt_value) >= 1e-7:
                 self._draw_powerline_arrow(
                     pos_or_x, pos_or_y, pos_ex_x, pos_ex_y, color, watt_value
                 )

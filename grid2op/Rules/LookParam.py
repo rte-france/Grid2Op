@@ -29,19 +29,24 @@ class LookParam(BaseRules):
     def __call__(self, action, env):
         """
         See :func:`BaseRules.__call__` for a definition of the parameters of this function.
+        
+        ..versionchanged:: 1.10.2
+            In grid2op 1.10.2 this function is not called when the environment is reset:
+            The "action" made by the environment to set the environment in the desired state is always legal
+            
         """
         # at first iteration, env.current_obs is None...
         powerline_status = env.get_current_line_status()
 
         aff_lines, aff_subs = action.get_topological_impact(powerline_status)
         if aff_lines.sum() > env._parameters.MAX_LINE_STATUS_CHANGED:
-            ids = np.where(aff_lines)[0]
+            ids = (aff_lines).nonzero()[0]
             return False, IllegalAction(
                 "More than {} line status affected by the action: {}"
                 "".format(env.parameters.MAX_LINE_STATUS_CHANGED, ids)
             )
         if aff_subs.sum() > env._parameters.MAX_SUB_CHANGED:
-            ids = np.where(aff_subs)[0]
+            ids = (aff_subs).nonzero()[0]
             return False, IllegalAction(
                 "More than {} substation affected by the action: {}"
                 "".format(env.parameters.MAX_SUB_CHANGED, ids)

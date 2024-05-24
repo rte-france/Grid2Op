@@ -1,6 +1,8 @@
+.. _parameters-module:
+
 Parameters
 ===================================
-The challenge "learning to run a power network" offers different _parameters to be customized, or to learn an
+The challenge "learning to run a power network" offers different parameters to be customized, or to learn an
 :class:`grid2op.Agent` that will perform better for example.
 
 This class is an attempt to group them all inside one single structure.
@@ -10,6 +12,7 @@ come soon.
 
 Example
 --------
+
 If you want to change the parameters it is better to do it at the creation of the environment.
 
 This can be done with:

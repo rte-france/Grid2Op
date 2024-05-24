@@ -10,6 +10,7 @@ import copy
 import warnings
 import numpy as np
 import re
+from typing import Optional, Union, Any, Dict, Literal
 
 import grid2op
 from grid2op.Opponent import OpponentSpace
@@ -31,6 +32,8 @@ from grid2op.VoltageControler import ControlVoltageFromFile, BaseVoltageControll
 from grid2op.Environment.baseEnv import BaseEnv
 from grid2op.Opponent import BaseOpponent, NeverAttackBudget
 from grid2op.operator_attention import LinearAttentionBudget
+from grid2op.Space import DEFAULT_N_BUSBAR_PER_SUB
+from grid2op.typing_variables import RESET_OPTIONS_TYPING
 
 
 class Environment(BaseEnv):
@@ -71,7 +74,7 @@ class Environment(BaseEnv):
 
     """
 
-    REGEX_SPLIT = r"^[a-zA-Z0-9]*$"
+    REGEX_SPLIT = r"^[a-zA-Z0-9_\\.]*$"
 
     def __init__(
         self,
@@ -81,6 +84,7 @@ class Environment(BaseEnv):
         backend,
         parameters,
         name="unknown",
+        n_busbar=DEFAULT_N_BUSBAR_PER_SUB,
         names_chronics_to_backend=None,
         actionClass=TopologyAction,
         observationClass=CompleteObservation,
@@ -113,8 +117,9 @@ class Environment(BaseEnv):
         _init_obs=None,
         _raw_backend_class=None,
         _compat_glop_version=None,
-        _read_from_local_dir=True,  # TODO runner and all here !
+        _read_from_local_dir=True,
         _is_test=False,
+        _allow_loaded_backend=False,
     ):
         BaseEnv.__init__(
             self,
@@ -147,6 +152,7 @@ class Environment(BaseEnv):
             observation_bk_kwargs=observation_bk_kwargs,
             highres_sim_counter=highres_sim_counter,
             update_obs_after_reward=_update_obs_after_reward,
+            n_busbar=n_busbar,
             _init_obs=_init_obs,
             _is_test=_is_test,  # is this created with "test=True" # TODO not implemented !!
         )
@@ -157,10 +163,12 @@ class Environment(BaseEnv):
             )
         self.name = name
         self._read_from_local_dir = _read_from_local_dir
+        
+        #: starting grid2Op 1.11 classes are stored on the disk when an environment is created
+        #: so the "environment" is created twice (one to generate the class and then correctly to load them)
+        self._allow_loaded_backend : bool = _allow_loaded_backend
 
-        # for gym compatibility (initialized below)
-        # self.action_space = None
-        # self.observation_space = None
+        # for gym compatibility (action_spacen and observation_space initialized below)
         self.reward_range = None
         self._viewer = None
         self.metadata = None
@@ -227,7 +235,7 @@ class Environment(BaseEnv):
                 'grid2op.Backend class, type provided is "{}"'.format(type(backend))
             )
         self.backend = backend
-        if self.backend.is_loaded and self._init_obs is None:
+        if self.backend.is_loaded and self._init_obs is None and not self._allow_loaded_backend:
             raise EnvError(
                 "Impossible to use the same backend twice. Please create your environment with a "
                 "new backend instance (new object)."
@@ -235,18 +243,29 @@ class Environment(BaseEnv):
             
         need_process_backend = False        
         if not self.backend.is_loaded:
+            if hasattr(self.backend, "init_pp_backend") and self.backend.init_pp_backend is not None:
+                # hack for lightsim2grid ...
+                if type(self.backend.init_pp_backend)._INIT_GRID_CLS is not None:
+                    type(self.backend.init_pp_backend)._INIT_GRID_CLS._clear_grid_dependant_class_attributes()
+                type(self.backend.init_pp_backend)._clear_grid_dependant_class_attributes()
+                
             # usual case: the backend is not loaded
             # NB it is loaded when the backend comes from an observation for
             # example
-            if self._read_from_local_dir:
+            if self._read_from_local_dir is not None:
                 # test to support pickle conveniently
-                self.backend._PATH_ENV = self.get_path_env()
+                self.backend._PATH_GRID_CLASSES = self.get_path_env()
             # all the above should be done in this exact order, otherwise some weird behaviour might occur
             # this is due to the class attribute
-            self.backend.set_env_name(self.name)
+            type(self.backend).set_env_name(self.name)
+            type(self.backend).set_n_busbar_per_sub(self._n_busbar)
+            if self._compat_glop_version is not None:
+                type(self.backend).glop_version = self._compat_glop_version
             self.backend.load_grid(
                 self._init_grid_path
             )  # the real powergrid of the environment
+            self.backend.load_storage_data(self.get_path_env())
+            self.backend._fill_names_obj()
             try:
                 self.backend.load_redispacthing_data(self.get_path_env())
             except BackendError as exc_:
@@ -254,14 +273,12 @@ class Environment(BaseEnv):
                 warnings.warn(f"Impossible to load redispatching data. This is not an error but you will not be able "
                             f"to use all grid2op functionalities. "
                             f"The error was: \"{exc_}\"")
-            self.backend.load_storage_data(self.get_path_env())
             exc_ = self.backend.load_grid_layout(self.get_path_env())
             if exc_ is not None:
                 warnings.warn(
                     f"No layout have been found for you grid (or the layout provided was corrupted). You will "
                     f'not be able to use the renderer, plot the grid etc. The error was "{exc_}"'
                 )
-            self.backend.is_loaded = True
 
             # alarm set up
             self.load_alarm_data()
@@ -269,6 +286,7 @@ class Environment(BaseEnv):
             
             # to force the initialization of the backend to the proper type
             self.backend.assert_grid_correct()
+            self.backend.is_loaded = True
             need_process_backend = True
 
         self._handle_compat_glop_version(need_process_backend)
@@ -320,9 +338,8 @@ class Environment(BaseEnv):
             )
 
         # action affecting the grid that will be made by the agent
-        bk_type = type(
-            self.backend
-        )  # be careful here: you need to initialize from the class, and not from the object
+        # be careful here: you need to initialize from the class, and not from the object
+        bk_type = type(self.backend) 
         self._rewardClass = rewardClass
         self._actionClass = actionClass.init_grid(gridobj=bk_type)
         self._actionClass._add_shunt_data()
@@ -363,6 +380,8 @@ class Environment(BaseEnv):
             self.name_sub,
             names_chronics_to_backend=names_chronics_to_backend,
         )
+        # new in grdi2op 1.10.2: used
+        self.chronics_handler.action_space = self._helper_action_env
         self._names_chronics_to_backend = names_chronics_to_backend
         self.delta_time_seconds = dt_float(self.chronics_handler.time_interval.seconds)
         
@@ -430,8 +449,25 @@ class Environment(BaseEnv):
 
         # test the backend returns object of the proper size
         if need_process_backend:
-            self.backend.assert_grid_correct_after_powerflow()
+            
+            # hack to fix an issue with lightsim2grid...
+            # (base class is not reset correctly, will be fixed ASAP)
+            base_cls_ls = None
+            if hasattr(self.backend, "init_pp_backend") and self.backend.init_pp_backend is not None:
+                base_cls_ls = type(self.backend.init_pp_backend)
 
+            self.backend.assert_grid_correct_after_powerflow()
+            
+            # hack to fix an issue with lightsim2grid...
+            # (base class is not reset correctly, will be fixed ASAP)
+            if hasattr(self.backend, "init_pp_backend") and self.backend.init_pp_backend is not None:
+                if self.backend._INIT_GRID_CLS is not None:
+                    # the init grid class has already been properly computed
+                    self.backend._INIT_GRID_CLS._clear_grid_dependant_class_attributes()
+                elif base_cls_ls is not None:
+                    # we need to clear the class of the original type as it has not been properly computed
+                    base_cls_ls._clear_grid_dependant_class_attributes()
+                
         # for gym compatibility
         self.reward_range = self._reward_helper.range()
         self._viewer = None
@@ -498,81 +534,10 @@ class Environment(BaseEnv):
                 "read back data (for example with EpisodeData) that were stored with previous "
                 "grid2op version."
             )
+
             if need_process_backend:
-                self.backend.set_env_name(f"{self.name}_{self._compat_glop_version}")
-            cls_bk = type(self.backend)
-            cls_bk.glop_version = self._compat_glop_version
-            if cls_bk.glop_version == cls_bk.BEFORE_COMPAT_VERSION:
-                # oldest version: no storage and no curtailment available
-                # deactivate storage
-                # recompute the topology vector (more or less everything need to be adjusted...
-                stor_locs = [pos for pos in cls_bk.storage_pos_topo_vect]
-                for stor_loc in sorted(stor_locs, reverse=True):
-                    for vect in [
-                        cls_bk.load_pos_topo_vect,
-                        cls_bk.gen_pos_topo_vect,
-                        cls_bk.line_or_pos_topo_vect,
-                        cls_bk.line_ex_pos_topo_vect,
-                    ]:
-                        vect[vect >= stor_loc] -= 1
-
-                # deals with the "sub_pos" vector
-                for sub_id in range(cls_bk.n_sub):
-                    if (cls_bk.storage_to_subid == sub_id).any():
-                        stor_ids = np.where(cls_bk.storage_to_subid == sub_id)[0]
-                        stor_locs = cls_bk.storage_to_sub_pos[stor_ids]
-                        for stor_loc in sorted(stor_locs, reverse=True):
-                            for vect, sub_id_me in zip(
-                                [
-                                    cls_bk.load_to_sub_pos,
-                                    cls_bk.gen_to_sub_pos,
-                                    cls_bk.line_or_to_sub_pos,
-                                    cls_bk.line_ex_to_sub_pos,
-                                ],
-                                [
-                                    cls_bk.load_to_subid,
-                                    cls_bk.gen_to_subid,
-                                    cls_bk.line_or_to_subid,
-                                    cls_bk.line_ex_to_subid,
-                                ],
-                            ):
-                                vect[(vect >= stor_loc) & (sub_id_me == sub_id)] -= 1
-
-                # remove storage from the number of element in the substation
-                for sub_id in range(cls_bk.n_sub):
-                    cls_bk.sub_info[sub_id] -= (cls_bk.storage_to_subid == sub_id).sum()
-                # remove storage from the total number of element
-                cls_bk.dim_topo -= cls_bk.n_storage
-
-                # recompute this private member
-                cls_bk._topo_vect_to_sub = np.repeat(
-                    np.arange(cls_bk.n_sub), repeats=cls_bk.sub_info
-                )
-                self.backend._topo_vect_to_sub = np.repeat(
-                    np.arange(cls_bk.n_sub), repeats=cls_bk.sub_info
-                )
-
-                new_grid_objects_types = cls_bk.grid_objects_types
-                new_grid_objects_types = new_grid_objects_types[
-                    new_grid_objects_types[:, cls_bk.STORAGE_COL] == -1, :
-                ]
-                cls_bk.grid_objects_types = 1 * new_grid_objects_types
-                self.backend.grid_objects_types = 1 * new_grid_objects_types
-
-                # erase all trace of storage units
-                cls_bk.set_no_storage()
-                Environment.deactivate_storage(self.backend)
-
-                if need_process_backend:
-                    # the following line must be called BEFORE "self.backend.assert_grid_correct()" !
-                    self.backend.storage_deact_for_backward_comaptibility()
-
-                    # and recomputes everything while making sure everything is consistent
-                    self.backend.assert_grid_correct()
-                    type(self.backend)._topo_vect_to_sub = np.repeat(
-                        np.arange(cls_bk.n_sub), repeats=cls_bk.sub_info
-                    )
-                    type(self.backend).grid_objects_types = new_grid_objects_types
+                # the following line must be called BEFORE "self.backend.assert_grid_correct()" !
+                self.backend.storage_deact_for_backward_comaptibility()
 
     def _voltage_control(self, agent_action, prod_v_chronics):
         """
@@ -680,7 +645,7 @@ class Environment(BaseEnv):
         """
         return self.get_obs().simulate(action)
 
-    def set_id(self, id_):
+    def set_id(self, id_: Union[int, str]) -> None:
         """
         Set the id that will be used at the next call to :func:`Environment.reset`.
 
@@ -688,6 +653,29 @@ class Environment(BaseEnv):
 
         **NB** The environment need to be **reset** for this to take effect.
 
+        .. versionchanged:: 1.6.4
+            `id_` can now be a string instead of an integer. You can call something like
+            `env.set_id("0000")` or `env.set_id("Scenario_april_000")` 
+            or `env.set_id("2050-01-03_0")` (depending on your environment)
+            to use the right time series.
+        
+        .. seealso::
+            function :func:`Environment.reset` for extra information
+        
+        .. versionchanged:: 1.9.8
+            Starting from version 1.9.8 you can directly set the time serie id when calling
+            reset.
+        
+        .. warning::
+            If the "time serie generator" you use is on standard (*eg* it is random in some sense)
+            and if you want fully reproducible results, you should first call `env.set_id(...)` and
+            then call `env.seed(...)` (and of course `env.reset()`)
+            
+            Calling `env.seed(...)` and then `env.set_id(...)` might not behave the way you want.
+            
+            In this case, it is much better to use the function 
+            `reset(seed=..., options={"time serie id": ...})` directly.
+            
         Parameters
         ----------
         id_: ``int``
@@ -820,7 +808,9 @@ class Environment(BaseEnv):
         return "<{} instance named {}>".format(type(self).__name__, self.name)
         # TODO be closer to original gym implementation
 
-    def reset_grid(self):
+    def reset_grid(self,
+                   init_act_opt : Optional[BaseAction]=None, 
+                   method:Literal["combine", "ignore"]="combine"):
         """
         INTERNAL
 
@@ -843,15 +833,36 @@ class Environment(BaseEnv):
             self.backend.set_thermal_limit(self._thermal_limit_a.astype(dt_float))
 
         self._backend_action = self._backend_action_class()
-        self.nb_time_step = -1  # to have init obs at step 1
-        do_nothing = self._helper_action_env({})
-        *_, fail_to_start, info = self.step(do_nothing)
+        self.nb_time_step = -1  # to have init obs at step 1 (and to prevent 'setting to proper state' "action" to be illegal)
+        init_action : BaseAction = self.chronics_handler.get_init_action(self._names_chronics_to_backend)
+        if init_action is None:
+            # default behaviour for grid2op < 1.10.2
+            init_action = self._helper_action_env({})
+        else:
+            init_action.remove_change()
+            
+        if init_act_opt is not None:
+            init_act_opt.remove_change()
+            if method == "combine":
+                init_action._add_act_and_remove_line_status_only_set(init_act_opt)
+            elif method == "ignore":
+                init_action = init_act_opt
+            else:
+                raise Grid2OpException(f"kwargs `method` used to set the initial state of the grid "
+                                       f"is not understood (use one of `combine` or `ignore` and "
+                                       f"not `{method}`)")
+        init_action._set_topo_vect.nonzero()
+        *_, fail_to_start, info = self.step(init_action)
         if fail_to_start:
             raise Grid2OpException(
                 "Impossible to initialize the powergrid, the powerflow diverge at iteration 0. "
                 "Available information are: {}".format(info)
             )
-            
+        if info["exception"] and init_action.can_affect_something():
+            raise Grid2OpException(f"There has been an error at the initialization, most likely due to a "
+                                   f"incorrect 'init state'. You need to change either the time series used (chronics, chronics_handler, "
+                                   f"gridvalue, etc.) or the 'init state' option provided in "
+                                   f"`env.reset(..., options={'init state': XXX, ...})`. Error was: {info['exception']}")
         # assign the right
         self._observation_space.set_real_env_kwargs(self)
 
@@ -870,7 +881,10 @@ class Environment(BaseEnv):
         self.logger = logger
         return self
 
-    def reset(self) -> BaseObservation:
+    def reset(self, 
+              *,
+              seed: Union[int, None] = None,
+              options: RESET_OPTIONS_TYPING = None) -> BaseObservation:
         """
         Reset the environment to a clean state.
         It will reload the next chronics if any. And reset the grid to a clean state.
@@ -879,7 +893,18 @@ class Environment(BaseEnv):
         to ensure the episode is fully over.
 
         This method should be called only at the end of an episode.
-
+        
+        Parameters
+        ----------
+        seed: int
+            The seed to used (new in version 1.9.8), see examples for more details. Ignored if not set (meaning no seeds will 
+            be used, experiments might not be reproducible)
+            
+        options: dict
+            Some options to "customize" the reset call. For example specifying the "time serie id" (grid2op >= 1.9.8) to use 
+            or the "initial state of the grid" (grid2op >= 1.10.2). See examples for more information about this. Ignored if 
+            not set.
+        
         Examples
         --------
         The standard "gym loop" can be done with the following code:
@@ -889,17 +914,143 @@ class Environment(BaseEnv):
             import grid2op
 
             # create the environment
-            env = grid2op.make("l2rpn_case14_sandbox")
+            env_name = "l2rpn_case14_sandbox"
+            env = grid2op.make(env_name)
 
-            # and now you can "render" (plot) the state of the grid
+            # start a new episode
             obs = env.reset()
             done = False
             reward = env.reward_range[0]
             while not done:
                 action = agent.act(obs, reward, done)
                 obs, reward, done, info = env.step(action)
+                
+        .. versionadded:: 1.9.8
+            It is now possible to set the seed and the time series you want to use at the new
+            episode by calling `env.reset(seed=..., options={"time serie id": ...})`
+
+        Before version 1.9.8, if you wanted to use a fixed seed, you would need to (see 
+        doc of :func:`Environment.seed` ):
+        
+        .. code-block:: python
+
+            seed = ...
+            env.seed(seed)
+            obs = env.reset()
+            ...
+            
+        Starting from version 1.9.8 you can do this in one call:
+        
+        .. code-block:: python
+
+            seed = ...
+            obs = env.reset(seed=seed)  
+            
+        For the "time series id" it is the same concept. Before you would need to do (see
+        doc of :func:`Environment.set_id` for more information ):
+        
+        .. code-block:: python
+
+            time_serie_id = ...
+            env.set_id(time_serie_id)
+            obs = env.reset()
+            ...        
+            
+        And now (from version 1.9.8) you can more simply do:
+        
+        .. code-block:: python
+
+            time_serie_id = ...
+            obs = env.reset(options={"time serie id": time_serie_id})
+            ... 
+        
+        .. versionadded:: 1.10.2
+        
+        Another feature has been added in version 1.10.2, which is the possibility to set the 
+        grid to a given "topological" state at the first observation (before this version, 
+        you could only retrieve an observation with everything connected together). 
+        
+        In grid2op 1.10.2, you can do that by using the keys `"init state"` in the "options" kwargs of 
+        the reset function. The value associated to this key should be dictionnary that can be
+        converted to a non ambiguous grid2op action using an "action space".
+        
+        .. notes::
+            The "action space" used here is not the action space of the agent. It's an "action
+            space" that uses a :grid2op:`Action.Action.BaseAction` class meaning you can do any
+            type of action, on shunts, on topology, on line status etc. even if the agent is not
+            allowed to.
+            
+            Likewise, nothing check if this action is legal or not.
+            
+        You can use it like this:
+        
+        .. code-block:: python
+
+            # to start an episode with a line disconnected, you can do:
+            init_state_dict = {"set_line_status": [(0, -1)]}
+            obs = env.reset(options={"init state": init_state_dict})
+            obs.line_status[0] is False
+            
+            # to start an episode with a different topolovy
+            init_state_dict = {"set_bus": {"lines_or_id": [(0, 2)], "lines_ex_id": [(3, 2)]}}
+            obs = env.reset(options={"init state": init_state_dict})
+            
+        .. note::
+            Since grid2op version 1.10.2, there is also the possibility to set the "initial state"
+            of the grid directly in the time series. The priority is always given to the 
+            argument passed in the "options" value. 
+            
+            Concretely if, in the "time series" (formelly called "chronics") provides an action would change
+            the topology of substation 1 and 2 (for example) and you provide an action that disable the
+            line 6, then the initial state will see substation 1 and 2 changed (as in the time series)
+            and line 6 disconnected. 
+            
+            Another example in this case: if the action you provide would change topology of substation 2 and 4
+            then the initial state (after `env.reset`) will give:
+            - substation 1 as in the time serie
+            - substation 2 as in "options"
+            - substation 4 as in "options"
+        
+        .. note::
+            Concerning the previously described behaviour, if you want to ignore the data in the
+            time series, you can add : `"method": "ignore"` in the dictionary describing the action.
+            In this case the action in the time series will be totally ignored and the initial
+            state will be fully set by the action passed in the "options" dict.
+            
+            An example is:
+            
+            .. code-block:: python
+
+                init_state_dict = {"set_line_status": [(0, -1)], "method": "force"}
+                obs = env.reset(options={"init state": init_state_dict})
+                obs.line_status[0] is False
+            
         """
-        super().reset()
+        # process the "options" kwargs
+        # (if there is an init state then I need to process it to remove the 
+        # some keys)
+        method = "combine"
+        init_state = None
+        if options is not None and "init state" in options:
+            act_as_dict = options["init state"]
+            if isinstance(act_as_dict, dict):
+                if "method" in act_as_dict:
+                    method = act_as_dict["method"]
+                    del act_as_dict["method"]
+                init_state : BaseAction = self._helper_action_env(act_as_dict)
+            elif isinstance(act_as_dict, BaseAction):
+                init_state = act_as_dict
+            else:
+                raise Grid2OpException("`init state` kwargs in `env.reset(, options=XXX) should either be a "
+                                       "grid2op action (instance of grid2op.Action.BaseAction) or a dictionaray "
+                                       f"representing an action. You provided {act_as_dict} which is a {type(act_as_dict)}")
+            ambiguous, except_tmp = init_state.is_ambiguous()
+            if ambiguous:
+                raise Grid2OpException("You provided an invalid (ambiguous) action to set the 'init state'") from except_tmp
+            init_state.remove_change()
+        
+        super().reset(seed=seed, options=options)
+            
         self.chronics_handler.next_chronics()
         self.chronics_handler.initialize(
             self.backend.name_load,
@@ -912,7 +1063,8 @@ class Environment(BaseEnv):
         self._reset_maintenance()
         self._reset_redispatching()
         self._reset_vectors_and_timings()  # it need to be done BEFORE to prevent cascading failure when there has been
-        self.reset_grid()
+            
+        self.reset_grid(init_state, method)
         if self.viewer_fig is not None:
             del self.viewer_fig
             self.viewer_fig = None
@@ -1031,7 +1183,10 @@ class Environment(BaseEnv):
         self._custom_deepcopy_for_copy(res)
         return res
 
-    def get_kwargs(self, with_backend=True, with_chronics_handler=True):
+    def get_kwargs(self,
+                   with_backend=True,
+                   with_chronics_handler=True,
+                   with_backend_kwargs=False):
         """
         This function allows to make another Environment with the same parameters as the one that have been used
         to make this one.
@@ -1067,16 +1222,21 @@ class Environment(BaseEnv):
 
         """
         res = {}
+        res["n_busbar"] = self._n_busbar
         res["init_env_path"] = self._init_env_path
         res["init_grid_path"] = self._init_grid_path
         if with_chronics_handler:
             res["chronics_handler"] = copy.deepcopy(self.chronics_handler)
+            res["chronics_handler"].cleanup_action_space()
+        
+        # deals with the backend
         if with_backend:
             if not self.backend._can_be_copied:
                 raise RuntimeError("Impossible to get the kwargs for this "
                                    "environment, the backend cannot be copied.")
             res["backend"] = self.backend.copy()
             res["backend"]._is_loaded = False  # i can reload a copy of an environment
+        
         res["parameters"] = copy.deepcopy(self._parameters)
         res["names_chronics_to_backend"] = copy.deepcopy(
             self._names_chronics_to_backend
@@ -1091,7 +1251,14 @@ class Environment(BaseEnv):
         res["voltagecontrolerClass"] = self._voltagecontrolerClass
         res["other_rewards"] = {k: v.rewardClass for k, v in self.other_rewards.items()}
         res["name"] = self.name
+        
         res["_raw_backend_class"] = self._raw_backend_class
+        if with_backend_kwargs:
+            # used for multi processing, to pass exactly the
+            # right things when building the backends
+            # in each sub process
+            res["_backend_kwargs"] = self.backend._my_kwargs
+            
         res["with_forecast"] = self.with_forecast
 
         res["opponent_space_type"] = self._opponent_space_type
@@ -1288,21 +1455,22 @@ class Environment(BaseEnv):
 
         """
         # define all the locations
-        if re.match(self.REGEX_SPLIT, add_for_train) is None:
+        cls = type(self)
+        if re.match(cls.REGEX_SPLIT, add_for_train) is None:
             raise EnvError(
                 f"The suffixes you can use for training data (add_for_train) "
-                f'should match the regex "{self.REGEX_SPLIT}"'
+                f'should match the regex "{cls.REGEX_SPLIT}"'
             )
-        if re.match(self.REGEX_SPLIT, add_for_val) is None:
+        if re.match(cls.REGEX_SPLIT, add_for_val) is None:
             raise EnvError(
                 f"The suffixes you can use for validation data (add_for_val)"
-                f'should match the regex "{self.REGEX_SPLIT}"'
+                f'should match the regex "{cls.REGEX_SPLIT}"'
             )
         if add_for_test is not None:
-            if re.match(self.REGEX_SPLIT, add_for_test) is None:
+            if re.match(cls.REGEX_SPLIT, add_for_test) is None:
                 raise EnvError(
                     f"The suffixes you can use for test data (add_for_test)"
-                    f'should match the regex "{self.REGEX_SPLIT}"'
+                    f'should match the regex "{cls.REGEX_SPLIT}"'
                 )
 
         if add_for_test is None and test_scen_id is not None:
@@ -1705,6 +1873,7 @@ class Environment(BaseEnv):
         res["other_rewards"] = {k: v.rewardClass for k, v in self.other_rewards.items()}
         res["grid_layout"] = self.grid_layout
         res["name_env"] = self.name
+        res["n_busbar"] = self._n_busbar
 
         res["opponent_space_type"] = self._opponent_space_type
         res["opponent_action_class"] = self._opponent_action_class
@@ -1729,6 +1898,7 @@ class Environment(BaseEnv):
 
     @classmethod
     def init_obj_from_kwargs(cls,
+                             *,
                              other_env_kwargs,
                              init_env_path,
                              init_grid_path,
@@ -1761,39 +1931,41 @@ class Environment(BaseEnv):
                              observation_bk_class,
                              observation_bk_kwargs,
                              _raw_backend_class,
-                             _read_from_local_dir):
-        res = Environment(init_env_path=init_env_path,
-                          init_grid_path=init_grid_path,
-                          chronics_handler=chronics_handler,
-                          backend=backend,
-                          parameters=parameters,
-                          name=name,
-                          names_chronics_to_backend=names_chronics_to_backend,
-                          actionClass=actionClass,
-                          observationClass=observationClass,
-                          rewardClass=rewardClass,
-                          legalActClass=legalActClass,
-                          voltagecontrolerClass=voltagecontrolerClass,
-                          other_rewards=other_rewards,
-                          opponent_space_type=opponent_space_type,
-                          opponent_action_class=opponent_action_class,
-                          opponent_class=opponent_class,
-                          opponent_init_budget=opponent_init_budget,
-                          opponent_budget_per_ts=opponent_budget_per_ts,
-                          opponent_budget_class=opponent_budget_class,
-                          opponent_attack_duration=opponent_attack_duration,
-                          opponent_attack_cooldown=opponent_attack_cooldown,
-                          kwargs_opponent=kwargs_opponent,
-                          with_forecast=with_forecast,
-                          attention_budget_cls=attention_budget_cls,
-                          kwargs_attention_budget=kwargs_attention_budget,
-                          has_attention_budget=has_attention_budget,
-                          logger=logger,
-                          kwargs_observation=kwargs_observation,
-                          observation_bk_class=observation_bk_class,
-                          observation_bk_kwargs=observation_bk_kwargs,
-                          _raw_backend_class=_raw_backend_class,
-                          _read_from_local_dir=_read_from_local_dir)
+                             _read_from_local_dir,
+                             n_busbar=DEFAULT_N_BUSBAR_PER_SUB):        
+        res = cls(init_env_path=init_env_path,
+                  init_grid_path=init_grid_path,
+                  chronics_handler=chronics_handler,
+                  backend=backend,
+                  parameters=parameters,
+                  name=name,
+                  names_chronics_to_backend=names_chronics_to_backend,
+                  actionClass=actionClass,
+                  observationClass=observationClass,
+                  rewardClass=rewardClass,
+                  legalActClass=legalActClass,
+                  voltagecontrolerClass=voltagecontrolerClass,
+                  other_rewards=other_rewards,
+                  opponent_space_type=opponent_space_type,
+                  opponent_action_class=opponent_action_class,
+                  opponent_class=opponent_class,
+                  opponent_init_budget=opponent_init_budget,
+                  opponent_budget_per_ts=opponent_budget_per_ts,
+                  opponent_budget_class=opponent_budget_class,
+                  opponent_attack_duration=opponent_attack_duration,
+                  opponent_attack_cooldown=opponent_attack_cooldown,
+                  kwargs_opponent=kwargs_opponent,
+                  with_forecast=with_forecast,
+                  attention_budget_cls=attention_budget_cls,
+                  kwargs_attention_budget=kwargs_attention_budget,
+                  has_attention_budget=has_attention_budget,
+                  logger=logger,
+                  kwargs_observation=kwargs_observation,
+                  observation_bk_class=observation_bk_class,
+                  observation_bk_kwargs=observation_bk_kwargs,
+                  n_busbar=int(n_busbar),
+                  _raw_backend_class=_raw_backend_class,
+                  _read_from_local_dir=_read_from_local_dir)
         return res
     
     def generate_data(self, nb_year=1, nb_core=1, seed=None, **kwargs):
@@ -1803,8 +1975,7 @@ class Environment(BaseEnv):
 
         I also requires the lightsim2grid simulator.
 
-        This is only available for some environment (only the environment used for wcci 2022 competition at
-        time of writing).
+        This is only available for some environment (only the environment after 2022).
 
         Generating data takes some time (around 1 - 2 minutes to generate a weekly scenario) and this why we recommend
         to do it "offline" and then use the generated data for training or evaluation.

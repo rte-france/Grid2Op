@@ -10,8 +10,9 @@ from datetime import datetime, timedelta
 import os
 import numpy as np
 import copy
-from typing import Optional
+from typing import Optional, Union, Dict, Literal
 
+import grid2op
 from grid2op.Exceptions import (
     ChronicsNotFoundError, HandlerError
 )
@@ -19,6 +20,7 @@ from grid2op.Exceptions import (
 from grid2op.Chronics.gridValue import GridValue
 from grid2op.Chronics.handlers import BaseHandler
 
+from grid2op.Exceptions.grid2OpException import Grid2OpException
 from grid2op.dtypes import dt_int, dt_float
 
 
@@ -131,6 +133,7 @@ class FromHandlers(GridValue):
         load_q_for_handler=None,
         gen_p_for_handler=None,
         gen_v_for_handler=None,
+        init_state_handler=None,
         time_interval=timedelta(minutes=5),
         sep=";",  # here for compatibility with grid2op, but not used
         max_iter=-1,
@@ -161,6 +164,7 @@ class FromHandlers(GridValue):
         self.gen_v_for_handler : Optional[BaseHandler] = copy.deepcopy(gen_v_for_handler)
         self.load_p_for_handler : Optional[BaseHandler] = copy.deepcopy(load_p_for_handler)
         self.load_q_for_handler : Optional[BaseHandler] = copy.deepcopy(load_q_for_handler)
+        self.init_state_handler : Optional[BaseHandler] = copy.deepcopy(init_state_handler)
         
         # when there are no maintenance / hazards, build this only once 
         self._no_mh_time = None
@@ -185,6 +189,8 @@ class FromHandlers(GridValue):
         if self.load_q_for_handler is not None:
             self._active_handlers.append(self.load_q_for_handler)
             self._forcast_handlers.append(self.load_q_for_handler)
+        if self.init_state_handler is not None:
+            self._active_handlers.append(self.init_state_handler)
         self._check_types()
         
         # now synch all handlers
@@ -395,7 +401,7 @@ class FromHandlers(GridValue):
     def seed(self, seed):
         super().seed(seed)
         max_seed = np.iinfo(dt_int).max
-        seeds = self.space_prng.randint(max_seed, size=10)
+        seeds = self.space_prng.randint(max_seed, size=11)
         # this way of doing ensure the same seed given by the environment is
         # used even if some "handlers" are missing
         # (if env.seed(0) is called, then regardless of maintenance_handler or not, 
@@ -422,9 +428,12 @@ class FromHandlers(GridValue):
         gvf_seed = None
         if self.gen_v_for_handler is not None:
             gvf_seed = self.gen_v_for_handler.seed(seeds[9])
+        init_state_seed = None
+        if self.init_state_handler is not None:
+            init_state_seed = self.init_state_handler.seed(seeds[10])
         return (seed, gp_seed, gv_seed, lp_seed, lq_seed, 
                 maint_seed, haz_seed, gpf_seed, gvf_seed,
-                lpf_seed, lqf_seed) 
+                lpf_seed, lqf_seed, init_state_seed) 
         
     def _set_path(self, path):
         """tell the handler where this chronics is located"""
@@ -521,3 +530,33 @@ class FromHandlers(GridValue):
             self.load_next()
             # for this class I suppose the real data AND the forecast are read each step
             self.forecasts()
+
+    def get_init_action(self, names_chronics_to_backend: Optional[Dict[Literal["loads", "prods", "lines"], Dict[str, str]]]=None) -> Union["grid2op.Action.playableAction.PlayableAction", None]:
+        from grid2op.Action import BaseAction
+        if self.init_state_handler is None:
+            return None
+        
+        act_as_dict = self.init_state_handler.get_init_dict_action()
+        if act_as_dict is None:
+            return None
+        
+        if self.action_space is None:
+            raise Grid2OpException(f"We detected an action to set the intial state of the grid "
+                                   f"but we cannot build it because the 'action_space' of the time"
+                                   f"serie is not set.")
+            
+        try:
+            act : BaseAction = self.action_space(act_as_dict,
+                                                 check_legal=False,
+                                                 _names_chronics_to_backend=names_chronics_to_backend)
+        except Grid2OpException as exc_:
+            raise Grid2OpException(f"Impossible to build the action to set the grid. Please fix the "
+                                   f"file located at {self.init_state_handler.path}.") from exc_
+        
+        # TODO check change bus, redispatching, change status etc.
+        # TODO basically anything that would be suspicious here
+        error, reason = act.is_ambiguous()
+        if error:
+            raise Grid2OpException(f"The action to set the grid to its original configuration "
+                                   f"is ambiguous. Please check {self.init_state_handler.path}") from reason
+        return act
