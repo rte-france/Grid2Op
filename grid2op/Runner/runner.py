@@ -1220,15 +1220,15 @@ class Runner(object):
         res: ``list``
             List of tuple. Each tuple having 3[4] elements:
 
-              - "i" unique identifier of the episode (compared to :func:`Runner.run_sequential`, the elements of the
-                returned list are not necessarily sorted by this value)
+              - "id_chron" unique identifier of the episode
+              - "name_chron" name of the time series (usually it is the path where it is stored)
               - "cum_reward" the cumulative reward obtained by the :attr:`Runner.Agent` on this episode i
               - "nb_time_step": the number of time steps played in this episode.
               - "total_step": the total number of time steps possible in this episode.
               - "episode_data" : [Optional] The :class:`EpisodeData` corresponding to this episode run only
                 if `add_detailed_output=True`
               - "add_nb_highres_sim": [Optional] The estimated number of calls to high resolution simulator made
-                by the agent
+                by the agent. Only preset if `add_nb_highres_sim=True` in the kwargs
 
         Examples
         --------
@@ -1274,6 +1274,40 @@ class Runner(object):
             runner = Runner(**env.get_params_for_runner(), agentClass=None, agentInstance=my_agent)
             res = runner.run(nb_episode=1, agent_seeds=[42], env_seeds=[0])
 
+        Since grid2op 1.10.2 you can also set the initial state of the grid when
+        calling the runner. You can do that with the kwargs `init_states`, for example like this:
+        
+        .. code-block: python
+
+            import grid2op
+            from gri2op.Runner import Runner
+            from grid2op.Agent import RandomAgent
+
+            env = grid2op.make("l2rpn_case14_sandbox")
+            my_agent = RandomAgent(env.action_space)
+            runner = Runner(**env.get_params_for_runner(), agentClass=None, agentInstance=my_agent)
+            res = runner.run(nb_episode=1,
+                             agent_seeds=[42],
+                             env_seeds=[0],
+                             init_states=[{"set_line_status": [(0, -1)]}]
+                             )
+        
+        .. note::
+            We recommend that you provide `init_states` as a list having a length of
+            `nb_episode`. Each episode will be initialized with the provided
+            element of the list. However, if you provide only one element, then
+            all episodes you want to compute will be initialized with this same
+            action.
+            
+        .. note::
+            At the beginning of each episode, if an `init_state` is set, 
+            the environment is reset with a call like: `env.reset(options={"init state": init_state})`
+            
+            This is why we recommend you to use dictionary to set the initial state so 
+            that you can control what exactly is done (set the `"method"`) more 
+            information about this on the doc of the :func:`grid2op.Environment.Environment.reset`
+            function.
+            
         """
         if nb_episode < 0:
             raise RuntimeError("Impossible to run a negative number of scenarios.")

@@ -104,6 +104,58 @@ increase the training time, especially at the beginning. This is due to the fact
 `env.reset` is called, the whole chronics is read from the hard drive. If you want to lower this
 impact then you might consult the :ref:`environment-module-data-pipeline` page of the doc.
 
+Go to the next scenario
+++++++++++++++++++++++++
+
+Starting grid2op 1.9.8 we attempt to make an easier user experience in the
+selection of time series, seed, initial state of the grid, etc.
+
+All of the above can be done when calling `env.reset()` function.
+
+For customizing the seed, you can for example do:
+
+.. code-block:: python
+
+    import grid2op
+    env_name = "l2rpn_case14_sandbox"
+    env = grid2op.make(env_name)
+
+    obs = env.reset(seed=0)
+
+For customizing the time series id you want to use:
+
+.. code-block:: python
+
+    import grid2op
+    env_name = "l2rpn_case14_sandbox"
+    env = grid2op.make(env_name)
+
+    obs = env.reset(options={"time serie id": 1})  # time serie by id (sorted alphabetically)
+    # or
+    obs = env.reset(options={"time serie id": "0001"})  # time serie by name (folder name)
+
+For customizing the initial state of the grid, for example forcing the
+powerline 0 to be disconnected in the initial observation:
+
+.. code-block:: python
+
+    import grid2op
+    env_name = "l2rpn_case14_sandbox"
+    env = grid2op.make(env_name)
+
+    init_state_dict = {"set_line_status": [(0, -1)]}
+    obs = env.reset(options={"init state": init_state_dict})
+
+
+Feel free to consult the documentation of the :func:`Environment.reset` function
+for more information (this doc might be outdated, the one of the function should 
+be more up to date with the code).
+
+.. info::
+    In the near future (next few releases) we will also attempt to make the 
+    customization of the `parameters` or the `skip number of steps`, `maximum duration 
+    of the scenarios` also available in `env.reset()` options.
+
 .. _environment-module-chronics-info:
 
 Time series Customization
@@ -141,10 +193,15 @@ the call to "env.reset". This gives the following code:
     # and now the loop starts
     for i in range(episode_count):
         ###################################
-        env.set_id(THE_CHRONIC_ID)
+        # with recent grid2op 
+        obs = env.reset(options={"time serie id": THE_CHRONIC_ID})
         ###################################
 
-        obs = env.reset()
+        ###################################
+        # 'old method (oldest grid2op version)'
+        # env.set_id(THE_CHRONIC_ID)
+        # obs = env.reset()
+        ###################################
 
         # now play the episode as usual
         while True:
