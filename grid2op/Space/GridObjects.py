@@ -2984,6 +2984,7 @@ class GridObjects:
         """
         pass
     
+    @classmethod
     def _get_grid2op_version_as_version_obj(cls):
         if cls.glop_version == cls.BEFORE_COMPAT_VERSION:
             glop_ver = version.parse("0.0.0")
