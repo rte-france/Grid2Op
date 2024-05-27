@@ -833,6 +833,11 @@ class GridValue(RandomObject, ABC):
         For later version, we let the possibility to set, in the "time series folder" (or time series generators)
         the possibility to change the initial condition of the grid.
         
+        Notes
+        -----
+        If the environment parameters :attr:`grid2op.Parameters.Parameters.IGNORE_INITIAL_STATE_TIME_SERIE`
+        is set to `True` (not its default value) then this is ignored.
+        
         Returns
         -------
         grid2op.Action.playableAction.PlayableAction
