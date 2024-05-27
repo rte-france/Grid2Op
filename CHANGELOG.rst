@@ -31,7 +31,7 @@ Change Log
 - [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
 
-[1.10.2] - 2024-xx-yy
+[1.10.2] - 2024-05-27
 -------------------------
 - [BREAKING] the `runner.run_one_episode` now returns an extra first argument: 
   `chron_id, chron_name, cum_reward, timestep, max_ts = runner.run_one_episode()` which 
@@ -39,6 +39,9 @@ Change Log
   `chron_name, cum_reward, timestep, max_ts = runner.run_one_episode()`)
 - [BREAKING] the runner now has no `chronics_handler` attribute (`runner.chronics_handler` 
   is not defined)
+- [BREAKING] now grid2op forces everything to be connected at busbar 1 if
+  `param.IGNORE_INITIAL_STATE_TIME_SERIE == True` (**NOT** the default) and
+  no initial state is provided in `env.reset(..., options={"init state": ...})`
 - [ADDED] it is now possible to call `change_reward` directly from 
   an observation (no need to do it from the Observation Space)
 - [ADDED] method to change the reward from the observation (observation_space
@@ -55,6 +58,11 @@ Change Log
 - [ADDED] some more type hints in the `GridObject` class 
 - [ADDED] Possibility to deactive the support of shunts if subclassing `PandaPowerBackend`
   (and add some basic tests)
+- [ADDED] a parameters (`param.IGNORE_INITIAL_STATE_TIME_SERIE`) which defaults to
+  `False` that tells the environment whether it should ignore the 
+  initial state of the grid provided in the time series.
+  By default it is NOT ignored, it is taken into account 
+  (for the environment that supports this feature)
 - [FIXED] a small issue that could lead to having 
   "redispatching_unit_commitment_availble" flag set even if the redispatching
   data was not loaded correctly
