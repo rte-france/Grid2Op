@@ -834,11 +834,22 @@ class Environment(BaseEnv):
 
         self._backend_action = self._backend_action_class()
         self.nb_time_step = -1  # to have init obs at step 1 (and to prevent 'setting to proper state' "action" to be illegal)
-        init_action : BaseAction = self.chronics_handler.get_init_action(self._names_chronics_to_backend)
+        init_action = None
+        if not self._parameters.IGNORE_INITIAL_STATE_TIME_SERIE:
+            # load the initial state from the time series (default)
+            # TODO logger: log that
+            init_action : BaseAction = self.chronics_handler.get_init_action(self._names_chronics_to_backend)
+        else:
+            # do as if everything was connected to busbar 1
+            # TODO logger: log that
+            init_action = self._helper_action_env({"set_bus": np.ones(type(self).dim_topo, dtype=dt_int)})
+            if type(self).shunts_data_available:
+                init_action += self._helper_action_env({"shunt": {"set_bus": np.ones(type(self).n_shunt, dtype=dt_int)}})
         if init_action is None:
             # default behaviour for grid2op < 1.10.2
             init_action = self._helper_action_env({})
         else:
+            # remove the "change part" of the action
             init_action.remove_change()
             
         if init_act_opt is not None:

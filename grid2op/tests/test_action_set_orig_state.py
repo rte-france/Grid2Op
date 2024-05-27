@@ -66,6 +66,9 @@ class TestSetActOrigDefault(unittest.TestCase):
     def _get_gridpath(self):
         return None
     
+    def _get_envparams(self, env):
+        return None
+    
     def setUp(self) -> None:
         self.env_nm = self._env_path()
         tmp_path = self._get_gridpath()
@@ -85,9 +88,14 @@ class TestSetActOrigDefault(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self.env = grid2op.make(self.env_nm, **env_params)
+        env_params = self._get_envparams(self.env)
+        if env_params is not None:
+            self.env.change_parameters(env_params)
+            self.env.change_forecast_parameters(env_params)
         if issubclass(self._get_ch_cls(), MultifolderWithCache):
             self.env.chronics_handler.set_filter(lambda x: True)
             self.env.chronics_handler.reset()
+        self.env.reset(seed=0)
         # some test to make sure the tests are correct
         assert issubclass(self.env.action_space.subtype, self._get_act_cls())
         assert isinstance(self.env.chronics_handler.real_data, self._get_ch_cls())
@@ -605,5 +613,91 @@ class TestSetSuntState(unittest.TestCase):
         deltagen_p_th =  ((obs_stor.gen_p - obs_stor.actual_dispatch) - obs_nostor.gen_p)
         assert (np.abs(deltagen_p_th[:slack_id]) <= 1e-6).all()
 
+
+class TestSetActOrigIgnoredParams(TestSetActOrigDefault):
+    """This class test that the new feature (setting the initial state in the time series
+    is properly ignored if the parameter says so)"""
+    
+    def _get_envparams(self, env):
+        param = env.parameters
+        param.IGNORE_INITIAL_STATE_TIME_SERIE = True
+        return param
+    
+    def test_working_setbus(self):
+        """test that it's ignored even if the action is set_status"""
+        self.obs = self._aux_reset_env(seed=0, ep_id=0)
+        assert self.obs.topo_vect[self.obs.line_or_pos_topo_vect[1]] == 1
+        assert self.obs.topo_vect[self.obs.load_pos_topo_vect[0]] == 1
+        assert (self.obs.time_before_cooldown_line == 0).all()
+        assert (self.obs.time_before_cooldown_sub == 0).all()
+        
+        obs, reward, done, info = self._aux_make_step()
+        assert not done
+        assert obs.topo_vect[self.obs.line_or_pos_topo_vect[1]] == 1
+        assert obs.topo_vect[self.obs.load_pos_topo_vect[0]] == 1
+        assert (obs.time_before_cooldown_line == 0).all()
+        assert (obs.time_before_cooldown_sub == 0).all()
+        # check the action in the time series folder is valid
+        self._aux_get_act_valid()
+        
+    def test_working_setstatus(self):
+        """test that it's ignored even if the action is set_status"""
+        self.obs = self._aux_reset_env(seed=0, ep_id=1)
+        
+        assert self.obs.topo_vect[self.obs.line_or_pos_topo_vect[1]] == 1
+        assert self.obs.topo_vect[self.obs.line_ex_pos_topo_vect[1]] == 1
+        assert self.obs.line_status[1]
+        assert (self.obs.time_before_cooldown_line == 0).all()
+        assert (self.obs.time_before_cooldown_sub == 0).all()
+        
+        obs, reward, done, info = self._aux_make_step()
+        assert not done
+        assert obs.topo_vect[self.obs.line_or_pos_topo_vect[1]] == 1
+        assert obs.topo_vect[self.obs.line_ex_pos_topo_vect[1]] == 1
+        assert obs.line_status[1]
+        assert (obs.time_before_cooldown_line == 0).all()
+        assert (obs.time_before_cooldown_sub == 0).all()
+        # check the action in the time series folder is valid
+        self._aux_get_act_valid()
+        
+    def test_rules_ok(self):
+        """that it's ignored even if the action is illegal"""
+        self.obs = self._aux_reset_env(seed=0, ep_id=2)
+        
+        assert self.obs.topo_vect[self.obs.line_or_pos_topo_vect[1]] == 1
+        assert self.obs.topo_vect[self.obs.line_ex_pos_topo_vect[5]] == 1
+        assert (self.obs.time_before_cooldown_line == 0).all()
+        assert (self.obs.time_before_cooldown_sub == 0).all()
+        act_init = self._aux_get_init_act()
+        if act_init is None:
+            # test not correct for multiprocessing, I stop here
+            return
+        obs, reward, done, info = self._aux_make_step(act_init)
+        assert info["exception"] is not None
+        assert info["is_illegal"]
+        assert obs.topo_vect[self.obs.line_or_pos_topo_vect[1]] == 1
+        assert obs.topo_vect[self.obs.line_ex_pos_topo_vect[5]] == 1
+        assert (obs.time_before_cooldown_line == 0).all()
+        assert (obs.time_before_cooldown_sub == 0).all()
+        # check the action in the time series folder is valid
+        self._aux_get_act_valid()
+
+    def test_change_bus_ignored(self, catch_warning=True):
+        """test that if the action to set uses change_bus then nothing is done"""
+        # no warning in the main process in multiprocessing
+        self.obs = self._aux_reset_env(seed=0, ep_id=3)
+        assert self.obs.topo_vect[self.obs.line_or_pos_topo_vect[1]] == 1
+        assert self.obs.topo_vect[self.obs.line_ex_pos_topo_vect[1]] == 1
+        assert self.obs.topo_vect[self.obs.line_or_pos_topo_vect[2]] == 1
+        assert self.obs.topo_vect[self.obs.line_ex_pos_topo_vect[2]] == 1
+        assert self.obs.topo_vect[self.obs.line_or_pos_topo_vect[5]] == 1
+        assert self.obs.topo_vect[self.obs.line_ex_pos_topo_vect[5]] == 1
+        assert self.obs.line_status[1] == 1
+        assert self.obs.line_status[2] == 1
+        assert self.obs.line_status[5] == 1
+        # check the action in the time series folder is valid   
+        self._aux_get_act_valid()    
+        
+        
 if __name__ == "__main__":
     unittest.main()
