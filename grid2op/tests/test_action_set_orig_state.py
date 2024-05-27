@@ -17,9 +17,10 @@ except ImportError:
     LS_AVAIL = False
     
 import grid2op
-from grid2op.Environment import TimedOutEnvironment, MaskedEnvironment, SingleEnvMultiProcess
+from grid2op.Environment import (TimedOutEnvironment,
+                                 MaskedEnvironment,
+                                 SingleEnvMultiProcess)
 from grid2op.Backend import PandaPowerBackend
-from grid2op.Backend.educPandaPowerBackend import EducPandaPowerBackend
 from grid2op.Episode import EpisodeData
 from grid2op.Opponent import FromEpisodeDataOpponent
 from grid2op.Runner import Runner

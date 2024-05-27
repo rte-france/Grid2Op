@@ -2975,6 +2975,7 @@ class TestSimulateEqualsStepStorageCurtail(TestSimulateEqualsStep):
                 "educ_case14_storage", test=True, action_class=PlayableAction,
                 _add_to_name=type(self).__name__
             )
+        self.env.reset(seed=0, options={"time serie id": 0})
         self.obs = self._make_forecast_perfect(self.env)
         self.sim_obs = None
         self.step_obs = None
