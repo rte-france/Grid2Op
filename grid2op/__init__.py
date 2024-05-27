@@ -11,7 +11,7 @@
 Grid2Op
 
 """
-__version__ = '1.10.2.dev3'
+__version__ = '1.10.2'
 
 __all__ = [
     "Action",
