@@ -11,9 +11,10 @@ import os
 import numpy as np
 import copy
 import warnings
-from typing import Union, Tuple
+from typing import Union, Tuple, Optional, Dict, Literal
 from pathlib import Path
 
+import grid2op
 from grid2op.Exceptions import (
     ChronicsError, ChronicsNotFoundError
 )
@@ -24,6 +25,7 @@ from grid2op.dtypes import dt_int, dt_float
 from grid2op.Episode import EpisodeData
 
 TYPE_EP_DATA_INGESTED = Union[str, Path, EpisodeData, Tuple[str, str]]
+
 
 class FromOneEpisodeData(GridValue): 
     """This class allows to use the :class:`grid2op.Chronics.handlers.BaseHandler` to read back data 
@@ -422,3 +424,18 @@ class FromOneEpisodeData(GridValue):
             self.load_next()
             # for this class I suppose the real data AND the forecast are read each step
             self.forecasts()
+            
+    def get_init_action(self, names_chronics_to_backend: Optional[Dict[Literal["loads", "prods", "lines"], Dict[str, str]]]=None) -> Union["grid2op.Action.playableAction.PlayableAction", None]:
+        # names_chronics_to_backend is ignored because it does not really make sense
+        # when read from the hard drive
+        obs = self._episode_data.observations[0]
+        dict_set = {"set_bus": obs.topo_vect}
+        if self.action_space.supports_type("redispatch"):
+            dict_set["redispatch"] = obs.target_dispatch
+        if self.action_space.supports_type("set_storage"):
+            dict_set["set_storage"] = obs.storage_power_target
+        if self.action_space.supports_type("curtail"):
+            dict_set["curtail"] = obs.curtailment_limit
+            dict_set["curtail"][~type(obs).gen_renewable] = -1
+        # TODO shunts !
+        return self.action_space(dict_set, check_legal=False)

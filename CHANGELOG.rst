@@ -31,7 +31,71 @@ Change Log
 - [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
 
-[1.10.1] - 2024-03-18
+[1.10.2] - 2024-05-27
+-------------------------
+- [BREAKING] the `runner.run_one_episode` now returns an extra first argument: 
+  `chron_id, chron_name, cum_reward, timestep, max_ts = runner.run_one_episode()` which 
+  is consistant with `runner.run(...)` (previously it returned only 
+  `chron_name, cum_reward, timestep, max_ts = runner.run_one_episode()`)
+- [BREAKING] the runner now has no `chronics_handler` attribute (`runner.chronics_handler` 
+  is not defined)
+- [BREAKING] now grid2op forces everything to be connected at busbar 1 if
+  `param.IGNORE_INITIAL_STATE_TIME_SERIE == True` (**NOT** the default) and
+  no initial state is provided in `env.reset(..., options={"init state": ...})`
+- [ADDED] it is now possible to call `change_reward` directly from 
+  an observation (no need to do it from the Observation Space)
+- [ADDED] method to change the reward from the observation (observation_space
+  is not needed anymore): you can use `obs.change_reward`
+- [ADDED] a way to automatically set the `experimental_read_from_local_dir` flags 
+  (with automatic class creation). For now it is disable by default, but you can 
+  activate it transparently (see doc)
+- [ADDED] possibility to set the grid to an initial state (using an action) when using the
+  "time series" classes. The supported classes are `GridStateFromFile` - and all its derivative, 
+  `FromOneEpisodeData`, `FromMultiEpisodeData`, `FromNPY` and `FromHandlers`. The classes `ChangeNothing`
+  and `FromChronix2grid` are not supported at the moment.
+- [ADDED] an "Handler" (`JSONInitStateHandler`) that can set the grid to an initial state (so as to make
+  compatible the `FromHandlers` time series class with this new feature)
+- [ADDED] some more type hints in the `GridObject` class 
+- [ADDED] Possibility to deactive the support of shunts if subclassing `PandaPowerBackend`
+  (and add some basic tests)
+- [ADDED] a parameters (`param.IGNORE_INITIAL_STATE_TIME_SERIE`) which defaults to
+  `False` that tells the environment whether it should ignore the 
+  initial state of the grid provided in the time series.
+  By default it is NOT ignored, it is taken into account 
+  (for the environment that supports this feature)
+- [FIXED] a small issue that could lead to having 
+  "redispatching_unit_commitment_availble" flag set even if the redispatching
+  data was not loaded correctly
+- [FIXED] EducPandaPowerBackend now properly sends numpy array in the class attributes
+  (instead of pandas series)
+- [FIXED] an issue when loading back data (with `EpisodeData`): when there were no storage units
+  on the grid it did not set properly the "storage relevant" class attributes
+- [FIXED] a bug in the "gridobj.generate_classes()" function which crashes when no
+  grid layout was set
+- [FIXED] notebook 5 on loading back data with `EpisodeData`.
+- [FIXED] converter between backends (could not handle more than 2 busbars)
+- [FIXED] a bug in `BaseMultiProcessEnvironment`: set_filter had no impact
+- [FIXED] an issue in the `Runner` (`self.chronics_handler` was sometimes used, sometimes not
+  and most of the time incorrectly)
+- [FIXED] on `RemoteEnv` class (impact all multi process environment): the kwargs used to build then backend
+  where not used which could lead to"wrong" backends being used in the sub processes.
+- [FIXED] a bug when the name of the times series and the names of the elements in the backend were 
+  different: it was not possible to set `names_chronics_to_grid` correctly when calling `env.make`
+- [IMPROVED] documentation about `obs.simulate` to make it clearer the 
+  difference between env.step and obs.simulate on some cases
+- [IMPROVED] type hints on some methods of `GridObjects`
+- [IMPROVED] replace `np.nonzero(arr)` calls with `arr.nonzero()` which could
+  save up a bit of computation time.
+- [IMPROVED] force class attributes to be numpy arrays of proper types when the 
+  classes are initialized from the backend.
+- [IMPROVED] some (slight) speed improvments when comparing actions or deep copying objects
+- [IMPROVED] the way the "grid2op compat" mode is handled
+- [IMPROVED] the coverage of the tests in the "test_basic_env_ls.py" to test more in depth lightsim2grid
+  (creation of multiple environments, grid2op compatibility mode)
+- [IMPROVED] the function to test the backend interface in case when shunts are not supported 
+  (improved test `AAATestBackendAPI.test_01load_grid`)
+
+[1.10.1] - 2024-03-xx
 ----------------------
 - [FIXED] issue https://github.com/rte-france/Grid2Op/issues/593
 - [FIXED] backward compatibility issues with "oldest" lightsim2grid versions

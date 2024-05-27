@@ -23,6 +23,11 @@ class PreventDiscoStorageModif(BaseRules):
     def __call__(self, action, env):
         """
         See :func:`BaseRules.__call__` for a definition of the parameters of this function.
+        
+        ..versionchanged:: 1.10.2
+            In grid2op 1.10.2 this function is not called when the environment is reset:
+            The "action" made by the environment to set the environment in the desired state is always legal
+            
         """
         env_cls = type(env)
         if env_cls.n_storage == 0:
@@ -41,6 +46,6 @@ class PreventDiscoStorageModif(BaseRules):
             tmp_ = power_modif_disco & not_set_status & not_change_status
             return False, IllegalAction(
                 f"Attempt to modify the power produced / absorbed by a storage unit "
-                f"without reconnecting it (check storage with id {np.nonzero(tmp_)[0]}."
+                f"without reconnecting it (check storage with id {(tmp_).nonzero()[0]}."
             )
         return True, None

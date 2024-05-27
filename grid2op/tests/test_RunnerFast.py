@@ -20,8 +20,6 @@ import grid2op
 from grid2op.Runner import Runner
 from grid2op.dtypes import dt_float
 
-warnings.simplefilter("error")
-
 
 class TestRunner(HelperTests, unittest.TestCase):
     def setUp(self):
@@ -56,7 +54,7 @@ class TestRunner(HelperTests, unittest.TestCase):
     def test_one_episode(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            _, cum_reward, timestep, max_ts = self.runner.run_one_episode(
+            _, _, cum_reward, timestep, max_ts = self.runner.run_one_episode(
             max_iter=self.max_iter
         )
         assert int(timestep) == self.max_iter
@@ -65,7 +63,7 @@ class TestRunner(HelperTests, unittest.TestCase):
     def test_one_episode_detailed(self):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            _, cum_reward, timestep, max_ts, episode_data = self.runner.run_one_episode(
+            _, _, cum_reward, timestep, max_ts, episode_data = self.runner.run_one_episode(
             max_iter=self.max_iter, detailed_output=True
         )
         assert int(timestep) == self.max_iter

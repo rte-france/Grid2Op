@@ -16,6 +16,7 @@ __all__ = ["BaseHandler",
            "PerfectForecastHandler",
            "NoisyForecastHandler",
            "LoadQFromPHandler",
+           "JSONInitStateHandler"
            ]
 
 from .baseHandler import BaseHandler
@@ -28,3 +29,4 @@ from .persitenceForecastHandler import PersistenceForecastHandler
 from .perfectForecastHandler import PerfectForecastHandler
 from .noisyForecastHandler import NoisyForecastHandler
 from .load_q_from_p_handler import LoadQFromPHandler
+from .jsonInitStateHandler import JSONInitStateHandler

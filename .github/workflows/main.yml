@@ -63,14 +63,16 @@ jobs:
           # auditwheel repair dist/*.whl  # only for compiled code !
 
       - name: Install wheel
-        run: pip3 install dist/*.whl --user
+        run: |
+          pip3 install dist/*.whl
+          pip freeze
 
       - name: Check package can be imported
         run: |
           python3 -c "import grid2op"
           python3 -c "from grid2op import *"
           python3 -c "from grid2op.Action._backendAction import _BackendAction"
-
+          
       - name: Upload wheel
         uses: actions/upload-artifact@v2
         with:
@@ -136,13 +138,15 @@ jobs:
 
       - name: Install wheel
         shell: bash
-        run: python -m pip install dist/*.whl --user
+        run: |
+          python -m pip install dist/*.whl --user
+          pip freeze
 
       - name: Check package can be imported
         run: |
-          python3 -c "import grid2op"
-          python3 -c "from grid2op import *"
-          python3 -c "from grid2op.Action._backendAction import _BackendAction"
+          python -c "import grid2op"
+          python -c "from grid2op import *"
+          python -c "from grid2op.Action._backendAction import _BackendAction"
 
       - name: Build source archive
         if: matrix.config.name == 'darwin' && matrix.python.name == 'cp310'

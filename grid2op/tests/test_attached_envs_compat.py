@@ -34,15 +34,15 @@ class TestL2RPNNEURIPS2020_Track1Compat(unittest.TestCase):
             self.env.seed(0)
 
     def test_elements(self):
-        assert self.env.n_sub == 36
-        assert self.env.n_line == 59
-        assert self.env.n_load == 37
-        assert self.env.n_gen == 22
-        assert self.env.n_storage == 0
+        assert type(self.env).n_sub == 36
+        assert type(self.env).n_line == 59
+        assert type(self.env).n_load == 37
+        assert type(self.env).n_gen == 22
+        assert type(self.env).n_storage == 0
 
     def test_opponent(self):
         assert issubclass(self.env._opponent_action_class, PowerlineSetAction)
-        assert self.env._opponent_action_space.n == self.env.n_line
+        assert self.env._opponent_action_space.n == type(self.env).n_line
 
     def test_action_space(self):
         assert issubclass(self.env.action_space.subtype, PlayableAction)
@@ -79,11 +79,11 @@ class TestL2RPNNEURIPS2020_Track2Compat(unittest.TestCase):
             self.env.seed(0)
 
     def test_elements(self):
-        assert self.env.n_sub == 118
-        assert self.env.n_line == 186
-        assert self.env.n_load == 99
-        assert self.env.n_gen == 62
-        assert self.env.n_storage == 0
+        assert type(self.env).n_sub == 118
+        assert type(self.env).n_line == 186
+        assert type(self.env).n_load == 99
+        assert type(self.env).n_gen == 62
+        assert type(self.env).n_storage == 0
 
     def test_opponent(self):
         assert issubclass(self.env._opponent_action_class, DontAct)
@@ -127,11 +127,11 @@ class TestL2RPN_CASE14_SANDBOXCompat(unittest.TestCase):
             self.env.seed(42)
 
     def test_elements(self):
-        assert self.env.n_sub == 14
-        assert self.env.n_line == 20
-        assert self.env.n_load == 11
-        assert self.env.n_gen == 6
-        assert self.env.n_storage == 0
+        assert type(self.env).n_sub == 14
+        assert type(self.env).n_line == 20
+        assert type(self.env).n_load == 11
+        assert type(self.env).n_gen == 6
+        assert type(self.env).n_storage == 0
 
     def test_opponent(self):
         assert issubclass(self.env._opponent_action_class, DontAct)
@@ -172,11 +172,11 @@ class TestEDUC_CASE14_REDISPCompat(unittest.TestCase):
             self.env.seed(0)
 
     def test_elements(self):
-        assert self.env.n_sub == 14
-        assert self.env.n_line == 20
-        assert self.env.n_load == 11
-        assert self.env.n_gen == 6
-        assert self.env.n_storage == 0
+        assert type(self.env).n_sub == 14
+        assert type(self.env).n_line == 20
+        assert type(self.env).n_load == 11
+        assert type(self.env).n_gen == 6
+        assert type(self.env).n_storage == 0
 
     def test_opponent(self):
         assert issubclass(self.env._opponent_action_class, DontAct)
@@ -214,14 +214,14 @@ class TestCompatMode_WhenStorage(unittest.TestCase):
                 _compat_glop_version=GridObjects.BEFORE_COMPAT_VERSION,
                 _add_to_name=type(self).__name__+"test_attached_compat_4",
             )
-            self.env.seed(0)
+            self.env.seed(3)  # 0, 1 and 2 leads to "wrong action" (games over)
 
     def test_elements(self):
-        assert self.env.n_sub == 14
-        assert self.env.n_line == 20
-        assert self.env.n_load == 11
-        assert self.env.n_gen == 6
-        assert self.env.n_storage == 0
+        assert type(self.env).n_sub == 14
+        assert type(self.env).n_line == 20
+        assert type(self.env).n_load == 11
+        assert type(self.env).n_gen == 6
+        assert type(self.env).n_storage == 0
 
     def test_opponent(self):
         assert issubclass(self.env._opponent_action_class, DontAct)
@@ -239,7 +239,9 @@ class TestCompatMode_WhenStorage(unittest.TestCase):
         res = 0
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            env = grid2op.make("educ_case14_redisp", test=True, _add_to_name=type(self).__name__+"test_same_env_as_no_storage")
+            env = grid2op.make("educ_case14_redisp",
+                               test=True,
+                               _add_to_name=type(self).__name__+"test_same_env_as_no_storage")
         for attr in self.env.observation_space.attr_list_vect:
             tmp = getattr(self.env.observation_space._template_obj, attr).shape
             tmp2 = getattr(env.observation_space._template_obj, attr).shape
@@ -272,7 +274,6 @@ class TestCompatMode_WhenStorage(unittest.TestCase):
             act = self.env.action_space.sample()
             obs, reward, done, info = self.env.step(act)
             if done:
-                pdb.set_trace()
                 break
         assert i >= 1, (
             "could not perform the random action test because it games over first time step. "

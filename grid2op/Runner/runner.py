@@ -9,8 +9,9 @@
 import os
 import warnings
 import copy
-from multiprocessing import Pool
-from typing import Tuple, Optional, List, Union
+import numpy as np
+from multiprocessing import get_start_method, get_context, Pool
+from typing import Tuple, List, Union
 
 from grid2op.Environment import BaseEnv
 from grid2op.Action import BaseAction, TopologyAction, DontAct
@@ -18,7 +19,7 @@ from grid2op.Exceptions import Grid2OpException, EnvError
 from grid2op.Observation import CompleteObservation, BaseObservation
 from grid2op.Opponent.opponentSpace import OpponentSpace
 from grid2op.Reward import FlatReward, BaseReward
-from grid2op.Rules import AlwaysLegal, BaseRules
+from grid2op.Rules import AlwaysLegal
 from grid2op.Environment import Environment
 from grid2op.Chronics import ChronicsHandler, GridStateFromFile, GridValue
 from grid2op.Backend import Backend, PandaPowerBackend
@@ -34,7 +35,7 @@ from grid2op.Runner.aux_fun import (
     _aux_one_process_parrallel,
 )
 from grid2op.Runner.basic_logger import DoNothingLog, ConsoleLog
-from grid2op.Episode import EpisodeData, CompactEpisodeData
+from grid2op.Episode import EpisodeData
 
 # on windows if i start using sequential, i need to continue using sequential
 # if i start using parallel i need to continue using parallel
@@ -538,11 +539,11 @@ class Runner(object):
         self.max_iter = max_iter
         if max_iter > 0:
             self.gridStateclass_kwargs["max_iter"] = max_iter
-        self.chronics_handler = ChronicsHandler(
-            chronicsClass=self.gridStateclass,
-            path=self.path_chron,
-            **self.gridStateclass_kwargs
-        )
+        # self.chronics_handler = ChronicsHandler(
+        #     chronicsClass=self.gridStateclass,
+        #     path=self.path_chron,
+        #     **self.gridStateclass_kwargs
+        # )
 
         self.verbose = verbose
         self.thermal_limit_a = thermal_limit_a
@@ -634,12 +635,18 @@ class Runner(object):
             res = self.backendClass(**this_kwargs)
         return res
     
-    def _new_env(self, chronics_handler, parameters) -> Tuple[BaseEnv, BaseAgent]:
+    def _new_env(self, parameters) -> Tuple[BaseEnv, BaseAgent]:
         # the same chronics_handler is used for all the environments.
         # make sure to "reset" it properly
         # (this is handled elsewhere in case of "multi chronics")
-        if not self.chronics_handler.chronicsClass.MULTI_CHRONICS:
-            self.chronics_handler.next_chronics()  
+        # ch_used = copy.deepcopy(chronics_handler)
+        # if not ch_used.chronicsClass.MULTI_CHRONICS:
+        #     ch_used.next_chronics()  
+        chronics_handler = ChronicsHandler(
+            chronicsClass=self.gridStateclass,
+            path=self.path_chron,
+            **self.gridStateclass_kwargs
+        )
         backend = self._make_new_backend()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
@@ -704,7 +711,7 @@ class Runner(object):
         Function used to initialized the environment and the agent.
         It is called by :func:`Runner.reset`.
         """
-        env, self.agent = self._new_env(self.chronics_handler, self.parameters)
+        env, self.agent = self._new_env(self.parameters)
         return env
 
     def reset(self):
@@ -729,6 +736,7 @@ class Runner(object):
         episode_id=None,
         detailed_output=False,
         add_nb_highres_sim=False,
+        init_state=None
     ) -> runner_returned_type:
         """
         INTERNAL
@@ -740,7 +748,7 @@ class Runner(object):
         Parameters
         ----------
         indx: ``int``
-            The number of episode previously run
+            The index of the episode to run (ignored if `episode_id` is not None)
 
         path_save: ``str``, optional
             Path where to save the data. See the description of :mod:`grid2op.Runner` for the structure of the saved
@@ -765,12 +773,12 @@ class Runner(object):
 
         """
         self.reset()
-        with self.init_env() as env:
+        with self.init_env() as env:                
             res = _aux_run_one_episode(
                 env,
                 self.agent,
                 self.logger,
-                indx,
+                indx if episode_id is None else episode_id,
                 path_save,
                 pbar=pbar,
                 env_seed=env_seed,
@@ -778,15 +786,20 @@ class Runner(object):
                 agent_seed=agent_seed,
                 detailed_output=detailed_output,
                 use_compact_episode_data = self.use_compact_episode_data,
+                init_state=init_state,
             )
             if max_iter is not None:
                 env.chronics_handler.set_max_iter(-1)
-                
+            
+            id_chron = env.chronics_handler.get_id()
         # `res` here necessarily contains detailed_output and nb_highres_call  
         if not add_nb_highres_sim:
             res = res[:-1]
         if not detailed_output:
             res = res[:-1]
+        
+        # new in 1.10.2: id_chron is computed from here
+        res = (id_chron, *res)
         return res
 
     def _run_sequential(
@@ -800,6 +813,7 @@ class Runner(object):
         episode_id=None,
         add_detailed_output=False,
         add_nb_highres_sim=False,
+        init_states=None
     ) -> List[runner_returned_type]:
         """
         INTERNAL
@@ -838,7 +852,11 @@ class Runner(object):
             By default ``None``, no seeds are set. If provided,
             its size should match ``nb_episode``.
 
-        add_detailed_output: see Runner.run method
+        add_detailed_output: 
+            see :func:`Runner.run` method
+        
+        init_states: 
+            see :func:`Runner.run` method
 
         Returns
         -------
@@ -865,10 +883,14 @@ class Runner(object):
                 agt_seed = None
                 if agent_seeds is not None:
                     agt_seed = agent_seeds[i]
+                init_state = None
+                if init_states is not None:
+                    init_state = init_states[i]
                 ep_id = i  # if no "episode_id" is provided i used the i th one
                 if episode_id is not None:
                     ep_id = episode_id[i]  # otherwise i use the provided one
                 (
+                    id_chron,
                     name_chron,
                     cum_reward,
                     nb_time_step,
@@ -883,9 +905,9 @@ class Runner(object):
                     agent_seed=agt_seed,
                     max_iter=max_iter,
                     detailed_output=True,
-                    add_nb_highres_sim=True
+                    add_nb_highres_sim=True,
+                    init_state=init_state,
                 )
-                id_chron = self.chronics_handler.get_id()
                 res[i] = (id_chron,
                           name_chron,
                           float(cum_reward),
@@ -910,6 +932,7 @@ class Runner(object):
         episode_id=None,
         add_detailed_output=False,
         add_nb_highres_sim=False,
+        init_states=None
     ) -> List[runner_returned_type]:
         """
         INTERNAL
@@ -950,8 +973,12 @@ class Runner(object):
             If provided, its size should match the ``nb_episode``. The agent will be seeded at the beginning of each
             scenario BEFORE calling `agent.reset()`.
 
-        add_detailed_output: see Runner.run method
-
+        add_detailed_output: 
+            See :func:`Runner.run` method
+        
+        init_states:
+            See :func:`Runner.run` method
+            
         Returns
         -------
         res: ``list``
@@ -987,6 +1014,7 @@ class Runner(object):
                 episode_id=episode_id,
                 add_detailed_output=add_detailed_output,
                 add_nb_highres_sim=add_nb_highres_sim,
+                init_states=init_states,
             )
         else:
             self._clean_up()
@@ -1003,7 +1031,7 @@ class Runner(object):
                 seeds_env_res = [None for _ in range(nb_process)]
             else:
                 # split the seeds according to the process
-                seeds_env_res = [[] for i in range(nb_process)]
+                seeds_env_res = [[] for _ in range(nb_process)]
                 for i in range(nb_episode):
                     seeds_env_res[i % nb_process].append(env_seeds[i])
 
@@ -1011,9 +1039,17 @@ class Runner(object):
                 seeds_agt_res = [None for _ in range(nb_process)]
             else:
                 # split the seeds according to the process
-                seeds_agt_res = [[] for i in range(nb_process)]
+                seeds_agt_res = [[] for _ in range(nb_process)]
                 for i in range(nb_episode):
                     seeds_agt_res[i % nb_process].append(agent_seeds[i])
+                    
+            if init_states is None:
+                init_states_res = [None for _ in range(nb_process)]
+            else:
+                # split the seeds according to the process
+                init_states_res = [[] for _ in range(nb_process)]
+                for i in range(nb_episode):
+                    init_states_res[i % nb_process].append(init_states[i])
 
             res = []
             if _IS_LINUX:
@@ -1030,10 +1066,16 @@ class Runner(object):
                             seeds_agt_res[i],
                             max_iter,
                             add_detailed_output,
-                            add_nb_highres_sim)
+                            add_nb_highres_sim,
+                            init_states_res[i])
                 
-            with Pool(nb_process) as p:
-                tmp = p.starmap(_aux_one_process_parrallel, lists)
+            if get_start_method() == 'spawn':
+                # https://github.com/rte-france/Grid2Op/issues/600
+                with get_context("spawn").Pool(nb_process) as p:
+                    tmp = p.starmap(_aux_one_process_parrallel, lists)
+            else:            
+                with Pool(nb_process) as p:
+                    tmp = p.starmap(_aux_one_process_parrallel, lists)
             for el in tmp:
                 res += el
         return res
@@ -1107,6 +1149,7 @@ class Runner(object):
         episode_id=None,
         add_detailed_output=False,
         add_nb_highres_sim=False,
+        init_states=None,
     ) -> List[runner_returned_type]:
         """
         Main method of the :class:`Runner` class. It will either call :func:`Runner._run_sequential` if "nb_process" is
@@ -1160,21 +1203,32 @@ class Runner(object):
         add_nb_highres_sim: ``bool``
             Whether to add an estimated number of "high resolution simulator" called performed by the agent (either by
             obs.simulate, or by obs.get_forecast_env or by obs.get_simulator)
+        
+        init_states:
+            (added in grid2op 1.10.2) Possibility to set the initial state of the powergrid (when calling `env.reset`). 
+            It should either be:
+            
+            - a dictionary representing an action (see doc of :func:`grid2op.Environment.Environment.reset`)
+            - a grid2op action (see doc of :func:`grid2op.Environment.Environment.reset`)
+            - a list / tuple of one of the above with the same size as the number of episode you want.
+            
+            If you provide a dictionary or a grid2op action, then this element will be used for all scenarios you
+            want to run.
             
         Returns
         -------
         res: ``list``
             List of tuple. Each tuple having 3[4] elements:
 
-              - "i" unique identifier of the episode (compared to :func:`Runner.run_sequential`, the elements of the
-                returned list are not necessarily sorted by this value)
+              - "id_chron" unique identifier of the episode
+              - "name_chron" name of the time series (usually it is the path where it is stored)
               - "cum_reward" the cumulative reward obtained by the :attr:`Runner.Agent` on this episode i
               - "nb_time_step": the number of time steps played in this episode.
               - "total_step": the total number of time steps possible in this episode.
               - "episode_data" : [Optional] The :class:`EpisodeData` corresponding to this episode run only
                 if `add_detailed_output=True`
               - "add_nb_highres_sim": [Optional] The estimated number of calls to high resolution simulator made
-                by the agent
+                by the agent. Only preset if `add_nb_highres_sim=True` in the kwargs
 
         Examples
         --------
@@ -1220,6 +1274,40 @@ class Runner(object):
             runner = Runner(**env.get_params_for_runner(), agentClass=None, agentInstance=my_agent)
             res = runner.run(nb_episode=1, agent_seeds=[42], env_seeds=[0])
 
+        Since grid2op 1.10.2 you can also set the initial state of the grid when
+        calling the runner. You can do that with the kwargs `init_states`, for example like this:
+        
+        .. code-block: python
+
+            import grid2op
+            from gri2op.Runner import Runner
+            from grid2op.Agent import RandomAgent
+
+            env = grid2op.make("l2rpn_case14_sandbox")
+            my_agent = RandomAgent(env.action_space)
+            runner = Runner(**env.get_params_for_runner(), agentClass=None, agentInstance=my_agent)
+            res = runner.run(nb_episode=1,
+                             agent_seeds=[42],
+                             env_seeds=[0],
+                             init_states=[{"set_line_status": [(0, -1)]}]
+                             )
+        
+        .. note::
+            We recommend that you provide `init_states` as a list having a length of
+            `nb_episode`. Each episode will be initialized with the provided
+            element of the list. However, if you provide only one element, then
+            all episodes you want to compute will be initialized with this same
+            action.
+            
+        .. note::
+            At the beginning of each episode, if an `init_state` is set, 
+            the environment is reset with a call like: `env.reset(options={"init state": init_state})`
+            
+            This is why we recommend you to use dictionary to set the initial state so 
+            that you can control what exactly is done (set the `"method"`) more 
+            information about this on the doc of the :func:`grid2op.Environment.Environment.reset`
+            function.
+            
         """
         if nb_episode < 0:
             raise RuntimeError("Impossible to run a negative number of scenarios.")
@@ -1246,6 +1334,28 @@ class Runner(object):
                     "".format(nb_episode, len(episode_id))
                 )
 
+        if init_states is not None:
+            if isinstance(init_states, (dict, BaseAction)):
+                # user provided one initial state, I copy it to all 
+                # evaluation
+                init_states = [init_states.copy() for _ in range(nb_episode)]
+            elif isinstance(init_states, (list, tuple, np.ndarray)):
+                # user provided a list of initial states, it should match the
+                # number of scenarios
+                if len(init_states) != nb_episode:
+                    raise RuntimeError(
+                        'You want to compute "{}" run(s) but provide only "{}" different initial state.'
+                        "".format(nb_episode, len(init_states))
+                    )
+                for i, el in enumerate(init_states):
+                    if not isinstance(el, (dict, BaseAction)):
+                        raise RuntimeError("When specifying `init_states` kwargs with a list (or a tuple) "
+                                           "it should be a list (or a tuple) of dictionary or BaseAction. "
+                                           f"You provided {type(el)} at position {i}.")
+            else:
+                raise RuntimeError("When using `init_state` in the runner, you should make sure to use "
+                                   "either use dictionnary, grid2op actions or list of actions.")
+                    
         if max_iter is not None:
             max_iter = int(max_iter)
 
@@ -1268,6 +1378,7 @@ class Runner(object):
                         episode_id=episode_id,
                         add_detailed_output=add_detailed_output,
                         add_nb_highres_sim=add_nb_highres_sim,
+                        init_states=init_states
                     )
                 else:
                     if add_detailed_output and (_IS_WINDOWS or _IS_MACOS):
@@ -1286,6 +1397,7 @@ class Runner(object):
                             episode_id=episode_id,
                             add_detailed_output=add_detailed_output,
                             add_nb_highres_sim=add_nb_highres_sim,
+                            init_states=init_states
                         )
                     else:
                         self.logger.info("Parallel runner used.")
@@ -1299,6 +1411,7 @@ class Runner(object):
                             episode_id=episode_id,
                             add_detailed_output=add_detailed_output,
                             add_nb_highres_sim=add_nb_highres_sim,
+                            init_states=init_states
                         )
             finally:
                 self._clean_up()

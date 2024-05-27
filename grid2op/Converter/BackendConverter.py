@@ -106,18 +106,24 @@ class BackendConverter(Backend):
         difcf = detailed_infos_for_cascading_failures
         if kwargs_source_backend is None:
             kwargs_source_backend = {}
-        self.source_backend = source_backend_class(
+        
+        #: represents the backend used for the order / name of the elements
+        #: Agent will not see any difference between the converter and this backend
+        self.source_backend : Backend = source_backend_class(
             detailed_infos_for_cascading_failures=difcf,
             **kwargs_source_backend
-        )  # the one for the order of the elements
+        )  
         if kwargs_target_backend is None:
             kwargs_target_backend = {}
-        self.target_backend = target_backend_class(
+            
+        #: represents the backend used to compute the powerflows
+        self.target_backend : Backend = target_backend_class(
             detailed_infos_for_cascading_failures=difcf,
             **kwargs_target_backend
         )  # the one to computes powerflow
-        # if the target backend (the one performing the powerflows) needs a different file
-        self.target_backend_grid_path = target_backend_grid_path
+        
+        #: if the target backend (the one performing the powerflows) needs a different file
+        self.target_backend_grid_path :str = target_backend_grid_path
 
         # key: name in the source backend, value name in the target backend, for the substations
         self.sub_source_target = sub_source_target
@@ -156,6 +162,14 @@ class BackendConverter(Backend):
         # TODO storage check all this class ! + the doc of the backend
 
     def load_grid(self, path=None, filename=None):
+        # register the "n_busbar_per_sub" (set for the backend class)
+        # TODO in case source supports the "more than 2" feature but not target
+        # it's unclear how I can "reload" the grid...
+        from grid2op.Space import DEFAULT_N_BUSBAR_PER_SUB
+        type(self.source_backend).set_n_busbar_per_sub(DEFAULT_N_BUSBAR_PER_SUB)
+        type(self.target_backend).set_n_busbar_per_sub(DEFAULT_N_BUSBAR_PER_SUB)
+        self.cannot_handle_more_than_2_busbar()
+        
         self.source_backend.load_grid(path, filename)
         # and now i load the target backend
         if self.target_backend_grid_path is not None:
@@ -163,7 +177,18 @@ class BackendConverter(Backend):
         else:
             # both source and target backend understands the same format
             self.target_backend.load_grid(path, filename)
-
+        
+        # TODO in case source supports the "more than 2" feature but not target
+        # it's unclear how I can "reload" the grid...
+        # if (not self.target_backend._missing_two_busbars_support_info and
+        #     not self.source_backend._missing_two_busbars_support_info
+        #     ):
+        #     ???
+        # else:
+        #     # at least one backend cannot handle the number of busbars, so I deactivate it for all
+        #     self.target_backend.cannot_handle_more_than_2_busbar()
+        #     self.source_backend.cannot_handle_more_than_2_busbar()
+            
     def _assert_same_grid(self):
         """basic assertion that self and the target backend have the same grid
         but not necessarily the same object at the same place of course"""
@@ -206,13 +231,13 @@ class BackendConverter(Backend):
                 == sorted(self.target_backend.name_sub)
             ):
                 for id_source, nm_source in enumerate(self.source_backend.name_sub):
-                    id_target = np.nonzero(self.target_backend.name_sub == nm_source)[0]
+                    id_target = (self.target_backend.name_sub == nm_source).nonzero()[0]
                     self._sub_tg2sr[id_source] = id_target
                     self._sub_sr2tg[id_target] = id_source
         else:
             for id_source, nm_source in enumerate(self.source_backend.name_sub):
                 nm_target = self.sub_source_target[nm_source]
-                id_target = np.nonzero(self.target_backend.name_sub == nm_target)[0]
+                id_target = (self.target_backend.name_sub == nm_target).nonzero()[0]
                 self._sub_tg2sr[id_source] = id_target
                 self._sub_sr2tg[id_target] = id_source
 
@@ -300,7 +325,7 @@ class BackendConverter(Backend):
     def _get_possible_target_ids(self, id_source, source_2_id_sub, target_2_id_sub, nm):
         id_sub_source = source_2_id_sub[id_source]
         id_sub_target = self._sub_tg2sr[id_sub_source]
-        ids_target = np.nonzero(target_2_id_sub == id_sub_target)[0]
+        ids_target = (target_2_id_sub == id_sub_target).nonzero()[0]
         if ids_target.shape[0] == 0:
             raise RuntimeError(
                 ERROR_ELEMENT_CONNECTED.format(nm, id_sub_target, id_sub_source)
@@ -346,10 +371,10 @@ class BackendConverter(Backend):
             idor_sub_target = self._sub_tg2sr[idor_sub_source]
             idex_sub_source = source_ex_2_id_sub[id_source]
             idex_sub_target = self._sub_tg2sr[idex_sub_source]
-            ids_target = np.nonzero(
+            ids_target = (
                 (target_or_2_id_sub == idor_sub_target)
                 & (target_ex_2_id_sub == idex_sub_target)
-            )[0]
+            ).nonzero()[0]
             if ids_target.shape[0] == 0:
                 raise RuntimeError(
                     ERROR_ELEMENT_CONNECTED.format(
@@ -550,6 +575,12 @@ class BackendConverter(Backend):
         super().assert_grid_correct_after_powerflow()
         self._sh_vnkv = self.target_backend._sh_vnkv
 
+    def _fill_names_obj(self):
+        self.target_backend._fill_names_obj()
+        self.source_backend._fill_names_obj()
+        for attr_nm in ["name_line", "name_gen", "name_load", "name_sub", "name_storage"]:
+            setattr(self, attr_nm, copy.deepcopy(getattr(self.source_backend, attr_nm)))
+            
     def reset(self, grid_path, grid_filename=None):
         """
         Reload the power grid.

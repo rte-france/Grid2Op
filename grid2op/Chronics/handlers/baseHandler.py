@@ -9,7 +9,8 @@
 import copy
 import os
 import numpy as np
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Union
+import grid2op
 from grid2op.Space import RandomObject
 from datetime import timedelta, datetime
 
@@ -341,7 +342,7 @@ class BaseHandler(RandomObject):
         """
         raise NotImplementedError()
     
-    def check_validity(self, backend):
+    def check_validity(self, backend) -> None:
         """
         INTERNAL
 
@@ -479,3 +480,17 @@ class BaseHandler(RandomObject):
         end of each episode when the next episode is loaded.
         """
         return None
+
+    def get_init_dict_action(self) -> Union[dict, None]:
+        """
+        INTERNAL
+
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+            
+        This function is called by the :class:`grid2op.Chronics.FromHandlers` only for the handlers responsible 
+        for setting the "initial state" of the grid, for example :class:`JSONInitStateHandler`.
+        
+        If overidden, it is expected to return a dictionnary which can be converted to an action with an
+        action space.
+        """
+        raise NotImplementedError()

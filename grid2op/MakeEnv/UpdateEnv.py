@@ -5,9 +5,11 @@
 # you can obtain one at http://mozilla.org/MPL/2.0/.
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
-import time
 
+import time
 import os
+import re
+
 
 import grid2op.MakeEnv.PathUtils
 from grid2op.Exceptions import UnknownEnv
@@ -157,18 +159,45 @@ def _update_files(env_name=None, answer_json=None, env_hashes=None):
             )
 
 
+def _aux_get_hash_if_none(hash_=None):
+    """Auxilliary function used to avoid copy pasting the `hash_ = hashlib.blake2b()` part and that can
+    be further changed if another hash is better later.
+    
+    Do not modify unless you have a good reason too.
+    """
+    if hash_ is None:
+        # we use this as it is supposedly faster than md5
+        # we don't really care about the "secure" part of it (though it's a nice tool to have)
+        import hashlib  # lazy import
+        hash_ = hashlib.blake2b()
+    return hash_
+    
+
+def _aux_update_hash_text(text_, hash_=None):
+    hash_ = _aux_get_hash_if_none(hash_)
+    text_ = re.sub("\s", "", text_)
+    hash_.update(text_.encode("utf-8"))
+    return hash_
+    
+
+def _aux_hash_file(full_path_file, hash_=None):
+    hash_ = _aux_get_hash_if_none(hash_)
+    with open(full_path_file, "r", encoding="utf-8") as f:
+        text_ = f.read()
+        # this is done to ensure a compatibility between platform
+        # sometime git replaces the "\r\n" in windows with "\n" on linux / macos and it messes
+        # up the hash
+        _aux_update_hash_text(text_, hash_)
+    return hash_
+
+
 # TODO make that a method of the environment maybe ?
 def _hash_env(
     path_local_env,
     hash_=None,
     blocksize=64,  # TODO is this correct ?
 ):
-    import hashlib  # lazy import
-
-    if hash_ is None:
-        # we use this as it is supposedly faster than md5
-        # we don't really care about the "secure" part of it (though it's a nice tool to have)
-        hash_ = hashlib.blake2b()
+    hash_ = _aux_get_hash_if_none(hash_)
     if os.path.exists(os.path.join(path_local_env, ".multimix")):
         # this is a multi mix, so i need to run through all sub env
         mixes = sorted(os.listdir(path_local_env))
@@ -197,17 +226,9 @@ def _hash_env(
             "scenario_params.json",
         ]:  # list the file we want to hash (we don't hash everything
             full_path_file = os.path.join(path_local_env, fn_)
-            import re
 
             if os.path.exists(full_path_file):
-                with open(full_path_file, "r", encoding="utf-8") as f:
-                    text_ = f.read()
-                    text_ = re.sub(
-                        "\s", "", text_
-                    )  # this is done to ensure a compatibility between platform
-                    # sometime git replaces the "\r\n" in windows with "\n" on linux / macos and it messes
-                    # up the hash
-                    hash_.update(text_.encode("utf-8"))
+                _aux_hash_file(full_path_file, hash_)
 
         # now I hash the chronics
         # but as i don't want to read every chronics (for time purposes) i will only hash the names

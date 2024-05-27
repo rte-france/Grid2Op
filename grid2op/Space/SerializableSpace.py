@@ -175,7 +175,7 @@ class SerializableSpace(GridObjects, RandomObject):
             path = dict_
             if not os.path.exists(path):
                 raise Grid2OpException(
-                    'Unable to find the file "{}" to load the ObservationSpace'.format(
+                    'Unable to find the file "{}" to load the grid2op classes'.format(
                         path
                     )
                 )
