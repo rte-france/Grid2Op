@@ -1364,7 +1364,7 @@ class GridObjects:
             self._init_class_attr(_topo_vect_only=True)
         cls = type(self)
         cls._compute_pos_big_topo_cls()
-
+        
     @classmethod
     def _compute_pos_big_topo_cls(cls):
         """
@@ -1395,8 +1395,9 @@ class GridObjects:
         ):
             # no storage on the grid, so i deactivate them
             cls.set_no_storage()
-        cls._compute_sub_elements()
-        cls._compute_sub_pos()
+        cls._compute_sub_elements()  # fill the dim_topo and sub_info attributes
+        cls._compute_sub_pos()  # fill the _to_sub_pos attributes
+        cls._fill_names()  # fill the name_xxx attributes
 
         cls.load_pos_topo_vect = cls._aux_pos_big_topo(
             cls.load_to_subid, cls.load_to_sub_pos
