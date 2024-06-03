@@ -12,7 +12,7 @@ some standard usage of said backend with grid2op, the way people "normally"
 interacts with it.
 
 """
-
+from tqdm import tqdm
 from Step5_modify_topology import CustomBackend_Minimal
 
 
@@ -60,11 +60,13 @@ if __name__ == "__main__":
     ########### First "test" perform nothing and see what it gives
     done = False
     nb_step = 0
-    while True:
-        obs, reward, done, info = env.step(env.action_space())
-        if done:
-            break
-        nb_step += 1
+    with tqdm() as pbar:
+        while True:
+            obs, reward, done, info = env.step(env.action_space())
+            if done:
+                break
+            nb_step += 1
+            pbar.update()
     print(f"{nb_step} steps have been made with your backend with do nothing")
     
     ########## Second "test" perform random actions every now and then
@@ -72,18 +74,20 @@ if __name__ == "__main__":
     obs = env.reset()
     done = False
     nb_step = 0
-    while True:
-        if nb_step % 10 == 9:
-            # do a randome action sometime
-            act = env.action_space.sample()
-        else:
-            # do nothing most of the time
-            act = env.action_space()
-        obs, reward, done, info = env.step(act)
-        if done:
-            break
-        nb_step += 1
-    print(f"{nb_step} steps have been made with your backend with random actions")
+    with tqdm() as pbar:
+        while True:
+            if nb_step % 10 == 9:
+                # do a randome action sometime
+                act = env.action_space.sample()
+            else:
+                # do nothing most of the time
+                act = env.action_space()
+            obs, reward, done, info = env.step(act)
+            if done:
+                break
+            nb_step += 1
+            pbar.update()
+    print(f"{nb_step} steps have been made with your backend with some random actions")
     
     ########### Third "test" using an "agent" that "does smart actions" (greedy agent)
     done = False
@@ -91,11 +95,13 @@ if __name__ == "__main__":
     obs = env.reset()
     reward = 0.
     agent = RecoPowerlineAgent(env.action_space)
-    while True:
-        act = agent.act(obs, reward)
-        obs, reward, done, info = env.step(act)
-        if done:
-            break
-        nb_step += 1
+    with tqdm() as pbar:
+        while True:
+            act = agent.act(obs, reward)
+            obs, reward, done, info = env.step(act)
+            if done:
+                break
+            nb_step += 1
+            pbar.update()
     print(f"{nb_step} steps have been made with the greedy agent")
     
