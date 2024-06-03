@@ -110,8 +110,9 @@ class ClusterUtils:
         return connectivity_matrix + np.eye(env.n_sub)
 
     
-    
+       
     # Cluster substations
+    @staticmethod
     def cluster_substations(env_name):
         """
         Clusters substations in a power grid environment using the Louvain community detection algorithm.
