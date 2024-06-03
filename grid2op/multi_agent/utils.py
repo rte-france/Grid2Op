@@ -7,7 +7,11 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 from numpy.random import shuffle
-
+import grid2op
+from lightsim2grid.lightSimBackend import LightSimBackend
+import numpy as np
+from sknetwork.clustering import Louvain
+from scipy.sparse import csr_matrix
 
 def random_order(agents : list, *args, **kwargs):
     """Returns the random order
@@ -74,4 +78,74 @@ class AgentSelector:
             and self._current_agent == other._current_agent
             and self.selected_agent == other.selected_agent
         )
-        
+
+
+class ClusterUtils:
+    """
+    Utility class for clustering substations
+    """
+    
+    # Create connectivity matrix
+    @staticmethod
+    def create_connectivity_matrix(env):
+        """
+        Creates a connectivity matrix for the given grid environment.
+
+        The connectivity matrix is a 2D NumPy array where the element at position (i, j) is 1 if there is a direct 
+        connection between substation i and substation j, and 0 otherwise. The diagonal elements are set to 1 to indicate 
+        self-connections.
+
+        Args:
+            env (grid2op.Environment): The grid environment for which the connectivity matrix is to be created.
+
+        Returns:
+            np.ndarray(env.n_sub, env.n_sub): A 2D NumPy array representing the connectivity matrix of the grid environment.
+        """
+        connectivity_matrix = np.zeros((env.n_sub, env.n_sub))
+        for line_id in range(env.n_line):
+            orig_sub = env.line_or_to_subid[line_id]
+            extrem_sub = env.line_ex_to_subid[line_id]
+            connectivity_matrix[orig_sub, extrem_sub] = 1
+            connectivity_matrix[extrem_sub, orig_sub] = 1
+        return connectivity_matrix + np.eye(env.n_sub)
+
+    
+    
+    # Cluster substations
+    def cluster_substations(env_name):
+        """
+        Clusters substations in a power grid environment using the Louvain community detection algorithm.
+
+        This function creates a grid environment based on the specified environment name, generates a connectivity matrix 
+        representing the connections between substations, and applies the Louvain algorithm to cluster the substations 
+        into communities. The resulting clusters are formatted into a dictionary where each key corresponds to an agent 
+        and the value is a list of substations assigned to that agent.
+
+        Args:
+            env_name (str): The name of the grid environment to be clustered
+            
+        Returns:
+                (MADict):
+                    - keys : agents' names 
+                    - values : list of substations' id under the control of the agent.
+        """
+        # Create the environment
+        env = grid2op.make(env_name, backend=LightSimBackend())
+
+        # Generate the connectivity matrix
+        matrix = ClusterUtils.create_connectivity_matrix(env)
+
+        # Perform clustering using Louvain algorithm
+        louvain = Louvain()
+        adjacency = csr_matrix(matrix)
+        labels = louvain.fit_predict(adjacency)
+
+        # Group substations into clusters
+        clusters = {}
+        for node, label in enumerate(labels):
+            if label not in clusters:
+                clusters[label] = []
+            clusters[label].append(node)
+
+        # Format the clusters
+        formatted_clusters = {f'agent_{i}': nodes for i, nodes in enumerate(clusters.values())}

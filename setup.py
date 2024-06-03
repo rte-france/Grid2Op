@@ -30,6 +30,9 @@ pkgs = {
         "tqdm>=4.45.0",
         "networkx>=2.4",
         "requests>=2.23.0",
+        "scikit-network>=0.32.1",
+        "lightsim2grid>=0.8.2",
+        "numpy>=1.25.2",
         "packaging",  # because gym changes the way it uses numpy prng in version 0.26 and i need both gym before and after...
         "typing_extensions"
     ],
