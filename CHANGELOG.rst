@@ -31,6 +31,13 @@ Change Log
 - [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
 
+[1.10.3] - 2024-xx-yy
+-------------------------
+- TODO A number of max buses per sub
+- TODO Automatic "experimental_read_from_local_dir"
+- TODO Notebook for stable baselines
+- TODO in the reset options: datetime start and max number of steps
+
 [1.10.2] - 2024-05-27
 -------------------------
 - [BREAKING] the `runner.run_one_episode` now returns an extra first argument: 

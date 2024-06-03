@@ -1364,7 +1364,7 @@ class GridObjects:
             self._init_class_attr(_topo_vect_only=True)
         cls = type(self)
         cls._compute_pos_big_topo_cls()
-
+        
     @classmethod
     def _compute_pos_big_topo_cls(cls):
         """
@@ -1395,8 +1395,9 @@ class GridObjects:
         ):
             # no storage on the grid, so i deactivate them
             cls.set_no_storage()
-        cls._compute_sub_elements()
-        cls._compute_sub_pos()
+        cls._compute_sub_elements()  # fill the dim_topo and sub_info attributes
+        cls._compute_sub_pos()  # fill the _to_sub_pos attributes
+        cls._fill_names()  # fill the name_xxx attributes
 
         cls.load_pos_topo_vect = cls._aux_pos_big_topo(
             cls.load_to_subid, cls.load_to_sub_pos
@@ -1609,19 +1610,22 @@ class GridObjects:
             cls._reset_cls_dict()
             
         if cls.shunts_data_available and cls.name_shunt is None:
-            cls.name_shunt = [
-                "shunt_{}_{}".format(bus_id, sh_id)
-                for sh_id, bus_id in enumerate(cls.shunt_to_subid)
-            ]
-            cls.name_shunt = np.array(cls.name_shunt)
-            warnings.warn(
-                "name_shunt is None so default storage unit names have been assigned to your grid. "
-                "(FYI: storage names are used to make the correspondence between the chronics and "
-                "the backend)"
-                "This might result in impossibility to load data."
-                '\n\tIf "env.make" properly worked, you can safely ignore this warning.'
-            )
-            cls._reset_cls_dict()
+            if cls.shunt_to_subid is not None:
+                # used for legacy lightsim2grid
+                # shunt names were defined after...
+                cls.name_shunt = [
+                    "shunt_{}_{}".format(bus_id, sh_id)
+                    for sh_id, bus_id in enumerate(cls.shunt_to_subid)
+                ]
+                cls.name_shunt = np.array(cls.name_shunt)
+                warnings.warn(
+                    "name_shunt is None so default shunt names have been assigned to your grid. "
+                    "(FYI: shunt names are used to make the correspondence between the chronics and "
+                    "the backend)"
+                    "This might result in impossibility to load data."
+                    '\n\tIf "env.make" properly worked, you can safely ignore this warning.'
+                )
+                cls._reset_cls_dict()
 
     @classmethod
     def _check_names(cls):
