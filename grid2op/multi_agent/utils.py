@@ -149,3 +149,5 @@ class ClusterUtils:
 
         # Format the clusters
         formatted_clusters = {f'agent_{i}': nodes for i, nodes in enumerate(clusters.values())}
+        
+        return formatted_clusters
