@@ -6,7 +6,8 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-"""example with centralized observation and local actions"""
+"""example with local observation and local actions"""
+
 import warnings
 import numpy as np
 import copy
@@ -22,20 +23,21 @@ from grid2op.multi_agent.multiAgentEnv import MultiAgentEnv
 from grid2op.gym_compat import GymEnv, BoxGymObsSpace, DiscreteActSpace
 
 from lightsim2grid import LightSimBackend
+from grid2op.gym_compat.utils import ALL_ATTR_FOR_DISCRETE
 from grid2op.multi_agent import ClusterUtils
-
-
 
 ENV_NAME = "l2rpn_case14_sandbox"
 DO_NOTHING_EPISODES = -1  # 200
 
 # Get ACTION_DOMAINS by clustering the substations
 ACTION_DOMAINS = ClusterUtils.cluster_substations(ENV_NAME)
+
+# Get OBSERVATION_DOMAINS by clustering the substations
+OBSERVATION_DOMAINS = ClusterUtils.cluster_substations(ENV_NAME)
     
 env_for_cls = grid2op.make(ENV_NAME,
                            action_class=PlayableAction,
                            backend=LightSimBackend())
-ma_env_for_cls = MultiAgentEnv(env_for_cls, ACTION_DOMAINS)
 
 # wrapper for gym env
 class MAEnvWrapper(MAEnv):
@@ -44,18 +46,20 @@ class MAEnvWrapper(MAEnv):
         if env_config is None:
             env_config = {}
 
-        # you can customize stuff by using the "env config" if you want
-        backend = LightSimBackend()
-        if "backend_cls" in env_config:
-            backend = env_config["backend_cls"]
-        # you can do the same for other attribute to the environment
-        
         env = grid2op.make(ENV_NAME,
                            action_class=PlayableAction,
-                           backend=backend)  
+                           backend=LightSimBackend())  
 
-
-        self.ma_env = MultiAgentEnv(env, ACTION_DOMAINS)
+        action_domains = copy.deepcopy(ACTION_DOMAINS)
+        if "action_domains" in env_config:
+            action_domains = env_config["action_domains"]
+        observation_domains = copy.deepcopy(OBSERVATION_DOMAINS)
+        if "observation_domains" in env_config:
+            observation_domains = env_config["observation_domains"]
+        self.ma_env = MultiAgentEnv(env,
+                                    action_domains,
+                                    observation_domains)
+        
         self._agent_ids = set(self.ma_env.agents)
         self.ma_env.seed(0)
         self._agent_ids = self.ma_env.agents
@@ -64,7 +68,6 @@ class MAEnvWrapper(MAEnv):
         # with the grid2op / gym interface.
         self._gym_env = GymEnv(env)
         self._gym_env.observation_space.close()
-        
         obs_attr_to_keep = ["gen_p", "rho"]
         if "obs_attr_to_keep" in env_config:
             obs_attr_to_keep = copy.deepcopy(env_config["obs_attr_to_keep"])
@@ -90,28 +93,24 @@ class MAEnvWrapper(MAEnv):
                            dtype=self._aux_observation_space[agent_id].dtype)
             for agent_id in self.ma_env.agents
         }
-        
+                
         # we represent the action as discrete action for now. 
         # It should work to encode then differently using the 
         # gym_compat module for example
-        act_type = "discrete"
-        if "act_type" in env_config:
-            act_type = env_config["act_type"]
-        
-        # for discrete actions
-        if act_type == "discrete":
-            self._conv_action_space = {
-                agent_id : DiscreteActSpace(self.ma_env.action_spaces[agent_id])
-                for agent_id in self.ma_env.agents
-            }
+        act_attr_to_keep = ALL_ATTR_FOR_DISCRETE
+        if "act_attr_to_keep" in env_config:
+            act_attr_to_keep = copy.deepcopy(env_config["act_attr_to_keep"])
             
-            # to avoid "weird" pickle issues
-            self.action_space = {
-                agent_id : Discrete(n=self.ma_env.action_spaces[agent_id].n)
-                for agent_id in self.ma_env.agents
-            }
-        else:
-            raise NotImplementedError("Make the implementation in this case")
+        self._conv_action_space = {
+            agent_id : DiscreteActSpace(self.ma_env.action_spaces[agent_id], attr_to_keep=act_attr_to_keep)
+            for agent_id in self.ma_env.agents
+        }
+        
+        # to avoid "weird" pickle issues
+        self.action_space = {
+            agent_id : Discrete(n=self.ma_env.action_spaces[agent_id].n)
+            for agent_id in self.ma_env.agents
+        }
         
     def reset(self, *, seed=None, options=None):
         if seed is not None:
@@ -124,18 +123,16 @@ class MAEnvWrapper(MAEnv):
         
     def seed(self, seed):
         return self.ma_env.seed(seed)
+        
     
     def _format_obs(self, grid2op_obs):
-        # NB we heavily use here that all agents see the same things 
         # grid2op_obs is a dictionnary, representing a "multi agent grid2op action"
         
-        # convert the observation to a gym one (remember we suppose all agents see
-        # all the grid)
-        gym_obs = self._gym_env.observation_space.to_gym(grid2op_obs[next(iter(self.ma_env.agents))])
+        # convert the observation to a gym one
         
         # return the proper dictionnary
         return {
-            agent_id : gym_obs.copy()
+            agent_id : self._aux_observation_space[agent_id].to_gym(grid2op_obs[agent_id])
             for agent_id in self.ma_env.agents
         }
         
@@ -185,7 +182,7 @@ if __name__ == "__main__":
     
     ray_ma_env = MAEnvWrapper()
     
-    checkpoint_root = "./ma_ppo_test"
+    checkpoint_root = "./ma_ppo_test_2ndsetting"
     
     # Where checkpoints are written:
     shutil.rmtree(checkpoint_root, ignore_errors=True, onerror=None)
@@ -197,7 +194,7 @@ if __name__ == "__main__":
     info = ray.init(ignore_reinit_error=True)
     print("Dashboard URL: http://{}".format(info.address_info["webui_url"]))
     
-    #Configs (see ray's doc for more information)
+    # #Configs (see ray's doc for more information)
     SELECT_ENV = MAEnvWrapper                            # Specifies the OpenAI Gym environment for Cart Pole
     N_ITER = 1000                                     # Number of training runs.
 
@@ -217,15 +214,21 @@ if __name__ == "__main__":
     # config["multiagent"] = {
     #     "policies" : {
     #         "agent_0" : PolicySpec(
-    #             action_space=ray_ma_env.action_space["agent_0"]
+    #             action_space=ray_ma_env.action_space["agent_0"],
+    #             observation_space=ray_ma_env.observation_space["agent_0"],
     #         ),
     #         "agent_1" : PolicySpec(
-    #             action_space=ray_ma_env.action_space["agent_1"]
+    #             action_space=ray_ma_env.action_space["agent_1"],
+    #             observation_space=ray_ma_env.observation_space["agent_1"],
     #         )
     #         },
     #     "policy_mapping_fn": policy_mapping_fn,
     #     "policies_to_train": ["agent_0", "agent_1"],
     # }
+
+    # #Trainer
+    # agent = ppo.PPOTrainer(config, env=SELECT_ENV)
+    
     
     # see ray doc for this...
     # syntax changes every ray major version apparently...
