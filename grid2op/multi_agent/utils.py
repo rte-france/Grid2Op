@@ -82,7 +82,7 @@ class AgentSelector:
 
 class ClusterUtils:
     """
-    Utility class for clustering substations
+    Outputs clustered substation based on the Louvain graph clustering method
     """
     
     # Create connectivity matrix
@@ -99,7 +99,7 @@ class ClusterUtils:
             env (grid2op.Environment): The grid environment for which the connectivity matrix is to be created.
 
         Returns:
-            np.ndarray(env.n_sub, env.n_sub): A 2D NumPy array representing the connectivity matrix of the grid environment.
+            connectivity_matrix: A 2D Numpy array of dimension (env.n_sub, env.n_sub) representing the substation connectivity of the grid environment.
         """
         connectivity_matrix = np.zeros((env.n_sub, env.n_sub))
         for line_id in range(env.n_line):
