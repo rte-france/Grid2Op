@@ -29,15 +29,16 @@ from grid2op.multi_agent import ClusterUtils
 ENV_NAME = "l2rpn_case14_sandbox"
 DO_NOTHING_EPISODES = -1  # 200
 
-# Get ACTION_DOMAINS by clustering the substations
-ACTION_DOMAINS = ClusterUtils.cluster_substations(ENV_NAME)
-
-# Get OBSERVATION_DOMAINS by clustering the substations
-OBSERVATION_DOMAINS = ClusterUtils.cluster_substations(ENV_NAME)
-    
 env_for_cls = grid2op.make(ENV_NAME,
                            action_class=PlayableAction,
                            backend=LightSimBackend())
+
+
+# Get ACTION_DOMAINS by clustering the substations
+ACTION_DOMAINS = ClusterUtils.cluster_substations(env_for_cls)
+
+# Get OBSERVATION_DOMAINS by clustering the substations
+OBSERVATION_DOMAINS = ClusterUtils.cluster_substations(env_for_cls)
 
 # wrapper for gym env
 class MAEnvWrapper(MAEnv):
