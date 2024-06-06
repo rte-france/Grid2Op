@@ -9,7 +9,8 @@
 __all__ = ["SubGridAction",
            "SubGridObservation",
            "MultiAgentEnv",
-           "SubGridObjects"]
+           "SubGridObjects",
+           "ClusterUtils"]
 import warnings
 
 from grid2op.multi_agent.ma_exceptions import MultiAgentStillBeta
@@ -25,3 +26,4 @@ from grid2op.multi_agent.subgridAction import SubGridAction
 from grid2op.multi_agent.subgridObservation import SubGridObservation
 from grid2op.multi_agent.multiAgentEnv import MultiAgentEnv
 from grid2op.multi_agent.subGridObjects import SubGridObjects
+from grid2op.multi_agent.utils import ClusterUtils
