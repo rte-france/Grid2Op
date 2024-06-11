@@ -913,7 +913,11 @@ class Environment(BaseEnv):
             
         options: dict
             Some options to "customize" the reset call. For example specifying the "time serie id" (grid2op >= 1.9.8) to use 
-            or the "initial state of the grid" (grid2op >= 1.10.2). See examples for more information about this. Ignored if 
+            or the "initial state of the grid" (grid2op >= 1.10.2) or to 
+            start the episode at some specific time in the time series (grid2op >= 1.10.3) with the 
+            "init ts" key.
+            
+            See examples for more information about this. Ignored if 
             not set.
         
         Examples
@@ -1035,7 +1039,63 @@ class Environment(BaseEnv):
                 init_state_dict = {"set_line_status": [(0, -1)], "method": "force"}
                 obs = env.reset(options={"init state": init_state_dict})
                 obs.line_status[0] is False
+
+        .. versionadded:: 1.10.3
+        
+        Another feature has been added in version 1.10.3, the possibility to skip the
+        some steps of the time series and starts at some given steps.
+        
+        The time series often always start at a given day of the week (*eg* Monday)
+        and at a given time (*eg* midnight). But for some reason you notice that your
+        agent performs poorly on other day of the week or time of the day. This might be
+        because it has seen much more data from Monday at midnight that from any other 
+        day and hour of the day.
+        
+        To alleviate this issue, you can now easily reset an episode and ask grid2op
+        to start this episode after xxx steps have "passed".
+        
+        Concretely, you can do it with:
+                    
+        .. code-block:: python
+
+            import grid2op
+            env_name = "l2rpn_case14_sandbox"
+            env = grid2op.make(env_name)
             
+            obs = env.reset(options={"init ts": 1})
+        
+        Doing that your agent will start its episode not at midnight (which
+        is the case for this environment), but at 00:05
+        
+        If you do:
+        
+        .. code-block:: python
+        
+            obs = env.reset(options={"init ts": 12})
+            
+        In this case, you start the episode at 01:00 and not at midnight (you
+        start at what would have been the 12th steps)
+        
+        If you want to start the "next day", you can do:
+        
+        .. code-block:: python
+        
+            obs = env.reset(options={"init ts": 288})
+            
+        etc.
+        
+        .. note::
+            On this feature, if a powerline is on soft overflow (meaning its flow is above 
+            the limit but below the :attr:`grid2op.Parameters.Parameters.HARD_OVERFLOW_THRESHOLD` * `the limit`)
+            then it is still connected (of course) and the counter 
+            :attr:`grid2op.Observation.BaseObservation.timestep_overflow` is at 0.
+            
+            If a powerline is on "hard overflow" (meaning its flow would be above 
+            :attr:`grid2op.Parameters.Parameters.HARD_OVERFLOW_THRESHOLD` * `the limit`), then, as it is 
+            the case for a "normal" (without options) reset, this line is disconnected, but can be reconnected
+            directly (:attr:`grid2op.Observation.BaseObservation.time_before_cooldown_line` == 0)
+        
+        
         """
         # process the "options" kwargs
         # (if there is an init state then I need to process it to remove the 
@@ -1079,6 +1139,28 @@ class Environment(BaseEnv):
         if self.viewer_fig is not None:
             del self.viewer_fig
             self.viewer_fig = None
+        
+        if options is not None and "init ts" in options:
+            try:
+                skip_ts = int(options["init ts"])
+            except ValueError as exc_:
+                raise Grid2OpException("In `env.reset` the kwargs `init ts` should be convertible to an int") from exc_
+        
+            if skip_ts != options["init ts"]:
+                raise Grid2OpException(f"In `env.reset` the kwargs `init ts` should be convertible to an int, found {options['init ts']}")
+            
+            self._reset_vectors_and_timings() 
+            
+            if skip_ts < 1:
+                raise Grid2OpException(f"In `env.reset` the kwargs `init ts` should be an int >= 1, found {options['init ts']}")
+            if skip_ts == 1:
+                self._init_obs = None
+                self.step(self.action_space())
+            elif skip_ts == 2:
+                self.fast_forward_chronics(1)
+            else:
+                self.fast_forward_chronics(skip_ts)
+            
         # if True, then it will not disconnect lines above their thermal limits
         self._reset_vectors_and_timings()  # and it needs to be done AFTER to have proper timings at tbe beginning
         # the attention budget is reset above

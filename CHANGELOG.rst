@@ -36,7 +36,10 @@ Change Log
 - TODO A number of max buses per sub
 - TODO Automatic "experimental_read_from_local_dir"
 - TODO Notebook for stable baselines
-- TODO in the reset options: datetime start and max number of steps
+- TODO in the reset options: and max number of steps
+
+- [ADDED] possibility to skip some step when calling `env.reset(..., options={"init ts": ...})`
+
 
 [1.10.2] - 2024-05-27
 -------------------------
