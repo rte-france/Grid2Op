@@ -10,7 +10,7 @@ import copy
 import warnings
 import numpy as np
 import re
-from typing import Optional, Union, Any, Dict, Literal
+from typing import Optional, Union, Literal
 
 import grid2op
 from grid2op.Opponent import OpponentSpace
@@ -33,7 +33,7 @@ from grid2op.Environment.baseEnv import BaseEnv
 from grid2op.Opponent import BaseOpponent, NeverAttackBudget
 from grid2op.operator_attention import LinearAttentionBudget
 from grid2op.Space import DEFAULT_N_BUSBAR_PER_SUB
-from grid2op.typing_variables import RESET_OPTIONS_TYPING
+from grid2op.typing_variables import RESET_OPTIONS_TYPING, N_BUSBAR_PER_SUB_TYPING
 
 
 class Environment(BaseEnv):
@@ -84,7 +84,7 @@ class Environment(BaseEnv):
         backend,
         parameters,
         name="unknown",
-        n_busbar=DEFAULT_N_BUSBAR_PER_SUB,
+        n_busbar : N_BUSBAR_PER_SUB_TYPING=DEFAULT_N_BUSBAR_PER_SUB,
         names_chronics_to_backend=None,
         actionClass=TopologyAction,
         observationClass=CompleteObservation,
@@ -152,7 +152,7 @@ class Environment(BaseEnv):
             observation_bk_kwargs=observation_bk_kwargs,
             highres_sim_counter=highres_sim_counter,
             update_obs_after_reward=_update_obs_after_reward,
-            n_busbar=n_busbar,
+            n_busbar=n_busbar,  # TODO n_busbar_per_sub different num per substations: read from a config file maybe (if not provided by the user)
             _init_obs=_init_obs,
             _is_test=_is_test,  # is this created with "test=True" # TODO not implemented !!
         )

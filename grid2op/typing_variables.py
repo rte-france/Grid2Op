@@ -54,3 +54,9 @@ CLS_AS_DICT_TYPING = Dict[str,
                                 np.ndarray,  # eg load_to_subid, gen_pos_topo_vect
                                 List[Union[int, str, float, bool]]]
                           ]
+
+#: n_busbar_per_sub
+N_BUSBAR_PER_SUB_TYPING = Union[int,           # one for all substation
+                                List[int],     # give info for all substations
+                                Dict[str, int] # give information for some substation
+                                ]
