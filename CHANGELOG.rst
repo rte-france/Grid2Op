@@ -36,9 +36,12 @@ Change Log
 - TODO A number of max buses per sub
 - TODO Automatic "experimental_read_from_local_dir"
 - TODO Notebook for stable baselines
-- TODO in the reset options: and max number of steps
+- TODO reset options in the runner
 
+- [FIXED] a bug in the `MultiFolder` and `MultifolderWithCache` leading to the wrong 
+  computation of `max_iter` on some corner cases
 - [ADDED] possibility to skip some step when calling `env.reset(..., options={"init ts": ...})`
+- [ADDED] possibility to limit the duration of an episode with `env.reset(..., options={"max step": ...})`
 
 
 [1.10.2] - 2024-05-27

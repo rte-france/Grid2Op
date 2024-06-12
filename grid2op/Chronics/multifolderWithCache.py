@@ -239,6 +239,7 @@ class MultifolderWithCache(Multifolder):
         id_scenario = self._order[self._prev_cache_id]
         self.data = self._cached_data[id_scenario]
         self.data.next_chronics()
+        self._max_iter = self.data.max_iter
     
     @property
     def max_iter(self):

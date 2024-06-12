@@ -299,8 +299,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
     #: this are the keys of the dictionnary `options`
     #: that can be used when calling `env.reset(..., options={})`
-    KEYS_RESET_OPTIONS = {"time serie id", "init state", "init ts", "max ts"}
-    
+    KEYS_RESET_OPTIONS = {"time serie id", "init state", "init ts", "max step"}
     
     def __init__(
         self,
@@ -3780,6 +3779,12 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             From grid2op version 1.10.3, a similar objective can be
             obtained directly by calling :func:`grid2op.Environment.Environment.reset` with `"init ts"`
             as option, for example like `obs = env.reset(options={"init ts": 12})`
+
+
+        .. danger::
+            The usage of both :func:`BaseEnv.fast_forward_chronics` and :func:`Environment.set_max_iter`
+            is not recommended at all and might not behave correctly. Please use `env.reset` with 
+            `obs = env.reset(options={"max step": xxx, "init ts": yyy})` for a correct behaviour.
             
         Parameters
         ----------

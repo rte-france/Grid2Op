@@ -175,9 +175,9 @@ class ChronicsHandler(RandomObject):
 
         """
 
-        if not isinstance(max_iter, int):
+        if not isinstance(max_iter, (int, dt_int, np.int64)):
             raise Grid2OpException(
-                "The maximum number of iterations possible for this chronics, before it ends."
+                "The maximum number of iterations possible for this time series, before it ends should be an int"
             )
         if max_iter == 0:
             raise Grid2OpException(
