@@ -38,6 +38,9 @@ Change Log
 - TODO Notebook for stable baselines
 - TODO reset options in the runner
 
+- [BREAKING] `env.chronics_hander.set_max_iter()` is now a private function. Use 
+  `env.set_max_iter()` instead. Indeed, `env.chronics_hander.set_max_iter()` will likely has
+  no effect
 - [FIXED] a bug in the `MultiFolder` and `MultifolderWithCache` leading to the wrong 
   computation of `max_iter` on some corner cases
 - [ADDED] possibility to skip some step when calling `env.reset(..., options={"init ts": ...})`

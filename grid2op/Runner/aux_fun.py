@@ -122,20 +122,18 @@ def _aux_run_one_episode(
     cum_reward = dt_float(0.0)
 
     # set the environment to use the proper chronic
-    env.set_id(indx)
-    # set the seed
-    if env_seed is not None:
-        env.seed(env_seed)
-
+    # env.set_id(indx)
+    
+    options = {"time serie id": indx}
     # handle max_iter
     if max_iter is not None:
-        env.chronics_handler.set_max_iter(max_iter)
-    
+        options["max step"] = max_iter
+    # handle init state
+    if init_state is not None:
+        options["init state"] = init_state
+        
     # reset it
-    if init_state is None:
-        obs = env.reset()
-    else:
-        obs = env.reset(options={"init state": init_state})
+    obs = env.reset(seed=env_seed, options=options)
         
     # reset the number of calls to high resolution simulator
     env._highres_sim_counter._HighResSimCounter__nb_highres_called = 0

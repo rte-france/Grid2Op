@@ -596,7 +596,7 @@ class Environment(BaseEnv):
         """
         max_iter_int = self._aux_check_max_iter(max_iter)
         self._max_iter = max_iter_int
-        self.chronics_handler.set_max_iter(max_iter_int)
+        self.chronics_handler._set_max_iter(max_iter_int)
 
     @property
     def _helper_observation(self):
@@ -1397,6 +1397,7 @@ class Environment(BaseEnv):
         new_obj._actionClass_orig = self._actionClass_orig
         new_obj._observationClass_orig = self._observationClass_orig
         new_obj._max_iter = self._max_iter
+        new_obj._max_step = self._max_step
 
     def copy(self) -> "Environment":
         """
