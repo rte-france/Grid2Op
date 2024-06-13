@@ -1122,7 +1122,7 @@ class TestEnvChunk(HelperTests, unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self.env = grid2op.make("rte_case14_realistic", test=True, _add_to_name=type(self).__name__)
-            self.env.chronics_handler.set_max_iter(self.max_iter)
+            self.env.set_max_iter(self.max_iter)
 
     def tearDown(self):
         self.env.close()
@@ -1183,7 +1183,7 @@ class TestMissingData(HelperTests, unittest.TestCase):
             ) as env:
                 # test a first time without chunks
                 env.set_id(0)
-                env.chronics_handler.set_max_iter(max_iter)
+                env.set_max_iter(max_iter)
                 obs = env.reset()
 
                 # check that simulate is working

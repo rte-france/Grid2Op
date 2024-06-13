@@ -93,8 +93,8 @@ class CSVForecastHandler(CSVHandler):
     def set_chunk_size(self, chunk_size):
         super().set_chunk_size(self._nb_row_per_step * int(chunk_size))
         
-    def set_max_iter(self, max_iter):
-        super().set_max_iter(self._nb_row_per_step * int(max_iter))
+    def _set_max_iter(self, max_iter):
+        super()._set_max_iter(self._nb_row_per_step * int(max_iter))
     
     def set_h_forecast(self, h_forecast):
         super().set_h_forecast(h_forecast)

@@ -204,7 +204,7 @@ class FromHandlers(GridValue):
             self.set_chunk_size(chunk_size)
         
         if max_iter != -1:
-            self.set_max_iter(max_iter)
+            self._set_max_iter(max_iter)
             
         self.init_datetime()
         self.current_inj = None
@@ -389,10 +389,10 @@ class FromHandlers(GridValue):
         for el in self._active_handlers:
             el.set_chunk_size(new_chunk_size)
     
-    def set_max_iter(self, max_iter):
+    def _set_max_iter(self, max_iter):
         self.max_iter = int(max_iter)
         for el in self._active_handlers:
-            el.set_max_iter(max_iter)
+            el._set_max_iter(max_iter)
     
     def init_datetime(self):
         for handl in self._active_handlers:

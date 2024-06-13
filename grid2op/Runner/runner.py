@@ -789,7 +789,7 @@ class Runner(object):
                 init_state=init_state,
             )
             if max_iter is not None:
-                env.chronics_handler.set_max_iter(-1)
+                env.chronics_handler._set_max_iter(-1)
             
             id_chron = env.chronics_handler.get_id()
         # `res` here necessarily contains detailed_output and nb_highres_call  

@@ -38,9 +38,13 @@ Change Log
 - TODO Notebook for stable baselines
 - TODO reset options in the runner
 
-- [BREAKING] `env.chronics_hander.set_max_iter()` is now a private function. Use 
-  `env.set_max_iter()` instead. Indeed, `env.chronics_hander.set_max_iter()` will likely has
-  no effect
+- [BREAKING] `env.chronics_hander.set_max_iter(xxx)` is now a private function. Use 
+  `env.set_max_iter(xxx)` or even better `env.reset(options={"max step": xxx})`. 
+  Indeed, `env.chronics_hander.set_max_iter()` will likely have
+  no effect at all on your environment.
+- [BREAKING] for all the `Handler` (*eg* `CSVForecastHandler`) the method `set_max_iter` is 
+  now private (for the same reason as the `env.chronics_handler`). We do not recommend to
+  use it (will likely have no effect). Prefer using `env.set_max_iter` instead.
 - [FIXED] a bug in the `MultiFolder` and `MultifolderWithCache` leading to the wrong 
   computation of `max_iter` on some corner cases
 - [ADDED] possibility to skip some step when calling `env.reset(..., options={"init ts": ...})`

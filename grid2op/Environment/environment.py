@@ -1268,10 +1268,10 @@ class Environment(BaseEnv):
                 max_iter_chron = max_iter_int + skip_ts
             else:
                 max_iter_chron = max_iter_int
-            self.chronics_handler.set_max_iter(max_iter_chron)
+            self.chronics_handler._set_max_iter(max_iter_chron)
         else:
             # reset previous max iter to value set with `env.set_max_iter(...)` (or -1 by default)
-            self.chronics_handler.set_max_iter(self._max_iter)
+            self.chronics_handler._set_max_iter(self._max_iter)
         self.chronics_handler.next_chronics()
         self.chronics_handler.initialize(
             self.backend.name_load,
