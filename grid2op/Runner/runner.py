@@ -29,18 +29,20 @@ from grid2op.VoltageControler import ControlVoltageFromFile
 from grid2op.dtypes import dt_float
 from grid2op.Opponent import BaseOpponent, NeverAttackBudget
 from grid2op.operator_attention import LinearAttentionBudget
+from grid2op.Space import DEFAULT_N_BUSBAR_PER_SUB
+from grid2op.Episode import EpisodeData
+# on windows if i start using sequential, i need to continue using sequential
+# if i start using parallel i need to continue using parallel
+# so i force the usage of the "starmap" stuff even if there is one process on windows
+from grid2op._glop_platform_info import _IS_WINDOWS, _IS_LINUX, _IS_MACOS
+
 from grid2op.Runner.aux_fun import (
     _aux_run_one_episode,
     _aux_make_progress_bar,
     _aux_one_process_parrallel,
 )
 from grid2op.Runner.basic_logger import DoNothingLog, ConsoleLog
-from grid2op.Episode import EpisodeData
 
-# on windows if i start using sequential, i need to continue using sequential
-# if i start using parallel i need to continue using parallel
-# so i force the usage of the "starmap" stuff even if there is one process on windows
-from grid2op._glop_platform_info import _IS_WINDOWS, _IS_LINUX, _IS_MACOS
 
 runner_returned_type = Union[Tuple[str, str, float, int, int],
                              Tuple[str, str, float, int, int, EpisodeData],
@@ -56,7 +58,6 @@ runner_returned_type = Union[Tuple[str, str, float, int, int],
 # TODO: if chronics are "loop through" multiple times, only last results are saved. :-/
 
 KEY_TIME_SERIE_ID = "time serie id"
-
 
 class Runner(object):
     """
@@ -246,7 +247,7 @@ class Runner(object):
         init_env_path: str,
         init_grid_path: str,
         path_chron,  # path where chronics of injections are stored
-        n_busbar=2,
+        n_busbar=DEFAULT_N_BUSBAR_PER_SUB,
         name_env="unknown",
         parameters_path=None,
         names_chronics_to_backend=None,
@@ -918,6 +919,7 @@ class Runner(object):
                 ) = self.run_one_episode(
                     path_save=path_save,
                     indx=ep_id,
+                    episode_id=ep_id,
                     pbar=next_pbar[0],
                     env_seed=env_seed,
                     agent_seed=agt_seed,
@@ -1184,6 +1186,7 @@ class Runner(object):
     def run(
         self,
         nb_episode,
+        *,  # force kwargs
         nb_process=1,
         path_save=None,
         max_iter=None,
@@ -1452,7 +1455,13 @@ class Runner(object):
                                    "either use dictionnary, grid2op actions or list / tuple of actions.")
         
         if reset_options is not None:
-            if isinstance(reset_options, (dict)):
+            if isinstance(reset_options, dict):
+                for k in reset_options:
+                    if not k in self.envClass.KEYS_RESET_OPTIONS:
+                        raise RuntimeError("Wehn specifying `reset options` all keys of the dictionary should "
+                                            "be compatible with the available reset options of your environment "
+                                            f"class. You provided the key \"{k}\" for the provided dictionary but"
+                                            f"possible keys are limited to {self.envClass.KEYS_RESET_OPTIONS}.")
                 # user provided one initial state, I copy it to all 
                 # evaluation
                 reset_options = [reset_options.copy() for _ in range(nb_episode)]
@@ -1469,6 +1478,13 @@ class Runner(object):
                         raise RuntimeError("When specifying `reset_options` kwargs with a list (or a tuple) "
                                            "it should be a list (or a tuple) of dictionary or BaseAction. "
                                            f"You provided {type(el)} at position {i}.")
+                for i, el in enumerate(reset_options):
+                    for k in el:
+                        if not k in self.envClass.KEYS_RESET_OPTIONS:
+                            raise RuntimeError("Wehn specifying `reset options` all keys of the dictionary should "
+                                               "be compatible with the available reset options of your environment "
+                                               f"class. You provided the key \"{k}\" for the {i}th dictionary but"
+                                               f"possible keys are limited to {self.envClass.KEYS_RESET_OPTIONS}.")
             else:
                 raise RuntimeError("When using `reset_options` in the runner, you should make sure to use "
                                    "either use dictionnary, grid2op actions or list / tuple of actions.")

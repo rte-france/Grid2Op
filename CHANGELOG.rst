@@ -45,6 +45,8 @@ Change Log
 - [BREAKING] for all the `Handler` (*eg* `CSVForecastHandler`) the method `set_max_iter` is 
   now private (for the same reason as the `env.chronics_handler`). We do not recommend to
   use it (will likely have no effect). Prefer using `env.set_max_iter` instead.
+- [BREAKING] now the `runner.run()` method only accept kwargs argument 
+  (because  it should always have been like this)
 - [FIXED] a bug in the `MultiFolder` and `MultifolderWithCache` leading to the wrong 
   computation of `max_iter` on some corner cases
 - [ADDED] possibility to skip some step when calling `env.reset(..., options={"init ts": ...})`

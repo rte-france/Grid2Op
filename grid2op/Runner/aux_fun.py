@@ -8,7 +8,7 @@
 
 import copy
 import time
-
+import warnings
 import numpy as np
 
 from grid2op.Environment import Environment
@@ -51,11 +51,6 @@ def _aux_one_process_parrallel(
     reset_options=None,
 ):
     """this is out of the runner, otherwise it does not work on windows / macos"""
-    # chronics_handler = ChronicsHandler(
-    #     chronicsClass=runner.gridStateclass,
-    #     path=runner.path_chron,
-    #     **runner.gridStateclass_kwargs
-    # )
     parameters = copy.deepcopy(runner.parameters)
     nb_episode_this_process = len(episode_this_process)
     res = [(None, None, None) for _ in range(nb_episode_this_process)]
