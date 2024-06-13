@@ -165,8 +165,8 @@ class Environment(BaseEnv):
         self._read_from_local_dir = _read_from_local_dir
         
         # to remember if the user specified a "max_iter" at some point
-        self._max_iter = -1
-        self._max_step = None
+        self._max_iter = chronics_handler.max_iter  # for all episode, set in the chronics_handler or by a call to `env.set_max_iter`
+        self._max_step = None  # for the current episode
         
         #: starting grid2Op 1.11 classes are stored on the disk when an environment is created
         #: so the "environment" is created twice (one to generate the class and then correctly to load them)

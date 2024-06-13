@@ -128,6 +128,7 @@ def _aux_run_one_episode(
     # handle max_iter
     if max_iter is not None:
         options["max step"] = max_iter
+        
     # handle init state
     if init_state is not None:
         options["init state"] = init_state

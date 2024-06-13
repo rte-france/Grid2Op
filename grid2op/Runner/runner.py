@@ -539,11 +539,6 @@ class Runner(object):
         self.max_iter = max_iter
         if max_iter > 0:
             self.gridStateclass_kwargs["max_iter"] = max_iter
-        # self.chronics_handler = ChronicsHandler(
-        #     chronicsClass=self.gridStateclass,
-        #     path=self.path_chron,
-        #     **self.gridStateclass_kwargs
-        # )
 
         self.verbose = verbose
         self.thermal_limit_a = thermal_limit_a
@@ -636,12 +631,6 @@ class Runner(object):
         return res
     
     def _new_env(self, parameters) -> Tuple[BaseEnv, BaseAgent]:
-        # the same chronics_handler is used for all the environments.
-        # make sure to "reset" it properly
-        # (this is handled elsewhere in case of "multi chronics")
-        # ch_used = copy.deepcopy(chronics_handler)
-        # if not ch_used.chronicsClass.MULTI_CHRONICS:
-        #     ch_used.next_chronics()  
         chronics_handler = ChronicsHandler(
             chronicsClass=self.gridStateclass,
             path=self.path_chron,
