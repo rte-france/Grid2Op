@@ -55,6 +55,8 @@ runner_returned_type = Union[Tuple[str, str, float, int, int],
 # TODO use gym logger if specified by the user.
 # TODO: if chronics are "loop through" multiple times, only last results are saved. :-/
 
+KEY_TIME_SERIE_ID = "time serie id"
+
 
 class Runner(object):
     """
@@ -725,7 +727,8 @@ class Runner(object):
         episode_id=None,
         detailed_output=False,
         add_nb_highres_sim=False,
-        init_state=None
+        init_state=None,
+        reset_options=None,
     ) -> runner_returned_type:
         """
         INTERNAL
@@ -762,12 +765,23 @@ class Runner(object):
 
         """
         self.reset()
-        with self.init_env() as env:                
+        with self.init_env() as env:  
+            # small piece of code to detect the 
+            # episode id
+            if episode_id is None:
+                # user did not provide any episode id, I check in the reset_options
+                if reset_options is not None:
+                    if KEY_TIME_SERIE_ID in reset_options:
+                        indx = int(reset_options[KEY_TIME_SERIE_ID])
+                        del reset_options[KEY_TIME_SERIE_ID]
+            else:
+                # user specified an episode id, I use it.
+                indx = episode_id                      
             res = _aux_run_one_episode(
                 env,
                 self.agent,
                 self.logger,
-                indx if episode_id is None else episode_id,
+                indx,
                 path_save,
                 pbar=pbar,
                 env_seed=env_seed,
@@ -776,6 +790,7 @@ class Runner(object):
                 detailed_output=detailed_output,
                 use_compact_episode_data = self.use_compact_episode_data,
                 init_state=init_state,
+                reset_option=reset_options,
             )
             if max_iter is not None:
                 env.chronics_handler._set_max_iter(-1)
@@ -802,7 +817,8 @@ class Runner(object):
         episode_id=None,
         add_detailed_output=False,
         add_nb_highres_sim=False,
-        init_states=None
+        init_states=None,
+        reset_options=None,
     ) -> List[runner_returned_type]:
         """
         INTERNAL
@@ -875,9 +891,22 @@ class Runner(object):
                 init_state = None
                 if init_states is not None:
                     init_state = init_states[i]
-                ep_id = i  # if no "episode_id" is provided i used the i th one
+                reset_opt = None
+                if reset_options is not None:
+                    # we copy it because we might remove the "time serie id"
+                    # from it
+                    reset_opt = reset_options[i].copy()
+                # if no "episode_id" is provided i used the i th one   
+                ep_id = i 
                 if episode_id is not None:
+                    # if episode_id is provided, I use this one
                     ep_id = episode_id[i]  # otherwise i use the provided one
+                else:
+                    # if it's not provided, I check if one is used in the `reset_options`
+                    if reset_opt is not None:
+                        if KEY_TIME_SERIE_ID in reset_opt:
+                            ep_id = int(reset_opt[KEY_TIME_SERIE_ID])
+                            del reset_opt[KEY_TIME_SERIE_ID]
                 (
                     id_chron,
                     name_chron,
@@ -896,6 +925,7 @@ class Runner(object):
                     detailed_output=True,
                     add_nb_highres_sim=True,
                     init_state=init_state,
+                    reset_options=reset_opt
                 )
                 res[i] = (id_chron,
                           name_chron,
@@ -921,7 +951,8 @@ class Runner(object):
         episode_id=None,
         add_detailed_output=False,
         add_nb_highres_sim=False,
-        init_states=None
+        init_states=None,
+        reset_options=None,
     ) -> List[runner_returned_type]:
         """
         INTERNAL
@@ -992,7 +1023,7 @@ class Runner(object):
             # if i start using parallel i need to continue using parallel
             # so i force the usage of the sequential mode
             self.logger.warn(
-                "Runner.run_parrallel: number of process set to 1. Failing back into sequential mod."
+                "Runner.run_parrallel: number of process set to 1. Failing back into sequential mode."
             )
             return self._run_sequential(
                 nb_episode,
@@ -1004,6 +1035,7 @@ class Runner(object):
                 add_detailed_output=add_detailed_output,
                 add_nb_highres_sim=add_nb_highres_sim,
                 init_states=init_states,
+                reset_options=reset_options
             )
         else:
             self._clean_up()
@@ -1012,8 +1044,22 @@ class Runner(object):
             process_ids = [[] for i in range(nb_process)]
             for i in range(nb_episode):
                 if episode_id is None:
-                    process_ids[i % nb_process].append(i)
+                    # user does not provide episode_id
+                    if reset_options is not None:
+                        # we copy them, because we might delete some things from them
+                        reset_options = [el.copy() for el in reset_options]  
+                        
+                        # we check if the reset_options contains the "time serie id"
+                        if KEY_TIME_SERIE_ID in reset_options[i]:
+                            this_ep_id = int(reset_options[i][KEY_TIME_SERIE_ID])
+                            del reset_options[i][KEY_TIME_SERIE_ID]
+                        else:
+                            this_ep_id = i
+                    else:
+                        this_ep_id = i
+                    process_ids[i % nb_process].append(this_ep_id)
                 else:
+                    # user provided episode_id, we use this one
                     process_ids[i % nb_process].append(episode_id[i])
 
             if env_seeds is None:
@@ -1035,11 +1081,19 @@ class Runner(object):
             if init_states is None:
                 init_states_res = [None for _ in range(nb_process)]
             else:
-                # split the seeds according to the process
+                # split the init states according to the process
                 init_states_res = [[] for _ in range(nb_process)]
                 for i in range(nb_episode):
                     init_states_res[i % nb_process].append(init_states[i])
 
+            if reset_options is None:
+                reset_options_res = [None for _ in range(nb_process)]
+            else:
+                # split the reset options according to the process
+                reset_options_res = [[] for _ in range(nb_process)]
+                for i in range(nb_episode):
+                    reset_options_res[i % nb_process].append(reset_options[i])
+                
             res = []
             if _IS_LINUX:
                 lists = [(self,) for _ in enumerate(process_ids)]
@@ -1056,7 +1110,8 @@ class Runner(object):
                             max_iter,
                             add_detailed_output,
                             add_nb_highres_sim,
-                            init_states_res[i])
+                            init_states_res[i],
+                            reset_options_res[i])
                 
             if get_start_method() == 'spawn':
                 # https://github.com/rte-france/Grid2Op/issues/600
@@ -1139,6 +1194,7 @@ class Runner(object):
         add_detailed_output=False,
         add_nb_highres_sim=False,
         init_states=None,
+        reset_options=None,
     ) -> List[runner_returned_type]:
         """
         Main method of the :class:`Runner` class. It will either call :func:`Runner._run_sequential` if "nb_process" is
@@ -1159,7 +1215,11 @@ class Runner(object):
 
         max_iter: ``int``
             Maximum number of iteration you want the runner to perform.
-
+            
+            .. warning::
+                (only for grid2op >= 1.10.3) If set in this parameters, it will
+                erase all values that may be present in the `reset_options` kwargs (key `"max step"`) 
+                
         pbar: ``bool`` or ``type`` or ``object``
             How to display the progress bar, understood as follow:
 
@@ -1185,6 +1245,15 @@ class Runner(object):
             For each of the nb_episdeo you want to compute, it specifies the id of the chronix that will be used.
             By default ``None``, no seeds are set. If provided,
             its size should match ``nb_episode``.
+            
+            .. warning::
+                (only for grid2op >= 1.10.3)  If set in this parameters, it will
+                erase all values that may be present in the `reset_options` kwargs (key `"time serie id"`).
+                
+            .. danger::
+                As of now, it's not properly handled to compute twice the same `episode_id` more than once using the runner
+                (more specifically, the computation will happen but file might not be saved correctly on the 
+                hard drive: attempt to save all the results in the same location. We do not advise to do it)
 
         add_detailed_output: ``bool``
             A flag to add an :class:`EpisodeData` object to the results, containing a lot of information about the run
@@ -1204,6 +1273,43 @@ class Runner(object):
             If you provide a dictionary or a grid2op action, then this element will be used for all scenarios you
             want to run.
             
+            .. warning::
+                (only for grid2op >= 1.10.3)  If set in this parameters, it will
+                erase all values that may be present in the `reset_options` kwargs (key `"init state"`).
+
+        reset_options:
+            (added in grid2op 1.10.3) Possibility to customize the call to `env.reset` made internally by
+            the Runner. More specifically, it will pass a custom `options` when the runner calls 
+            `env.reset(..., options=XXX)`.
+            
+            It should either be:
+            
+            - a dictionary that can be used directly by :func:`grid2op.Environment.Environment.reset`. 
+              In this case the same dictionary will be used for all the episodes computed by the runner.
+            - a list / tuple of one of the above with the same size as the number of episode you want to
+              compute which allow a full customization for each episode.
+              
+            .. warning::
+                If the kwargs `max_iter` is present when calling `runner.run` function, then the key `max step`
+                will be ignored in all the `reset_options` dictionary.
+              
+            .. warning::
+                If the kwargs `episode_id` is present when calling `runner.run` function, then the key `time serie id`
+                will be ignored in all the `reset_options` dictionary.
+              
+            .. warning::
+                If the kwargs `init_states` is present when calling `runner.run` function, then the key `init state`
+                will be ignored in all the `reset_options` dictionary.
+                
+            .. danger::
+                If you provide the key "time serie id" in one of the `reset_options` dictionary, we recommend
+                you do it for all `reset options` otherwise you might not end up computing the correct episodes.
+                
+            .. danger::
+                As of now, it's not properly handled to compute twice the same `time serie` more than once using the runner
+                (more specifically, the computation will happen but file might not be saved correctly on the 
+                hard drive: attempt to save all the results in the same location. We do not advise to do it)
+                        
         Returns
         -------
         res: ``list``
@@ -1343,8 +1449,30 @@ class Runner(object):
                                            f"You provided {type(el)} at position {i}.")
             else:
                 raise RuntimeError("When using `init_state` in the runner, you should make sure to use "
-                                   "either use dictionnary, grid2op actions or list of actions.")
-                    
+                                   "either use dictionnary, grid2op actions or list / tuple of actions.")
+        
+        if reset_options is not None:
+            if isinstance(reset_options, (dict)):
+                # user provided one initial state, I copy it to all 
+                # evaluation
+                reset_options = [reset_options.copy() for _ in range(nb_episode)]
+            elif isinstance(reset_options, (list, tuple, np.ndarray)):
+                # user provided a list ofreset_options, it should match the
+                # number of scenarios
+                if len(reset_options) != nb_episode:
+                    raise RuntimeError(
+                        'You want to compute "{}" run(s) but provide only "{}" different reset options.'
+                        "".format(nb_episode, len(reset_options))
+                    )
+                for i, el in enumerate(reset_options):
+                    if not isinstance(el, dict):
+                        raise RuntimeError("When specifying `reset_options` kwargs with a list (or a tuple) "
+                                           "it should be a list (or a tuple) of dictionary or BaseAction. "
+                                           f"You provided {type(el)} at position {i}.")
+            else:
+                raise RuntimeError("When using `reset_options` in the runner, you should make sure to use "
+                                   "either use dictionnary, grid2op actions or list / tuple of actions.")
+            
         if max_iter is not None:
             max_iter = int(max_iter)
 
@@ -1367,7 +1495,8 @@ class Runner(object):
                         episode_id=episode_id,
                         add_detailed_output=add_detailed_output,
                         add_nb_highres_sim=add_nb_highres_sim,
-                        init_states=init_states
+                        init_states=init_states,
+                        reset_options=reset_options
                     )
                 else:
                     if add_detailed_output and (_IS_WINDOWS or _IS_MACOS):
@@ -1386,7 +1515,8 @@ class Runner(object):
                             episode_id=episode_id,
                             add_detailed_output=add_detailed_output,
                             add_nb_highres_sim=add_nb_highres_sim,
-                            init_states=init_states
+                            init_states=init_states,
+                            reset_options=reset_options
                         )
                     else:
                         self.logger.info("Parallel runner used.")
@@ -1400,7 +1530,8 @@ class Runner(object):
                             episode_id=episode_id,
                             add_detailed_output=add_detailed_output,
                             add_nb_highres_sim=add_nb_highres_sim,
-                            init_states=init_states
+                            init_states=init_states,
+                            reset_options=reset_options
                         )
             finally:
                 self._clean_up()

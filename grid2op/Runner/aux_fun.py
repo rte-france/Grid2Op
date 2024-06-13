@@ -36,6 +36,7 @@ def _aux_add_data(reward, env, episode,
     )
     return reward
                 
+                
 def _aux_one_process_parrallel(
     runner,
     episode_this_process,
@@ -46,7 +47,8 @@ def _aux_one_process_parrallel(
     max_iter=None,
     add_detailed_output=False,
     add_nb_highres_sim=False,
-    init_states=None
+    init_states=None,
+    reset_options=None,
 ):
     """this is out of the runner, otherwise it does not work on windows / macos"""
     # chronics_handler = ChronicsHandler(
@@ -75,7 +77,11 @@ def _aux_one_process_parrallel(
                 init_state = init_states[i]
             else:
                 init_state = None
-                
+            
+            if reset_options is not None:
+                reset_option = reset_options[i]
+            else:
+                reset_option = None
             tmp_ = _aux_run_one_episode(
                 env,
                 agent,
@@ -87,7 +93,8 @@ def _aux_one_process_parrallel(
                 agent_seed=agt_seed,
                 detailed_output=add_detailed_output,
                 use_compact_episode_data=runner.use_compact_episode_data,
-                init_state=init_state
+                init_state=init_state,
+                reset_option=reset_option
             )
             (name_chron, cum_reward, nb_time_step, max_ts, episode_data, nb_highres_sim)  = tmp_
             id_chron = env.chronics_handler.get_id()
@@ -114,7 +121,8 @@ def _aux_run_one_episode(
     max_iter=None,
     detailed_output=False,
     use_compact_episode_data=False,
-    init_state=None
+    init_state=None,
+    reset_option=None,
 ):
     done = False
     time_step = int(0)
@@ -123,18 +131,33 @@ def _aux_run_one_episode(
 
     # set the environment to use the proper chronic
     # env.set_id(indx)
+    if reset_option is None:
+        reset_option = {}
     
-    options = {"time serie id": indx}
+    if "time serie id" in reset_option:
+        warnings.warn("You provided both `episode_id` and the key `'time serie id'` is present "
+                      "in the provided `reset_options`. In this case, grid2op will ignore the "
+                      "`time serie id` of the `reset_options` and keep the value in `episode_id`.")
+    reset_option["time serie id"] = indx
+    
     # handle max_iter
     if max_iter is not None:
-        options["max step"] = max_iter
+        if "max step" in reset_option:
+            warnings.warn("You provided both `max_iter` and the key `'max step'` is present "
+                          "in the provided `reset_options`. In this case, grid2op will ignore the "
+                          "`max step` of the `reset_options` and keep the value in `max_iter`.")
+        reset_option["max step"] = max_iter
         
     # handle init state
     if init_state is not None:
-        options["init state"] = init_state
+        if "init state" in reset_option:
+            warnings.warn("You provided both `init_state` and the key `'init state'` is present "
+                          "in the provided `reset_options`. In this case, grid2op will ignore the "
+                          "`init state` of the `reset_options` and keep the value in `init_state`.")
+        reset_option["init state"] = init_state
         
     # reset it
-    obs = env.reset(seed=env_seed, options=options)
+    obs = env.reset(seed=env_seed, options=reset_option)
         
     # reset the number of calls to high resolution simulator
     env._highres_sim_counter._HighResSimCounter__nb_highres_called = 0
