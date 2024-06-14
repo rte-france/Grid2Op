@@ -80,7 +80,7 @@ class MultiStepsForcaTester(unittest.TestCase):
     
     def test_max_iter(self):
         max_iter = 4
-        self.env.chronics_handler.set_max_iter(max_iter)
+        self.env.set_max_iter(max_iter)
         
         obs = self.env.reset()
         self.aux_test_for_consistent(obs)

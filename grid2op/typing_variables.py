@@ -45,6 +45,8 @@ DICT_ACT_TYPING = Dict[Literal["set_line_status",
 #: type hints for the "options" flag of reset function
 RESET_OPTIONS_TYPING = Union[Dict[Literal["time serie id"], int],
                              Dict[Literal["init state"], DICT_ACT_TYPING],
+                             Dict[Literal["init ts"], int],
+                             Dict[Literal["max step"], int],
                              None]
 
 #: type hints for a "GridObject" when converted to a dictionary
@@ -54,3 +56,9 @@ CLS_AS_DICT_TYPING = Dict[str,
                                 np.ndarray,  # eg load_to_subid, gen_pos_topo_vect
                                 List[Union[int, str, float, bool]]]
                           ]
+
+#: n_busbar_per_sub
+N_BUSBAR_PER_SUB_TYPING = Union[int,           # one for all substation
+                                List[int],     # give info for all substations
+                                Dict[str, int] # give information for some substation
+                                ]

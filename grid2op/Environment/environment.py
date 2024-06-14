@@ -10,7 +10,7 @@ import copy
 import warnings
 import numpy as np
 import re
-from typing import Optional, Union, Any, Dict, Literal
+from typing import Optional, Union, Literal
 
 import grid2op
 from grid2op.Opponent import OpponentSpace
@@ -33,7 +33,7 @@ from grid2op.Environment.baseEnv import BaseEnv
 from grid2op.Opponent import BaseOpponent, NeverAttackBudget
 from grid2op.operator_attention import LinearAttentionBudget
 from grid2op.Space import DEFAULT_N_BUSBAR_PER_SUB
-from grid2op.typing_variables import RESET_OPTIONS_TYPING
+from grid2op.typing_variables import RESET_OPTIONS_TYPING, N_BUSBAR_PER_SUB_TYPING
 
 
 class Environment(BaseEnv):
@@ -84,7 +84,7 @@ class Environment(BaseEnv):
         backend,
         parameters,
         name="unknown",
-        n_busbar=DEFAULT_N_BUSBAR_PER_SUB,
+        n_busbar : N_BUSBAR_PER_SUB_TYPING=DEFAULT_N_BUSBAR_PER_SUB,
         names_chronics_to_backend=None,
         actionClass=TopologyAction,
         observationClass=CompleteObservation,
@@ -152,7 +152,7 @@ class Environment(BaseEnv):
             observation_bk_kwargs=observation_bk_kwargs,
             highres_sim_counter=highres_sim_counter,
             update_obs_after_reward=_update_obs_after_reward,
-            n_busbar=n_busbar,
+            n_busbar=n_busbar,  # TODO n_busbar_per_sub different num per substations: read from a config file maybe (if not provided by the user)
             _init_obs=_init_obs,
             _is_test=_is_test,  # is this created with "test=True" # TODO not implemented !!
         )
@@ -163,6 +163,10 @@ class Environment(BaseEnv):
             )
         self.name = name
         self._read_from_local_dir = _read_from_local_dir
+        
+        # to remember if the user specified a "max_iter" at some point
+        self._max_iter = chronics_handler.max_iter  # for all episode, set in the chronics_handler or by a call to `env.set_max_iter`
+        self._max_step = None  # for the current episode
         
         #: starting grid2Op 1.11 classes are stored on the disk when an environment is created
         #: so the "environment" is created twice (one to generate the class and then correctly to load them)
@@ -492,20 +496,97 @@ class Environment(BaseEnv):
         to the maximum 32 bit integer (usually `2147483647`)
 
         """
+        if self._max_step is not None:
+            return self._max_step
         tmp = dt_int(self.chronics_handler.max_episode_duration())
         if tmp < 0:
             tmp = dt_int(np.iinfo(dt_int).max)
         return tmp
 
+    def _aux_check_max_iter(self, max_iter):
+        try:
+            max_iter_int = int(max_iter)
+        except ValueError as exc_:
+            raise EnvError("Impossible to set 'max_iter' by providing something that is not an integer.") from exc_
+        if max_iter_int != max_iter:
+            raise EnvError("Impossible to set 'max_iter' by providing something that is not an integer.")
+        if max_iter_int < 1 and max_iter_int != -1:
+            raise EnvError("'max_iter' should be an int >= 1 or -1")
+        return max_iter_int
+        
     def set_max_iter(self, max_iter):
         """
-
+        Set the maximum duration of an episode for all the next episodes.
+        
+        .. seealso::
+            The option `max step` when calling the :func:`Environment.reset` function
+            used like `obs = env.reset(options={"max step": 288})` (see examples of 
+            `env.reset` for more information)
+        
+        .. note::
+            The real maximum duration of a duration depends on this parameter but also on the 
+            size of the time series used. For example, if you use an environment with
+            time series lasting 8064 steps and you call `env.set_max_iter(9000)` 
+            the maximum number of iteration will still be 8064.
+        
+        .. warning::
+            It only has an impact on future episode. Said differently it also has an impact AFTER
+            `env.reset` has been called.
+        
+        .. danger::
+            The usage of both :func:`BaseEnv.fast_forward_chronics` and :func:`Environment.set_max_iter`
+            is not recommended at all and might not behave correctly. Please use `env.reset` with 
+            `obs = env.reset(options={"max step": xxx, "init ts": yyy})` for a correct behaviour.
+            
         Parameters
         ----------
         max_iter: ``int``
-            The maximum number of iteration you can do before reaching the end of the episode. Set it to "-1" for
+            The maximum number of iterations you can do before reaching the end of the episode. Set it to "-1" for
             possibly infinite episode duration.
+            
+        Examples
+        --------
 
+        It can be used like this:
+        
+        .. code-block:: python
+        
+            import grid2op
+            env_name = "l2rpn_case14_sandbox"
+
+            env = grid2op.make(env_name)
+
+            obs = env.reset()
+            obs.max_step == 8064  # default for this environment
+
+            env.set_max_iter(288)
+            # no impact here
+
+            obs = env.reset()
+            obs.max_step == 288 
+
+            # the limitation still applies to the next episode
+            obs = env.reset()
+            obs.max_step == 288 
+            
+        If you want to "unset" your limitation, you can do:
+        
+        .. code-block:: python
+        
+            env.set_max_iter(-1)
+            obs = env.reset()
+            obs.max_step == 8064 
+            
+        Finally, you cannot limit it to something larger than the duration
+        of the time series of the environment:
+        
+        .. code-block:: python
+        
+            env.set_max_iter(9000)
+            obs = env.reset()
+            obs.max_step == 8064 
+            # the call to env.set_max_iter has no impact here
+        
         Notes
         -------
 
@@ -513,7 +594,9 @@ class Environment(BaseEnv):
         more information
 
         """
-        self.chronics_handler.set_max_iter(max_iter)
+        max_iter_int = self._aux_check_max_iter(max_iter)
+        self._max_iter = max_iter_int
+        self.chronics_handler._set_max_iter(max_iter_int)
 
     @property
     def _helper_observation(self):
@@ -892,6 +975,18 @@ class Environment(BaseEnv):
         self.logger = logger
         return self
 
+    def _aux_get_skip_ts(self, options):
+        skip_ts = None 
+        if options is not None and "init ts" in options:
+            try:
+                skip_ts = int(options["init ts"])
+            except ValueError as exc_:
+                raise Grid2OpException("In `env.reset` the kwargs `init ts` should be convertible to an int") from exc_
+        
+            if skip_ts != options["init ts"]:
+                raise Grid2OpException(f"In `env.reset` the kwargs `init ts` should be convertible to an int, found {options['init ts']}")
+        return skip_ts
+        
     def reset(self, 
               *,
               seed: Union[int, None] = None,
@@ -913,7 +1008,11 @@ class Environment(BaseEnv):
             
         options: dict
             Some options to "customize" the reset call. For example specifying the "time serie id" (grid2op >= 1.9.8) to use 
-            or the "initial state of the grid" (grid2op >= 1.10.2). See examples for more information about this. Ignored if 
+            or the "initial state of the grid" (grid2op >= 1.10.2) or to 
+            start the episode at some specific time in the time series (grid2op >= 1.10.3) with the 
+            "init ts" key.
+            
+            See examples for more information about this. Ignored if 
             not set.
         
         Examples
@@ -1035,13 +1134,113 @@ class Environment(BaseEnv):
                 init_state_dict = {"set_line_status": [(0, -1)], "method": "force"}
                 obs = env.reset(options={"init state": init_state_dict})
                 obs.line_status[0] is False
+
+        .. versionadded:: 1.10.3
+        
+        Another feature has been added in version 1.10.3, the possibility to skip the
+        some steps of the time series and starts at some given steps.
+        
+        The time series often always start at a given day of the week (*eg* Monday)
+        and at a given time (*eg* midnight). But for some reason you notice that your
+        agent performs poorly on other day of the week or time of the day. This might be
+        because it has seen much more data from Monday at midnight that from any other 
+        day and hour of the day.
+        
+        To alleviate this issue, you can now easily reset an episode and ask grid2op
+        to start this episode after xxx steps have "passed".
+        
+        Concretely, you can do it with:
+                    
+        .. code-block:: python
+
+            import grid2op
+            env_name = "l2rpn_case14_sandbox"
+            env = grid2op.make(env_name)
+            
+            obs = env.reset(options={"init ts": 1})
+        
+        Doing that your agent will start its episode not at midnight (which
+        is the case for this environment), but at 00:05
+        
+        If you do:
+        
+        .. code-block:: python
+        
+            obs = env.reset(options={"init ts": 12})
+            
+        In this case, you start the episode at 01:00 and not at midnight (you
+        start at what would have been the 12th steps)
+        
+        If you want to start the "next day", you can do:
+        
+        .. code-block:: python
+        
+            obs = env.reset(options={"init ts": 288})
+            
+        etc.
+        
+        .. note::
+            On this feature, if a powerline is on soft overflow (meaning its flow is above 
+            the limit but below the :attr:`grid2op.Parameters.Parameters.HARD_OVERFLOW_THRESHOLD` * `the limit`)
+            then it is still connected (of course) and the counter 
+            :attr:`grid2op.Observation.BaseObservation.timestep_overflow` is at 0.
+            
+            If a powerline is on "hard overflow" (meaning its flow would be above 
+            :attr:`grid2op.Parameters.Parameters.HARD_OVERFLOW_THRESHOLD` * `the limit`), then, as it is 
+            the case for a "normal" (without options) reset, this line is disconnected, but can be reconnected
+            directly (:attr:`grid2op.Observation.BaseObservation.time_before_cooldown_line` == 0)
+        
+        .. seealso::
+            The function :func:`Environment.fast_forward_chronics` for an alternative usage (that will be
+            deprecated at some point)
+            
+        Yet another feature has been added in grid2op version 1.10.3 in this `env.reset` function. It is
+        the capacity to limit the duration of an episode.
+                    
+        .. code-block:: python
+
+            import grid2op
+            env_name = "l2rpn_case14_sandbox"
+            env = grid2op.make(env_name)
+            
+            obs = env.reset(options={"max step": 288})
+
+        This will limit the duration to 288 steps (1 day), meaning your agent
+        will have successfully managed the entire episode if it manages to keep
+        the grid in a safe state for a whole day (depending on the environment you are
+        using the default duration is either one week - roughly 2016 steps or 4 weeks)
+        
+        .. note::
+            This option only affect the current episode. It will have no impact on the 
+            next episode (after reset)
+            
+        For example:
+        
+        .. code-block:: python
+        
+            obs = env.reset()
+            obs.max_step == 8064  # default for this environment
+            
+            obs = env.reset(options={"max step": 288})
+            obs.max_step == 288  # specified by the option
+            
+            obs = env.reset()
+            obs.max_step == 8064  # retrieve the default behaviour
+
+        .. seealso::
+            The function :func:`Environment.set_max_iter` for an alternative usage with the different
+            that `set_max_iter` is permenanent: it impacts all the future episodes and not only
+            the next one.
             
         """
         # process the "options" kwargs
         # (if there is an init state then I need to process it to remove the 
         # some keys)
+        self._max_step = None
         method = "combine"
         init_state = None
+        skip_ts = self._aux_get_skip_ts(options)
+        max_iter_int = None
         if options is not None and "init state" in options:
             act_as_dict = options["init state"]
             if isinstance(act_as_dict, dict):
@@ -1061,7 +1260,18 @@ class Environment(BaseEnv):
             init_state.remove_change()
         
         super().reset(seed=seed, options=options)
-            
+        
+        if options is not None and "max step" in options:                
+            # use the "max iter" provided in the options
+            max_iter_int = self._aux_check_max_iter(options["max step"])
+            if skip_ts is not None:
+                max_iter_chron = max_iter_int + skip_ts
+            else:
+                max_iter_chron = max_iter_int
+            self.chronics_handler._set_max_iter(max_iter_chron)
+        else:
+            # reset previous max iter to value set with `env.set_max_iter(...)` (or -1 by default)
+            self.chronics_handler._set_max_iter(self._max_iter)
         self.chronics_handler.next_chronics()
         self.chronics_handler.initialize(
             self.backend.name_load,
@@ -1070,6 +1280,10 @@ class Environment(BaseEnv):
             self.backend.name_sub,
             names_chronics_to_backend=self._names_chronics_to_backend,
         )
+        if max_iter_int is not None:
+            self._max_step = min(max_iter_int, self.chronics_handler.real_data.max_iter - (skip_ts if skip_ts is not None else 0))
+        else:
+            self._max_step = None
         self._env_modification = None
         self._reset_maintenance()
         self._reset_redispatching()
@@ -1079,6 +1293,20 @@ class Environment(BaseEnv):
         if self.viewer_fig is not None:
             del self.viewer_fig
             self.viewer_fig = None
+        
+        if skip_ts is not None:
+            self._reset_vectors_and_timings() 
+            
+            if skip_ts < 1:
+                raise Grid2OpException(f"In `env.reset` the kwargs `init ts` should be an int >= 1, found {options['init ts']}")
+            if skip_ts == 1:
+                self._init_obs = None
+                self.step(self.action_space())
+            elif skip_ts == 2:
+                self.fast_forward_chronics(1)
+            else:
+                self.fast_forward_chronics(skip_ts)
+            
         # if True, then it will not disconnect lines above their thermal limits
         self._reset_vectors_and_timings()  # and it needs to be done AFTER to have proper timings at tbe beginning
         # the attention budget is reset above
@@ -1168,6 +1396,8 @@ class Environment(BaseEnv):
         new_obj._compat_glop_version = self._compat_glop_version
         new_obj._actionClass_orig = self._actionClass_orig
         new_obj._observationClass_orig = self._observationClass_orig
+        new_obj._max_iter = self._max_iter
+        new_obj._max_step = self._max_step
 
     def copy(self) -> "Environment":
         """
