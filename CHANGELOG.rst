@@ -34,7 +34,8 @@ Change Log
 
 - TODO A number of max buses per sub
 - TODO in the runner, save multiple times the same sceanrio
-
+- TODO in the gym env, make the action_space and observation_space attribute
+  filled automatically (see ray integration, it's boring to have to copy paste...)
 
 [1.10.3] - 2024-xx-yy
 -------------------------
