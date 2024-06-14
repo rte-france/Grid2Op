@@ -31,12 +31,15 @@ Change Log
 - [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
 
+
+- TODO A number of max buses per sub
+- TODO in the runner, save multiple times the same sceanrio
+
+
 [1.10.3] - 2024-xx-yy
 -------------------------
-- TODO A number of max buses per sub
 - TODO Automatic "experimental_read_from_local_dir"
 - TODO Notebook for stable baselines
-- TODO reset options in the runner
 
 - [BREAKING] `env.chronics_hander.set_max_iter(xxx)` is now a private function. Use 
   `env.set_max_iter(xxx)` or even better `env.reset(options={"max step": xxx})`. 
