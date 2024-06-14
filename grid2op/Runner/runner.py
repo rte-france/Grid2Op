@@ -1333,7 +1333,7 @@ class Runner(object):
 
         You can use the runner this way:
 
-        .. code-block: python
+        .. code-block:: python
 
             import grid2op
             from gri2op.Runner import Runner
@@ -1345,7 +1345,7 @@ class Runner(object):
 
         If you would rather to provide an agent instance (and not a class) you can do it this way:
 
-        .. code-block: python
+        .. code-block:: python
 
             import grid2op
             from gri2op.Runner import Runner
@@ -1361,7 +1361,7 @@ class Runner(object):
         by passing `env_seeds` and `agent_seeds` parameters (on the example bellow, the agent will be seeded with 42
         and the environment with 0.
 
-        .. code-block: python
+        .. code-block:: python
 
             import grid2op
             from gri2op.Runner import Runner
@@ -1375,7 +1375,7 @@ class Runner(object):
         Since grid2op 1.10.2 you can also set the initial state of the grid when
         calling the runner. You can do that with the kwargs `init_states`, for example like this:
         
-        .. code-block: python
+        .. code-block:: python
 
             import grid2op
             from gri2op.Runner import Runner
@@ -1405,7 +1405,85 @@ class Runner(object):
             that you can control what exactly is done (set the `"method"`) more 
             information about this on the doc of the :func:`grid2op.Environment.Environment.reset`
             function.
+        
+        Since grid2op 1.10.3 you can also customize the way the runner will "reset" the
+        environment with the kwargs `reset_options`. 
+        
+        Concretely, if you specify `runner.run(..., reset_options=XXX)` then the environment
+        will be reset with a call to `env.reset(options=reset_options)`.
+        
+        As for the init states kwargs, reset_options can be either a dictionnary, in this 
+        case the same dict will be used for running all the episode or a list / tuple
+        of dictionnaries with the same size as the `nb_episode` kwargs.
+        
+        .. code-block:: python
+        
+            import grid2op
+            from gri2op.Runner import Runner
+            from grid2op.Agent import RandomAgent
+
+            env = grid2op.make("l2rpn_case14_sandbox")
+            my_agent = RandomAgent(env.action_space)
+            runner = Runner(**env.get_params_for_runner(), agentClass=None, agentInstance=my_agent)
+            res = runner.run(nb_episode=2,
+                             agent_seeds=[42, 43],
+                             env_seeds=[0, 1],
+                             reset_options={"init state": {"set_line_status": [(0, -1)]}}
+                             )
+            # same initial state will be used for the two epusode
+        
+            res2 = runner.run(nb_episode=2,
+                              agent_seeds=[42, 43],
+                              env_seeds=[0, 1],
+                              reset_options=[{"init state": {"set_line_status": [(0, -1)]}},
+                                             {"init state": {"set_line_status": [(1, -1)]}}]
+                              ) 
+            # two different initial states will be used: the first one for the 
+            # first episode and the second one for the second
             
+        .. note::
+            In case of conflicting inputs, for example when you specify:
+            
+            .. code-block:: python
+
+                runner.run(...,
+                           init_states=XXX,
+                           reset_options={"init state"=YYY}
+                           )
+            
+            or 
+            
+            .. code-block:: python
+
+                runner.run(...,
+                           max_iter=XXX,
+                           reset_options={"max step"=YYY}
+                           )
+            
+            or 
+            
+            .. code-block:: python
+
+                runner.run(...,
+                           episode_id=XXX,
+                           reset_options={"time serie id"=YYY}
+                           )
+                           
+            Then: 1) a warning is issued to inform you that you might have
+            done something wrong and 2) the value in `XXX` above (*ie* the
+            value provided in the `runner.run` kwargs) is always used
+            instead of the value `YYY` (*ie* the value present in the
+            reset_options).
+            
+            In other words, the arguments of the `runner.run` have the
+            priority over the arguments passed to the `reset_options`.
+        
+        .. danger::
+            If you provide the key "time serie id" in one of the `reset_options` 
+            dictionary, we recommend
+            you do it for all `reset_options` otherwise you might not end up 
+            computing the correct episodes.
+                
         """
         if nb_episode < 0:
             raise RuntimeError("Impossible to run a negative number of scenarios.")

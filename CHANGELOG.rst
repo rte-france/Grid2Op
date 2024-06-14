@@ -51,7 +51,8 @@ Change Log
   computation of `max_iter` on some corner cases
 - [ADDED] possibility to skip some step when calling `env.reset(..., options={"init ts": ...})`
 - [ADDED] possibility to limit the duration of an episode with `env.reset(..., options={"max step": ...})`
-
+- [ADDED] possibility to specify the "reset_options" used in `env.reset` when
+  using the runner with `runner.run(..., reset_options=xxx)`
 
 [1.10.2] - 2024-05-27
 -------------------------
