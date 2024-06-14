@@ -299,8 +299,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
     #: this are the keys of the dictionnary `options`
     #: that can be used when calling `env.reset(..., options={})`
-    KEYS_RESET_OPTIONS = {"time serie id", "init state"}
-    
+    KEYS_RESET_OPTIONS = {"time serie id", "init state", "init ts", "max step"}
     
     def __init__(
         self,
@@ -3776,6 +3775,17 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         00:00). This can lead to suboptimal exploration, as during this phase, only a few time steps are managed by
         the agent, so in general these few time steps will correspond to grid state around Jan 1st at 00:00.
 
+        .. seealso::
+            From grid2op version 1.10.3, a similar objective can be
+            obtained directly by calling :func:`grid2op.Environment.Environment.reset` with `"init ts"`
+            as option, for example like `obs = env.reset(options={"init ts": 12})`
+
+
+        .. danger::
+            The usage of both :func:`BaseEnv.fast_forward_chronics` and :func:`Environment.set_max_iter`
+            is not recommended at all and might not behave correctly. Please use `env.reset` with 
+            `obs = env.reset(options={"max step": xxx, "init ts": yyy})` for a correct behaviour.
+            
         Parameters
         ----------
         nb_timestep: ``int``
@@ -3783,7 +3793,20 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         Examples
         ---------
-        This can be used like this:
+        
+        From grid2op version 1.10.3 we recommend not to use this function (which will be deprecated)
+        but to use the :func:`grid2op.Environment.Environment.reset` functon with the `"init ts"` 
+        option.
+        
+        .. code-block:: python
+        
+            import grid2op
+            env_name = "l2rpn_case14_sandbox"
+            env = grid2op.make(env_name)
+            
+            obs = env.reset(options={"init ts": 123})
+            
+        For the legacy usave, this can be used like this:
 
         .. code-block:: python
 

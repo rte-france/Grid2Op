@@ -207,8 +207,8 @@ if __name__ == "__main__":
         local_topo = (1, 2, 1, 2, 1, 2)
     elif env_name == "l2rpn_wcci_2022_dev":
         raise RuntimeError("Storage units are not handled by the example backend, and there are some on the grid.")
-        sub_id = 3
-        local_topo = (1, 2, 1, 2, 1)
+        # sub_id = 3
+        # local_topo = (1, 2, 1, 2, 1)
     else:
         raise RuntimeError(f"Unknown grid2op environment name {env_name}")
     action = env.action_space({"set_bus": {"substations_id": [(sub_id, local_topo)]}})

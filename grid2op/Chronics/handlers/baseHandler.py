@@ -73,7 +73,7 @@ class BaseHandler(RandomObject):
         self.path : Optional[os.PathLike] = None
         self.max_episode_duration : Optional[int] = None
     
-    def set_max_iter(self, max_iter: Optional[int]) -> None:
+    def _set_max_iter(self, max_iter: Optional[int]) -> None:
         """
         INTERNAL
 

@@ -937,7 +937,7 @@ def make_from_dataset_path(
                                 attention_budget_cls=attention_budget_class,
                                 kwargs_attention_budget=kwargs_attention_budget,
                                 logger=logger,
-                                n_busbar=n_busbar,
+                                n_busbar=n_busbar,  # TODO n_busbar_per_sub different num per substations: read from a config file maybe (if not provided by the user)
                                 _compat_glop_version=_compat_glop_version,
                                 _read_from_local_dir=None,  # first environment to generate the classes and save them
                                 kwargs_observation=kwargs_observation,
@@ -1004,7 +1004,7 @@ def make_from_dataset_path(
         attention_budget_cls=attention_budget_class,
         kwargs_attention_budget=kwargs_attention_budget,
         logger=logger,
-        n_busbar=n_busbar,
+        n_busbar=n_busbar,  # TODO n_busbar_per_sub different num per substations: read from a config file maybe (if not provided by the user)
         _compat_glop_version=_compat_glop_version,
         _read_from_local_dir=classes_path,
         _allow_loaded_backend=allow_loaded_backend,

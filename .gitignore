@@ -410,6 +410,9 @@ grid2op/tests/req_38_np121
 test_make_2_envs.py
 getting_started/env_py38_grid2op110_ray110.ipynb
 getting_started/env_py38_grid2op110_ray210.ipynb
+grid2op/tests/req_chronix2grid
+grid2op/tests/venv_test_chronix2grid/
+
 
 # profiling files
 **.prof

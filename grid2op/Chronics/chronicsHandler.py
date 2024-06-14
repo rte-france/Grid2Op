@@ -160,13 +160,21 @@ class ChronicsHandler(RandomObject):
         """
         return str(os.path.split(self.get_id())[-1])
 
-    def set_max_iter(self, max_iter: int):
+    def _set_max_iter(self, max_iter: int):
         """
         This function is used to set the maximum number of 
         iterations possible before the chronics ends.
         
         You can reset this by setting it to `-1`.
 
+        .. danger::
+            As for grid2op 1.10.3, due to the fix of a bug when
+            max_iter and fast_forward were used at the same time
+            you should not use this function anymore.
+            
+            Please use `env.set_max_iter()` instead of
+            `env.chronics_hander.set_max_iter()`
+            
         Parameters
         ----------
         max_iter: ``int``
@@ -175,9 +183,9 @@ class ChronicsHandler(RandomObject):
 
         """
 
-        if not isinstance(max_iter, int):
+        if not isinstance(max_iter, (int, dt_int, np.int64)):
             raise Grid2OpException(
-                "The maximum number of iterations possible for this chronics, before it ends."
+                "The maximum number of iterations possible for this time series, before it ends should be an int"
             )
         if max_iter == 0:
             raise Grid2OpException(

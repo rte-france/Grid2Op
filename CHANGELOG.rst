@@ -31,12 +31,31 @@ Change Log
 - [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
 
+
+- TODO A number of max buses per sub
+- TODO in the runner, save multiple times the same sceanrio
+
+
 [1.10.3] - 2024-xx-yy
 -------------------------
-- TODO A number of max buses per sub
 - TODO Automatic "experimental_read_from_local_dir"
 - TODO Notebook for stable baselines
-- TODO in the reset options: datetime start and max number of steps
+
+- [BREAKING] `env.chronics_hander.set_max_iter(xxx)` is now a private function. Use 
+  `env.set_max_iter(xxx)` or even better `env.reset(options={"max step": xxx})`. 
+  Indeed, `env.chronics_hander.set_max_iter()` will likely have
+  no effect at all on your environment.
+- [BREAKING] for all the `Handler` (*eg* `CSVForecastHandler`) the method `set_max_iter` is 
+  now private (for the same reason as the `env.chronics_handler`). We do not recommend to
+  use it (will likely have no effect). Prefer using `env.set_max_iter` instead.
+- [BREAKING] now the `runner.run()` method only accept kwargs argument 
+  (because  it should always have been like this)
+- [FIXED] a bug in the `MultiFolder` and `MultifolderWithCache` leading to the wrong 
+  computation of `max_iter` on some corner cases
+- [ADDED] possibility to skip some step when calling `env.reset(..., options={"init ts": ...})`
+- [ADDED] possibility to limit the duration of an episode with `env.reset(..., options={"max step": ...})`
+- [ADDED] possibility to specify the "reset_options" used in `env.reset` when
+  using the runner with `runner.run(..., reset_options=xxx)`
 
 [1.10.2] - 2024-05-27
 -------------------------

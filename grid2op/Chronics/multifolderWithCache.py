@@ -70,7 +70,7 @@ class MultifolderWithCache(Multifolder):
         env = make(...,chronics_class=MultifolderWithCache)
 
         # set the chronics to limit to one week of data (lower memory footprint)
-        env.chronics_handler.set_max_iter(7*288)
+        env.set_max_iter(7*288)
         # assign a filter, use only chronics that have "december" in their name
         env.chronics_handler.real_data.set_filter(lambda x: re.match(".*december.*", x) is not None)
         # create the cache
@@ -239,6 +239,7 @@ class MultifolderWithCache(Multifolder):
         id_scenario = self._order[self._prev_cache_id]
         self.data = self._cached_data[id_scenario]
         self.data.next_chronics()
+        self._max_iter = self.data.max_iter
     
     @property
     def max_iter(self):

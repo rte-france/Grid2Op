@@ -441,6 +441,7 @@ class Multifolder(GridValue):
         )
         if self.action_space is not None:
             self.data.action_space = self.action_space
+        self._max_iter = self.data.max_iter
 
     def done(self):
         """

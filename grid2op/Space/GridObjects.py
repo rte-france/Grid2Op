@@ -25,7 +25,7 @@ from typing import Dict, Union, Literal, Any, List, Optional, ClassVar, Tuple
     
 import grid2op
 from grid2op.dtypes import dt_int, dt_float, dt_bool
-from grid2op.typing_variables import CLS_AS_DICT_TYPING
+from grid2op.typing_variables import CLS_AS_DICT_TYPING, N_BUSBAR_PER_SUB_TYPING
 from grid2op.Exceptions import *
 from grid2op.Space.space_utils import extract_from_dict, save_to_dict
 
@@ -635,7 +635,8 @@ class GridObjects:
         pass
 
     @classmethod
-    def set_n_busbar_per_sub(cls, n_busbar_per_sub: int) -> None:
+    def set_n_busbar_per_sub(cls, n_busbar_per_sub: N_BUSBAR_PER_SUB_TYPING) -> None:
+        # TODO n_busbar_per_sub different num per substations
         cls.n_busbar_per_sub = n_busbar_per_sub
         
     @classmethod
@@ -2023,10 +2024,21 @@ class GridObjects:
         # TODO refactor this method with the `_check***` methods.
         # TODO refactor the `_check***` to use the same "base functions" that would be coded only once.
 
-        if cls.n_busbar_per_sub != int(cls.n_busbar_per_sub):
-            raise EnvError(f"`n_busbar_per_sub` should be convertible to an integer, found {cls.n_busbar_per_sub}")
-        cls.n_busbar_per_sub = int(cls.n_busbar_per_sub)
-        if cls.n_busbar_per_sub < 1:
+        # TODO n_busbar_per_sub different num per substations
+        if isinstance(cls.n_busbar_per_sub, (int, dt_int, np.int32, np.int64)):
+            cls.n_busbar_per_sub = dt_int(cls.n_busbar_per_sub)
+                                   # np.full(cls.n_sub,
+                                   #         fill_value=cls.n_busbar_per_sub,
+                                   #         dtype=dt_int)
+        else:
+            # cls.n_busbar_per_sub = np.array(cls.n_busbar_per_sub)
+            # cls.n_busbar_per_sub = cls.n_busbar_per_sub.astype(dt_int)
+            raise EnvError("Grid2op cannot handle a different number of busbar per substations at the moment.")
+        
+        # if cls.n_busbar_per_sub != int(cls.n_busbar_per_sub):
+            # raise EnvError(f"`n_busbar_per_sub` should be convertible to an integer, found {cls.n_busbar_per_sub}")
+        # cls.n_busbar_per_sub = int(cls.n_busbar_per_sub)
+        if (cls.n_busbar_per_sub < 1).any():
             raise EnvError(f"`n_busbar_per_sub` should be >= 1 found {cls.n_busbar_per_sub}")
             
         if cls.n_gen <= 0:
@@ -2904,7 +2916,9 @@ class GridObjects:
             # with shunt and without shunt, then
             # there might be issues
             name_res += "_noshunt"
-            
+        
+        # TODO n_busbar_per_sub different num per substations: if it's a vector, use some kind of hash of it
+        # for the name of the class !
         if gridobj.n_busbar_per_sub != DEFAULT_N_BUSBAR_PER_SUB:
             # to be able to load same environment with
             # different `n_busbar_per_sub`
