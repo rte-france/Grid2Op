@@ -31,16 +31,24 @@ Change Log
 - [???] "asynch" multienv
 - [???] properly model interconnecting powerlines
 
-
+Work kind of in progress
+----------------------------------
 - TODO A number of max buses per sub
 - TODO in the runner, save multiple times the same sceanrio
 - TODO in the gym env, make the action_space and observation_space attribute
   filled automatically (see ray integration, it's boring to have to copy paste...)
 
+Next release
+---------------------------------
+- TODO Notebook for tf_agents
+- TODO Notebook for acme
+- TODO Notebook using "keras rl" (see https://keras.io/examples/rl/ppo_cartpole/)
+- TODO put the Grid2opEnvWrapper directly in grid2op as GymEnv
+- TODO example for MCTS https://github.com/bwfbowen/muax et https://github.com/google-deepmind/mctx
+
 [1.10.3] - 2024-xx-yy
 -------------------------
 - TODO Automatic "experimental_read_from_local_dir"
-- TODO Notebook for stable baselines
 
 - [BREAKING] `env.chronics_hander.set_max_iter(xxx)` is now a private function. Use 
   `env.set_max_iter(xxx)` or even better `env.reset(options={"max step": xxx})`. 
@@ -60,7 +68,7 @@ Change Log
 
 [1.10.2] - 2024-05-27
 -------------------------
-- [BREAKING] the `runner.run_one_episode` now returns an extra first argument: 
+- [BREAKING] the `runner.run_one_episode` now returns an extra argument (first position): 
   `chron_id, chron_name, cum_reward, timestep, max_ts = runner.run_one_episode()` which 
   is consistant with `runner.run(...)` (previously it returned only 
   `chron_name, cum_reward, timestep, max_ts = runner.run_one_episode()`)
