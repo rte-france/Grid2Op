@@ -8,6 +8,7 @@
 
 import os
 import time
+import copy
 import importlib.util
 import numpy as np
 import json
@@ -873,6 +874,7 @@ def make_from_dataset_path(
     # new in 1.10.2 :
     allow_loaded_backend = False
     classes_path = None
+    init_env = None
     if USE_CLASS_IN_FILE:
         sys_path = os.path.join(os.path.split(grid_path_abs)[0], "_grid2op_classes")
         if not os.path.exists(sys_path):
@@ -881,6 +883,9 @@ def make_from_dataset_path(
             except FileExistsError:
                 # if another process created it, no problem
                 pass
+            
+        import tempfile
+        this_local_dir = tempfile.TemporaryDirectory(dir=sys_path)
             
         # TODO: automatic delete the directory if needed
         
@@ -911,46 +916,46 @@ def make_from_dataset_path(
         # reference this "tempfile.TemporaryDirectory()" which will be deleted automatically
         # when every "pointer" to it are deleted, this sounds more reasonable
         if not experimental_read_from_local_dir:
+            data_feeding_fake = copy.deepcopy(data_feeding)
+            data_feeding_fake.cleanup_action_space()
             init_env = Environment(init_env_path=os.path.abspath(dataset_path),
-                                init_grid_path=grid_path_abs,
-                                chronics_handler=data_feeding,
-                                backend=backend,
-                                parameters=param,
-                                name=name_env + _add_to_name,
-                                names_chronics_to_backend=names_chronics_to_backend,
-                                actionClass=action_class,
-                                observationClass=observation_class,
-                                rewardClass=reward_class,
-                                legalActClass=gamerules_class,
-                                voltagecontrolerClass=volagecontroler_class,
-                                other_rewards=other_rewards,
-                                opponent_space_type=opponent_space_type,
-                                opponent_action_class=opponent_action_class,
-                                opponent_class=opponent_class,
-                                opponent_init_budget=opponent_init_budget,
-                                opponent_attack_duration=opponent_attack_duration,
-                                opponent_attack_cooldown=opponent_attack_cooldown,
-                                opponent_budget_per_ts=opponent_budget_per_ts,
-                                opponent_budget_class=opponent_budget_class,
-                                kwargs_opponent=kwargs_opponent,
-                                has_attention_budget=has_attention_budget,
-                                attention_budget_cls=attention_budget_class,
-                                kwargs_attention_budget=kwargs_attention_budget,
-                                logger=logger,
-                                n_busbar=n_busbar,  # TODO n_busbar_per_sub different num per substations: read from a config file maybe (if not provided by the user)
-                                _compat_glop_version=_compat_glop_version,
-                                _read_from_local_dir=None,  # first environment to generate the classes and save them
-                                kwargs_observation=kwargs_observation,
-                                observation_bk_class=observation_backend_class,
-                                observation_bk_kwargs=observation_backend_kwargs,
-                                )              
-            this_local_dir = f"{time.time()}_{os.getpid()}"
-            init_env.generate_classes(local_dir_id=this_local_dir)
+                                   init_grid_path=grid_path_abs,
+                                   chronics_handler=data_feeding_fake,
+                                   backend=backend,
+                                   parameters=param,
+                                   name=name_env + _add_to_name,
+                                   names_chronics_to_backend=names_chronics_to_backend,
+                                   actionClass=action_class,
+                                   observationClass=observation_class,
+                                   rewardClass=reward_class,
+                                   legalActClass=gamerules_class,
+                                   voltagecontrolerClass=volagecontroler_class,
+                                   other_rewards=other_rewards,
+                                   opponent_space_type=opponent_space_type,
+                                   opponent_action_class=opponent_action_class,
+                                   opponent_class=opponent_class,
+                                   opponent_init_budget=opponent_init_budget,
+                                   opponent_attack_duration=opponent_attack_duration,
+                                   opponent_attack_cooldown=opponent_attack_cooldown,
+                                   opponent_budget_per_ts=opponent_budget_per_ts,
+                                   opponent_budget_class=opponent_budget_class,
+                                   kwargs_opponent=kwargs_opponent,
+                                   has_attention_budget=has_attention_budget,
+                                   attention_budget_cls=attention_budget_class,
+                                   kwargs_attention_budget=kwargs_attention_budget,
+                                   logger=logger,
+                                   n_busbar=n_busbar,  # TODO n_busbar_per_sub different num per substations: read from a config file maybe (if not provided by the user)
+                                   _compat_glop_version=_compat_glop_version,
+                                   _read_from_local_dir=None,  # first environment to generate the classes and save them
+                                   _local_dir_cls=None,
+                                   kwargs_observation=kwargs_observation,
+                                   observation_bk_class=observation_backend_class,
+                                   observation_bk_kwargs=observation_backend_kwargs,
+                                   )   
+            print("first env made")
+            init_env.generate_classes(local_dir_id=this_local_dir.name)
             init_env.backend = None  # to avoid to close the backend when init_env is deleted
-            classes_path = os.path.join(sys_path, this_local_dir)
-            # to force the reading back of the classes from the hard drive
-            init_env._forget_classes()  # TODO not implemented
-            init_env.close()
+            classes_path = this_local_dir.name
         else:
             classes_path = sys_path
         allow_loaded_backend = True
@@ -1008,6 +1013,7 @@ def make_from_dataset_path(
         _compat_glop_version=_compat_glop_version,
         _read_from_local_dir=classes_path,
         _allow_loaded_backend=allow_loaded_backend,
+        _local_dir_cls=this_local_dir,
         kwargs_observation=kwargs_observation,
         observation_bk_class=observation_backend_class,
         observation_bk_kwargs=observation_backend_kwargs,

@@ -2876,7 +2876,7 @@ class GridObjects:
         cls.env_name = name
 
     @classmethod
-    def init_grid(cls, gridobj, force=False, extra_name=None, force_module=None):
+    def init_grid(cls, gridobj, force=False, extra_name=None, force_module=None, _local_dir_cls=None):
         """
         INTERNAL
 
@@ -2925,13 +2925,30 @@ class GridObjects:
             name_res += f"_{gridobj.n_busbar_per_sub}"
         
         if name_res in globals():
-            if not force:
+            if not force and _local_dir_cls is None:
                 # no need to recreate the class, it already exists
                 return globals()[name_res]
             else:
                 # i recreate the variable
                 del globals()[name_res]
-
+                
+        if _local_dir_cls is not None and gridobj._PATH_GRID_CLASSES is not None:
+            # new in grid2op 1.10.3:
+            # if I end up here it's because:
+            # 1) the first initial env has already been created
+            # 2) I need to init the class from the files (and not from whetever else)
+            # So i do it. And if that is the case, the files are created on the hard drive
+            # AND the module is added to the path
+            assert _local_dir_cls.name == gridobj._PATH_GRID_CLASSES
+            import importlib
+            module = importlib.import_module(f"{name_res}_file")
+            cls_res = getattr(module, name_res)
+            # do not forget to create the cls_dict once and for all
+            if cls_res._CLS_DICT is None:
+                tmp = {}
+                cls_res._make_cls_dict_extended(cls_res, tmp, as_list=False)
+            return cls_res
+            
         cls_attr_as_dict = {}
         GridObjects._make_cls_dict_extended(gridobj, cls_attr_as_dict, as_list=False)
         res_cls = type(name_res, (cls,), cls_attr_as_dict)
@@ -4867,11 +4884,11 @@ class {cls.__name__}({cls._INIT_GRID_CLS.__name__}):
 
     # name of the objects
     env_name = "{cls.env_name}"
-    name_load = np.array([{name_load_str}])
-    name_gen = np.array([{name_gen_str}])
-    name_line = np.array([{name_line_str}])
-    name_sub = np.array([{name_sub_str}])
-    name_storage = np.array([{name_storage_str}])
+    name_load = np.array([{name_load_str}], dtype=str)
+    name_gen = np.array([{name_gen_str}], dtype=str)
+    name_line = np.array([{name_line_str}], dtype=str)
+    name_sub = np.array([{name_sub_str}], dtype=str)
+    name_storage = np.array([{name_storage_str}], dtype=str)
 
     n_busbar_per_sub = {cls.n_busbar_per_sub}
     n_gen = {cls.n_gen}
@@ -4935,7 +4952,7 @@ class {cls.__name__}({cls._INIT_GRID_CLS.__name__}):
     gen_renewable = {gen_renewable_str}
 
     # storage unit static data
-    storage_type = np.array([{storage_type_str}])
+    storage_type = np.array([{storage_type_str}], dtype=str)
     storage_Emax = {storage_Emax_str}
     storage_Emin = {storage_Emin_str}
     storage_max_p_prod = {storage_max_p_prod_str}

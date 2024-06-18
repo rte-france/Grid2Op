@@ -788,4 +788,6 @@ class Multifolder(GridValue):
 
     def cleanup_action_space(self):
         super().cleanup_action_space()
+        if self.data is None:
+            return
         self.data.cleanup_action_space()

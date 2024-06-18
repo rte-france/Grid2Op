@@ -15,6 +15,8 @@ import copy
 import os
 import json
 from typing import Optional, Tuple, Union, Dict, Any, Literal
+import importlib
+import sys
 
 import warnings
 import numpy as np
@@ -332,10 +334,12 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         update_obs_after_reward=False,
         n_busbar=2,
         _is_test: bool = False,  # TODO not implemented !!
-        _init_obs: Optional[BaseObservation] =None
+        _init_obs: Optional[BaseObservation] =None,
+        _local_dir_cls=None,
     ):
         GridObjects.__init__(self)
         RandomObject.__init__(self)
+        self._local_dir_cls = _local_dir_cls  # suppose it's the second path to the environment, so the classes are already in the files
         self._n_busbar = n_busbar  # env attribute not class attribute !
         if other_rewards is None:
             other_rewards = {}
@@ -388,7 +392,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         # class used for the action spaces
         self._helper_action_class: ActionSpace = None
-        self._helper_observation_class: ActionSpace = None
+        self._helper_observation_class: ObservationSpace = None
 
         # and calendar data
         self.time_stamp: time.struct_time = None
@@ -631,6 +635,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         
         new_obj._init_grid_path = copy.deepcopy(self._init_grid_path)
         new_obj._init_env_path = copy.deepcopy(self._init_env_path)
+        new_obj._local_dir_cls = None  # copy of a env is not the "main" env.
 
         new_obj._DEBUG = self._DEBUG
         new_obj._parameters = copy.deepcopy(self._parameters)
@@ -1254,7 +1259,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             self.backend
         )  # be careful here: you need to initialize from the class, and not from the object
         # create the proper environment class for this specific environment
-        self.__class__ = type(self).init_grid(bk_type)
+        self.__class__ = type(self).init_grid(bk_type, _local_dir_cls=self._local_dir_cls)
 
     def _has_been_initialized(self):
         # type of power flow to play
@@ -1263,7 +1268,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         bk_type = type(self.backend)
         if np.min([self.n_line, self.n_gen, self.n_load, self.n_sub]) <= 0:
             raise EnvironmentError("Environment has not been initialized properly")
-        self._backend_action_class = _BackendAction.init_grid(bk_type)
+        self._backend_action_class = _BackendAction.init_grid(bk_type, _local_dir_cls=self._local_dir_cls)
         self._backend_action = self._backend_action_class()
 
         # initialize maintenance / hazards
@@ -3693,6 +3698,12 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             if hasattr(self, attr_nm):
                 delattr(self, attr_nm)
             setattr(self, attr_nm, None)
+        
+        if self._local_dir_cls is not None:
+            # I am the "keeper" of the temporary directory
+            # deleting this env should also delete the temporary directory
+            self._local_dir_cls.cleanup()
+            self._local_dir_cls = None
 
     def attach_layout(self, grid_layout):
         """
@@ -3957,30 +3968,42 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             )
         self.__new_reward_func = new_reward_func
 
-    def _aux_gen_classes(self, cls, sys_path):
-        if not isinstance(cls, type):
-            raise RuntimeError(f"cls should be a type and not an object !: {cls}")
-        if not issubclass(cls, GridObjects):
-            raise RuntimeError(f"cls should inherit from GridObjects: {cls}")
+    def _aux_gen_classes(self, cls_other, sys_path, _add_class_output=False):
+        if not isinstance(cls_other, type):
+            raise RuntimeError(f"cls_other should be a type and not an object !: {cls_other}")
+        if not issubclass(cls_other, GridObjects):
+            raise RuntimeError(f"cls_other should inherit from GridObjects: {cls_other}")
         
         from pathlib import Path
-        path_env = cls._PATH_GRID_CLASSES
-        cls._PATH_GRID_CLASSES = str(Path(self.get_path_env()).as_posix())
+        path_env = cls_other._PATH_GRID_CLASSES
+        # cls_other._PATH_GRID_CLASSES = str(Path(self.get_path_env()).as_posix())
+        cls_other._PATH_GRID_CLASSES = str(Path(sys_path).as_posix())
         
-        res = cls._get_full_cls_str()
-        cls._PATH_GRID_CLASSES = path_env
-        output_file = os.path.join(sys_path, f"{cls.__name__}_file.py")
+        res = cls_other._get_full_cls_str()
+        cls_other._PATH_GRID_CLASSES = path_env
+        output_file = os.path.join(sys_path, f"{cls_other.__name__}_file.py")
         if not os.path.exists(output_file):
             # if the file is not already saved, i save it and add it to the __init__ file
             with open(output_file, "w", encoding="utf-8") as f:
                 f.write(res)
-            return f"\nfrom .{cls.__name__}_file import {cls.__name__}"
+            str_import = f"\nfrom .{cls_other.__name__}_file import {cls_other.__name__}"
         else:
             # if the file exists, I check it's the same
             # from grid2op.MakeEnv.UpdateEnv import _aux_hash_file, _aux_update_hash_text
             # hash_saved = _aux_hash_file(output_file)
             # my_hash = _aux_update_hash_text(res)
-            return ""
+            # raise RuntimeError("You should not end up here with the current grid2op design.")
+            str_import = ""  # TODO
+        if not _add_class_output:
+            return str_import
+        
+        package_path, nm_ = os.path.split(output_file)
+        nm_, ext = os.path.splitext(nm_)
+        if package_path not in sys.path:
+            sys.path.append(package_path)
+        module = importlib.import_module(nm_, package_path)
+        cls_res = getattr(module, cls_other.__name__)
+        return str_import, cls_res
 
     def generate_classes(self, *, local_dir_id=None, _guard=None, _is_base_env__=True, sys_path=None):
         """
@@ -4076,23 +4099,42 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             if os.path.exists(sys_path):
                 shutil.rmtree(sys_path)
             os.mkdir(sys_path)
+            
+            with open(os.path.join(sys_path, "__init__.py"), "w", encoding="utf-8") as f:
+                f.write(BASE_TXT_COPYRIGHT)
 
         # initialized the "__init__" file
         _init_txt = ""
         mode = "w"
         if not _is_base_env__:
-            _init_txt = BASE_TXT_COPYRIGHT + _init_txt
+            _init_txt = _init_txt
+            mode = "a"
         else:
             # i am apppending to the __init__ file in case of obs_env
             mode = "a"
 
         # generate the classes
-        _init_txt += self._aux_gen_classes(type(self), sys_path)
-        _init_txt += self._aux_gen_classes(type(self.backend), sys_path)
-        _init_txt += self._aux_gen_classes(
-            self.backend._complete_action_class, sys_path
+        
+        # for the environment
+        txt_ = self._aux_gen_classes(type(self), sys_path)
+        _init_txt += txt_
+        # self.__class__ = cls_res
+        
+        # for the backend
+        txt_, cls_res_bk = self._aux_gen_classes(type(self.backend), sys_path, _add_class_output=True)
+        _init_txt += txt_
+        old_bk_cls = self.backend.__class__ 
+        self.backend.__class__ = cls_res_bk
+        txt_, cls_res_complete_act = self._aux_gen_classes(
+            old_bk_cls._complete_action_class, sys_path, _add_class_output=True
         )
-        _init_txt += self._aux_gen_classes(self._backend_action_class, sys_path)
+        _init_txt += txt_
+        self.backend.__class__._complete_action_class = cls_res_complete_act
+        txt_, cls_res_bk_act = self._aux_gen_classes(self._backend_action_class, sys_path, _add_class_output=True)
+        _init_txt += txt_
+        self._backend_action_class = cls_res_bk_act
+        self.backend.__class__.my_bk_act_class = cls_res_bk_act
+        
         _init_txt += self._aux_gen_classes(type(self.action_space), sys_path)
         _init_txt += self._aux_gen_classes(self._actionClass, sys_path)
         _init_txt += self._aux_gen_classes(self._complete_action_cls, sys_path)
@@ -4120,7 +4162,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         with open(os.path.join(sys_path, "__init__.py"), mode, encoding="utf-8") as f:
             f.write(_init_txt)
 
-    def _forget_classes(self):
+    def _reassign_classes(self):
         """
         This function allows python to "forget" the classes created at the initialization of the environment.
         
@@ -4130,10 +4172,10 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             Function added following the new behaviour introduced in this version. 
             
         """
+        raise RuntimeError("you should not use this !")
         from grid2op.MakeEnv.PathUtils import USE_CLASS_IN_FILE
         if not USE_CLASS_IN_FILE:
             return
-        pass
     
     def remove_all_class_folders(self):
         """
@@ -4150,6 +4192,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             Function added following the new behaviour introduced in this version. 
             
         """
+        raise RuntimeError("You should not use this now, this is handled by mktemp or something")
         directory_path = os.path.join(self.get_path_env(), "_grid2op_classes")
         try:
             with os.scandir(directory_path) as entries:

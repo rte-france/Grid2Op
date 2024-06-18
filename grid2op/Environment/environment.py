@@ -117,9 +117,11 @@ class Environment(BaseEnv):
         _init_obs=None,
         _raw_backend_class=None,
         _compat_glop_version=None,
-        _read_from_local_dir=True,
+        _read_from_local_dir=None,
         _is_test=False,
         _allow_loaded_backend=False,
+        _local_dir_cls=None,  # only set at the first call to `make(...)` after should be false
+        _init_env=None,
     ):
         BaseEnv.__init__(
             self,
@@ -155,6 +157,7 @@ class Environment(BaseEnv):
             n_busbar=n_busbar,  # TODO n_busbar_per_sub different num per substations: read from a config file maybe (if not provided by the user)
             _init_obs=_init_obs,
             _is_test=_is_test,  # is this created with "test=True" # TODO not implemented !!
+            _local_dir_cls=_local_dir_cls,
         )
         if name == "unknown":
             warnings.warn(
@@ -245,7 +248,7 @@ class Environment(BaseEnv):
                 "new backend instance (new object)."
             )    
             
-        need_process_backend = False        
+        need_process_backend = False    
         if not self.backend.is_loaded:
             if hasattr(self.backend, "init_pp_backend") and self.backend.init_pp_backend is not None:
                 # hack for lightsim2grid ...
@@ -258,7 +261,8 @@ class Environment(BaseEnv):
             # example
             if self._read_from_local_dir is not None:
                 # test to support pickle conveniently
-                self.backend._PATH_GRID_CLASSES = self.get_path_env()
+                # type(self.backend)._PATH_GRID_CLASSES = self.get_path_env()
+                self.backend._PATH_GRID_CLASSES = self._read_from_local_dir
             # all the above should be done in this exact order, otherwise some weird behaviour might occur
             # this is due to the class attribute
             type(self.backend).set_env_name(self.name)
@@ -289,7 +293,8 @@ class Environment(BaseEnv):
             self.load_alert_data()
             
             # to force the initialization of the backend to the proper type
-            self.backend.assert_grid_correct()
+            self.backend.assert_grid_correct(
+                _local_dir_cls=self._local_dir_cls)
             self.backend.is_loaded = True
             need_process_backend = True
 
@@ -345,14 +350,14 @@ class Environment(BaseEnv):
         # be careful here: you need to initialize from the class, and not from the object
         bk_type = type(self.backend) 
         self._rewardClass = rewardClass
-        self._actionClass = actionClass.init_grid(gridobj=bk_type)
+        self._actionClass = actionClass.init_grid(gridobj=bk_type, _local_dir_cls=self._local_dir_cls)
         self._actionClass._add_shunt_data()
         self._actionClass._update_value_set()
-        self._observationClass = observationClass.init_grid(gridobj=bk_type)
+        self._observationClass = observationClass.init_grid(gridobj=bk_type, _local_dir_cls=self._local_dir_cls)
 
-        self._complete_action_cls = CompleteAction.init_grid(gridobj=bk_type)
+        self._complete_action_cls = CompleteAction.init_grid(gridobj=bk_type, _local_dir_cls=self._local_dir_cls)
 
-        self._helper_action_class = ActionSpace.init_grid(gridobj=bk_type)
+        self._helper_action_class = ActionSpace.init_grid(gridobj=bk_type, _local_dir_cls=self._local_dir_cls)
         self._action_space = self._helper_action_class(
             gridobj=bk_type,
             actionClass=actionClass,
@@ -391,7 +396,7 @@ class Environment(BaseEnv):
         
         # this needs to be done after the chronics handler: rewards might need information
         # about the chronics to work properly.
-        self._helper_observation_class = ObservationSpace.init_grid(gridobj=bk_type)
+        self._helper_observation_class = ObservationSpace.init_grid(gridobj=bk_type, _local_dir_cls=self._local_dir_cls)
         # FYI: this try to copy the backend if it fails it will modify the backend
         # and the environment to force the deactivation of the
         # forecasts
@@ -403,7 +408,8 @@ class Environment(BaseEnv):
             env=self,
             kwargs_observation=self._kwargs_observation,
             observation_bk_class=self._observation_bk_class,
-            observation_bk_kwargs=self._observation_bk_kwargs
+            observation_bk_kwargs=self._observation_bk_kwargs,
+            _local_dir_cls=self._local_dir_cls
         )
 
         # test to make sure the backend is consistent with the chronics generator
@@ -908,9 +914,9 @@ class Environment(BaseEnv):
 
         """
         self.backend.reset(
-            self._init_grid_path
+            self._init_grid_path,
         )  # the real powergrid of the environment
-        self.backend.assert_grid_correct()
+        # self.backend.assert_grid_correct()
 
         if self._thermal_limit_a is not None:
             self.backend.set_thermal_limit(self._thermal_limit_a.astype(dt_float))
@@ -1389,6 +1395,7 @@ class Environment(BaseEnv):
 
         new_obj.name = self.name
         new_obj._read_from_local_dir = self._read_from_local_dir
+        
         new_obj.metadata = copy.deepcopy(self.metadata)
         new_obj.spec = copy.deepcopy(self.spec)
 
@@ -2206,7 +2213,8 @@ class Environment(BaseEnv):
                   observation_bk_kwargs=observation_bk_kwargs,
                   n_busbar=int(n_busbar),
                   _raw_backend_class=_raw_backend_class,
-                  _read_from_local_dir=_read_from_local_dir)
+                  _read_from_local_dir=_read_from_local_dir,
+                  _main_env=False)
         return res
     
     def generate_data(self, nb_year=1, nb_core=1, seed=None, **kwargs):

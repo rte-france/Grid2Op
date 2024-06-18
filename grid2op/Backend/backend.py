@@ -2051,7 +2051,7 @@ class Backend(GridObjects, ABC):
         backend_action += act
         self.apply_action(backend_action)
 
-    def assert_grid_correct(self) -> None:
+    def assert_grid_correct(self, _local_dir_cls=None) -> None:
         """
         INTERNAL
 
@@ -2094,15 +2094,20 @@ class Backend(GridObjects, ABC):
             self._init_class_attr()
 
             # hack due to changing class of imported module in the module itself
+            # future_cls = orig_type.init_grid(
+            #     type(self), force_module=type(self).__module__, _local_dir_cls=_local_dir_cls
+            # )
+            # self.__class__ = future_cls
+            # setattr(
+            #     sys.modules[type(self).__module__],
+            #     self.__class__.__name__,
+            #     self.__class__,
+            # )
+            
             future_cls = orig_type.init_grid(
-                type(self), force_module=type(self).__module__
+                type(self), _local_dir_cls=_local_dir_cls
             )
             self.__class__ = future_cls
-            setattr(
-                sys.modules[type(self).__module__],
-                self.__class__.__name__,
-                self.__class__,
-            )
             
             # reset the attribute of the grid2op.Backend.Backend class
             # that can be messed up with depending on the initialization of the backend
@@ -2113,8 +2118,8 @@ class Backend(GridObjects, ABC):
             orig_type._clear_grid_dependant_class_attributes() 
             
         my_cls = type(self)
-        my_cls.my_bk_act_class = _BackendAction.init_grid(my_cls)
-        my_cls._complete_action_class = CompleteAction.init_grid(my_cls)
+        my_cls.my_bk_act_class = _BackendAction.init_grid(my_cls, _local_dir_cls=_local_dir_cls)
+        my_cls._complete_action_class = CompleteAction.init_grid(my_cls, _local_dir_cls=_local_dir_cls)
         my_cls._complete_action_class._add_shunt_data()
         my_cls._complete_action_class._update_value_set()
         my_cls.assert_grid_correct_cls()

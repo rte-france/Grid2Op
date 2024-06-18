@@ -65,6 +65,8 @@ Next release
   (because  it should always have been like this)
 - [FIXED] a bug in the `MultiFolder` and `MultifolderWithCache` leading to the wrong 
   computation of `max_iter` on some corner cases
+- [FIXED] the function `cleanup_action_space()` did not work correctly when the "chronics_hander"
+  was not initialized for some classes
 - [ADDED] possibility to skip some step when calling `env.reset(..., options={"init ts": ...})`
 - [ADDED] possibility to limit the duration of an episode with `env.reset(..., options={"max step": ...})`
 - [ADDED] possibility to specify the "reset_options" used in `env.reset` when
