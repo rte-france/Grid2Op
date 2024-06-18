@@ -45,6 +45,10 @@ Next release
 - TODO Notebook using "keras rl" (see https://keras.io/examples/rl/ppo_cartpole/)
 - TODO put the Grid2opEnvWrapper directly in grid2op as GymEnv
 - TODO example for MCTS https://github.com/bwfbowen/muax et https://github.com/google-deepmind/mctx
+- TODO jax everything that can be: create a simple env based on jax for topology manipulation, without
+  redispatching or rules
+- TODO backend in jax, maybe ?
+
 
 [1.10.3] - 2024-xx-yy
 -------------------------
