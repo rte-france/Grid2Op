@@ -96,7 +96,7 @@ class ObservationSpace(SerializableObservationSpace):
             self.logger: logging.Logger = logger.getChild("grid2op_ObsSpace")
         self._init_observationClass = observationClass
         SerializableObservationSpace.__init__(
-            self, gridobj, observationClass=observationClass
+            self, gridobj, observationClass=observationClass, _local_dir_cls=_local_dir_cls
         )
         self.with_forecast = with_forecast
         self._simulate_parameters = copy.deepcopy(env.parameters)
@@ -204,6 +204,8 @@ class ObservationSpace(SerializableObservationSpace):
             highres_sim_counter=env.highres_sim_counter,
             _complete_action_cls=env._complete_action_cls,
             _ptr_orig_obs_space=self,
+            _local_dir_cls=env._local_dir_cls,
+            _read_from_local_dir=env._read_from_local_dir,
         )
         for k, v in self.obs_env.other_rewards.items():
             v.initialize(self.obs_env)

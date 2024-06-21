@@ -64,3 +64,10 @@ def _create_path_folder(data_path):
                 'and set the "data_path" to point to a path where you can store data.'
                 "".format(data_path, DEFAULT_PATH_CONFIG)
             )
+
+
+def _aux_fix_backend_internal_classes(backend_cls, this_local_dir):
+    # fix `my_bk_act_class` and `_complete_action_class`
+    backend_cls._add_internal_classes(this_local_dir)
+    tmp = {}
+    backend_cls._make_cls_dict_extended(backend_cls, tmp, as_list=False)

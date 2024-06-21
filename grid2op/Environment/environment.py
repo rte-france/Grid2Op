@@ -158,6 +158,7 @@ class Environment(BaseEnv):
             _init_obs=_init_obs,
             _is_test=_is_test,  # is this created with "test=True" # TODO not implemented !!
             _local_dir_cls=_local_dir_cls,
+            _read_from_local_dir=_read_from_local_dir,
         )
         if name == "unknown":
             warnings.warn(
@@ -165,7 +166,6 @@ class Environment(BaseEnv):
                 "to use an environment without a name..."
             )
         self.name = name
-        self._read_from_local_dir = _read_from_local_dir
         
         # to remember if the user specified a "max_iter" at some point
         self._max_iter = chronics_handler.max_iter  # for all episode, set in the chronics_handler or by a call to `env.set_max_iter`
@@ -362,12 +362,14 @@ class Environment(BaseEnv):
             gridobj=bk_type,
             actionClass=actionClass,
             legal_action=self._game_rules.legal_action,
+            _local_dir_cls=self._local_dir_cls
         )
         # action that affect the grid made by the environment.
         self._helper_action_env = self._helper_action_class(
             gridobj=bk_type,
             actionClass=CompleteAction,
             legal_action=self._game_rules.legal_action,
+            _local_dir_cls=self._local_dir_cls,
         )
 
         # handles input data
@@ -432,6 +434,7 @@ class Environment(BaseEnv):
             gridobj=bk_type,
             controler_backend=self.backend,
             actionSpace_cls=self._helper_action_class,
+            _local_dir_cls=self._local_dir_cls
         )
 
         # create the opponent
@@ -1394,7 +1397,6 @@ class Environment(BaseEnv):
         super()._custom_deepcopy_for_copy(new_obj)
 
         new_obj.name = self.name
-        new_obj._read_from_local_dir = self._read_from_local_dir
         
         new_obj.metadata = copy.deepcopy(self.metadata)
         new_obj.spec = copy.deepcopy(self.spec)

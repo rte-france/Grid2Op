@@ -35,6 +35,8 @@ from grid2op.Opponent import BaseOpponent, BaseActionBudget, NeverAttackBudget
 from grid2op.operator_attention import LinearAttentionBudget
 
 from grid2op.MakeEnv.get_default_aux import _get_default_aux
+from grid2op.MakeEnv.PathUtils import _aux_fix_backend_internal_classes
+
 
 DIFFICULTY_NAME = "difficulty"
 CHALLENGE_NAME = "competition"
@@ -883,6 +885,13 @@ def make_from_dataset_path(
             except FileExistsError:
                 # if another process created it, no problem
                 pass
+        init_nm = os.path.join(sys_path, "__init__.py")
+        if not os.path.exists(init_nm):
+            try:
+                with open(init_nm, "w", encoding="utf-8") as f:
+                    f.write("This file has been created by grid2op in a `env.make(...)` call. Do not modify it or remove it")
+            except FileExistsError:
+                pass
             
         import tempfile
         this_local_dir = tempfile.TemporaryDirectory(dir=sys_path)
@@ -952,8 +961,9 @@ def make_from_dataset_path(
                                    observation_bk_class=observation_backend_class,
                                    observation_bk_kwargs=observation_backend_kwargs,
                                    )   
-            print("first env made")
             init_env.generate_classes(local_dir_id=this_local_dir.name)
+            # fix `my_bk_act_class` and `_complete_action_class`
+            _aux_fix_backend_internal_classes(type(backend), this_local_dir)
             init_env.backend = None  # to avoid to close the backend when init_env is deleted
             classes_path = this_local_dir.name
         else:

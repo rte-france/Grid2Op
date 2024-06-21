@@ -75,6 +75,8 @@ class _ObsEnv(BaseEnv):
         highres_sim_counter=None,
         _complete_action_cls=None,
         _ptr_orig_obs_space=None,
+        _local_dir_cls=None,  # only set at the first call to `make(...)` after should be false
+        _read_from_local_dir=None,
     ):
         BaseEnv.__init__(
             self,
@@ -92,6 +94,8 @@ class _ObsEnv(BaseEnv):
             logger=logger,
             highres_sim_counter=highres_sim_counter,
             update_obs_after_reward=False,
+            _local_dir_cls=_local_dir_cls,
+            _read_from_local_dir=_read_from_local_dir
         )
         self.__unusable = False  # unsuable if backend cannot be copied
         
@@ -128,13 +132,13 @@ class _ObsEnv(BaseEnv):
         ####
         # to be able to save and import (using env.generate_classes) correctly
         self._actionClass = action_helper.subtype
-        self._observationClass = _complete_action_cls  # not used anyway
         self._complete_action_cls = _complete_action_cls
         self._action_space = (
             action_helper  # obs env and env share the same action space
         )
         
         self._ptr_orig_obs_space = _ptr_orig_obs_space
+        
         ####
 
         self.no_overflow_disconnection = parameters.NO_OVERFLOW_DISCONNECTION
@@ -195,19 +199,22 @@ class _ObsEnv(BaseEnv):
 
         from grid2op.Observation import ObservationSpace
         from grid2op.Reward import FlatReward
-        ob_sp_cls = ObservationSpace.init_grid(type(backend))
+        ob_sp_cls = ObservationSpace.init_grid(type(backend), _local_dir_cls=self._local_dir_cls)
         self._observation_space = ob_sp_cls(type(backend),
                                             env=self,
                                             with_forecast=False,
                                             rewardClass=FlatReward,
-                                            _with_obs_env=False)
+                                            _with_obs_env=False,
+                                            _local_dir_cls=self._local_dir_cls
+                                            )
+        self._observationClass = self._observation_space.subtype  # not used anyway
         
         # create the opponent
         self._create_opponent()
 
         # create the attention budget
         self._create_attention_budget()
-        self._obsClass = observationClass.init_grid(type(self.backend))
+        self._obsClass = observationClass.init_grid(type(self.backend), _local_dir_cls=self._local_dir_cls)
         self._obsClass._INIT_GRID_CLS = observationClass
         self.current_obs_init = self._obsClass(obs_env=None, action_helper=None)
         self.current_obs = self.current_obs_init
@@ -216,7 +223,7 @@ class _ObsEnv(BaseEnv):
         self._init_alert_data()
         
         # backend has loaded everything
-        self._hazard_duration = np.zeros(shape=self.n_line, dtype=dt_int)
+        self._hazard_duration = np.zeros(shape=type(self).n_line, dtype=dt_int)
 
     def _do_nothing(self, x):
         """

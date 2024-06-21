@@ -61,7 +61,7 @@ class SerializableSpace(GridObjects, RandomObject):
 
     """
 
-    def __init__(self, gridobj, subtype=object, _init_grid=True):
+    def __init__(self, gridobj, subtype=object, _init_grid=True, _local_dir_cls=None):
         """
 
         subtype: ``type``
@@ -83,7 +83,7 @@ class SerializableSpace(GridObjects, RandomObject):
         RandomObject.__init__(self)
         self._init_subtype = subtype  # do not use, use to save restore only !!!
         if _init_grid:
-            self.subtype = subtype.init_grid(gridobj)
+            self.subtype = subtype.init_grid(gridobj, _local_dir_cls=_local_dir_cls)
             from grid2op.Action import (
                 BaseAction,
             )  # lazy loading to prevent circular reference
@@ -265,8 +265,8 @@ class SerializableSpace(GridObjects, RandomObject):
                         msg_err_ = msg_err_.format(actionClass_str)
                     raise Grid2OpException(msg_err_)
         # create the proper SerializableSpace class for this environment
-        CLS = SerializableSpace.init_grid(gridobj)
-        res = CLS(gridobj=gridobj, subtype=subtype, _init_grid=True)
+        CLS = SerializableSpace.init_grid(gridobj, _local_dir_cls=_local_dir_cls)
+        res = CLS(gridobj=gridobj, subtype=subtype, _init_grid=True, _local_dir_cls=_local_dir_cls)
         return res
 
     def cls_to_dict(self):

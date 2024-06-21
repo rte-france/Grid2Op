@@ -49,6 +49,7 @@ class OpponentSpace(object):
         attack_cooldown,  # minimum duration between two consecutive attack
         budget_per_timestep=0.0,
         action_space=None,
+        _local_dir_cls=None
     ):
 
         if action_space is not None:

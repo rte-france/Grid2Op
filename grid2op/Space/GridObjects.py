@@ -19,6 +19,7 @@ to manipulate.
 """
 import warnings
 import copy
+import os
 import numpy as np
 from packaging import version
 from typing import Dict, Union, Literal, Any, List, Optional, ClassVar, Tuple
@@ -2876,6 +2877,21 @@ class GridObjects:
         cls.env_name = name
 
     @classmethod
+    def _aux_init_grid_from_cls(cls, gridobj, name_res):
+        import importlib
+        # NB: these imports needs to be consistent with what is done in
+        # base_env.generate_classes()
+        super_module_nm, module_nm = os.path.split(gridobj._PATH_GRID_CLASSES)
+        super_module = importlib.import_module(module_nm, super_module_nm)
+        module = importlib.import_module(f"{module_nm}.{name_res}_file", super_module)
+        cls_res = getattr(module, name_res)
+        # do not forget to create the cls_dict once and for all
+        if cls_res._CLS_DICT is None:
+            tmp = {}
+            cls_res._make_cls_dict_extended(cls_res, tmp, as_list=False)
+        return cls_res
+    
+    @classmethod
     def init_grid(cls, gridobj, force=False, extra_name=None, force_module=None, _local_dir_cls=None):
         """
         INTERNAL
@@ -2923,7 +2939,21 @@ class GridObjects:
             # to be able to load same environment with
             # different `n_busbar_per_sub`
             name_res += f"_{gridobj.n_busbar_per_sub}"
+                
+        if _local_dir_cls is not None and gridobj._PATH_GRID_CLASSES is not None:
+            # new in grid2op 1.10.3:
+            # if I end up here it's because (done in base_env.generate_classes()):
+            # 1) the first initial env has already been created
+            # 2) I need to init the class from the files (and not from whetever else)
+            # So i do it. And if that is the case, the files are created on the hard drive
+            # AND the module is added to the path
+            assert _local_dir_cls.name == gridobj._PATH_GRID_CLASSES  # check that it matches (security / consistency check)
+            return cls._aux_init_grid_from_cls(gridobj, name_res)
+        elif gridobj._PATH_GRID_CLASSES is not None:
+            return cls._aux_init_grid_from_cls(gridobj, name_res)
         
+        # legacy behaviour: build the class "on the fly"
+        # of new (>= 1.10.3 for the intial creation of the environment)
         if name_res in globals():
             if not force and _local_dir_cls is None:
                 # no need to recreate the class, it already exists
@@ -2931,23 +2961,6 @@ class GridObjects:
             else:
                 # i recreate the variable
                 del globals()[name_res]
-                
-        if _local_dir_cls is not None and gridobj._PATH_GRID_CLASSES is not None:
-            # new in grid2op 1.10.3:
-            # if I end up here it's because:
-            # 1) the first initial env has already been created
-            # 2) I need to init the class from the files (and not from whetever else)
-            # So i do it. And if that is the case, the files are created on the hard drive
-            # AND the module is added to the path
-            assert _local_dir_cls.name == gridobj._PATH_GRID_CLASSES
-            import importlib
-            module = importlib.import_module(f"{name_res}_file")
-            cls_res = getattr(module, name_res)
-            # do not forget to create the cls_dict once and for all
-            if cls_res._CLS_DICT is None:
-                tmp = {}
-                cls_res._make_cls_dict_extended(cls_res, tmp, as_list=False)
-            return cls_res
             
         cls_attr_as_dict = {}
         GridObjects._make_cls_dict_extended(gridobj, cls_attr_as_dict, as_list=False)

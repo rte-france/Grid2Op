@@ -27,7 +27,7 @@ class SerializableObservationSpace(SerializableSpace):
 
     """
 
-    def __init__(self, gridobj, observationClass=CompleteObservation, _init_grid=True):
+    def __init__(self, gridobj, observationClass=CompleteObservation, _init_grid=True, _local_dir_cls=None):
         """
 
         Parameters
@@ -40,7 +40,10 @@ class SerializableObservationSpace(SerializableSpace):
 
         """
         SerializableSpace.__init__(
-            self, gridobj=gridobj, subtype=observationClass, _init_grid=_init_grid
+            self, gridobj=gridobj,
+            subtype=observationClass,
+            _init_grid=_init_grid,
+            _local_dir_cls=_local_dir_cls
         )
         self.observationClass = self.subtype
         self._empty_obs = self._template_obj

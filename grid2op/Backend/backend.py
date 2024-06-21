@@ -2013,8 +2013,9 @@ class Backend(GridObjects, ABC):
                 '"grid2op.Observation.CompleteObservation".'
             )
 
-        backend_action = self.my_bk_act_class()
-        act = self._complete_action_class()
+        cls = type(self)
+        backend_action = cls.my_bk_act_class()
+        act = cls._complete_action_class()
         line_status = self._aux_get_line_status_to_set(obs.line_status)
         # skip the action part and update directly the backend action !
         dict_ = {
@@ -2028,7 +2029,7 @@ class Backend(GridObjects, ABC):
             },
         }
 
-        if type(self).shunts_data_available and type(obs).shunts_data_available:
+        if cls.shunts_data_available and type(obs).shunts_data_available:
             if "_shunt_bus" not in type(obs).attr_list_set:
                 raise BackendError(
                     "Impossible to set the backend to the state given by the observation: shunts data "
@@ -2045,7 +2046,7 @@ class Backend(GridObjects, ABC):
                 sh_q[~shunt_co] = np.NaN
                 dict_["shunt"]["shunt_p"] = sh_p
                 dict_["shunt"]["shunt_q"] = sh_q
-        elif type(self).shunts_data_available and not type(obs).shunts_data_available:
+        elif cls.shunts_data_available and not type(obs).shunts_data_available:
             warnings.warn("Backend supports shunt but not the observation. This behaviour is non standard.")
         act.update(dict_)
         backend_action += act
@@ -2060,9 +2061,6 @@ class Backend(GridObjects, ABC):
             This is done as it should be by the Environment
             
         """
-        # lazy loading
-        from grid2op.Action import CompleteAction
-        from grid2op.Action._backendAction import _BackendAction
 
         if hasattr(self, "_missing_two_busbars_support_info"):
             if self._missing_two_busbars_support_info:
@@ -2118,13 +2116,21 @@ class Backend(GridObjects, ABC):
             orig_type._clear_grid_dependant_class_attributes() 
             
         my_cls = type(self)
-        my_cls.my_bk_act_class = _BackendAction.init_grid(my_cls, _local_dir_cls=_local_dir_cls)
-        my_cls._complete_action_class = CompleteAction.init_grid(my_cls, _local_dir_cls=_local_dir_cls)
-        my_cls._complete_action_class._add_shunt_data()
-        my_cls._complete_action_class._update_value_set()
-        my_cls.assert_grid_correct_cls()
+        my_cls._add_internal_classes(_local_dir_cls)
         self._remove_my_attr_cls()
 
+    @classmethod
+    def _add_internal_classes(cls, _local_dir_cls):
+        # lazy loading
+        from grid2op.Action import CompleteAction
+        from grid2op.Action._backendAction import _BackendAction
+        
+        cls.my_bk_act_class = _BackendAction.init_grid(cls, _local_dir_cls=_local_dir_cls)
+        cls._complete_action_class = CompleteAction.init_grid(cls, _local_dir_cls=_local_dir_cls)
+        cls._complete_action_class._add_shunt_data()
+        cls._complete_action_class._update_value_set()
+        cls.assert_grid_correct_cls()
+        
     def _remove_my_attr_cls(self):
         """
         INTERNAL

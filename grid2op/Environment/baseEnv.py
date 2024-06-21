@@ -336,10 +336,13 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         _is_test: bool = False,  # TODO not implemented !!
         _init_obs: Optional[BaseObservation] =None,
         _local_dir_cls=None,
+        _read_from_local_dir=None,
     ):
         GridObjects.__init__(self)
         RandomObject.__init__(self)
         self._local_dir_cls = _local_dir_cls  # suppose it's the second path to the environment, so the classes are already in the files
+        self._read_from_local_dir = _read_from_local_dir
+        
         self._n_busbar = n_busbar  # env attribute not class attribute !
         if other_rewards is None:
             other_rewards = {}
@@ -635,7 +638,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         
         new_obj._init_grid_path = copy.deepcopy(self._init_grid_path)
         new_obj._init_env_path = copy.deepcopy(self._init_env_path)
-        new_obj._local_dir_cls = None  # copy of a env is not the "main" env.
+        new_obj._local_dir_cls = None  # copy of a env is not the "main" env.  TODO
+        new_obj._read_from_local_dir = self._read_from_local_dir
 
         new_obj._DEBUG = self._DEBUG
         new_obj._parameters = copy.deepcopy(self._parameters)
@@ -814,6 +818,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             attack_cooldown=new_obj._opponent_attack_cooldown,
             budget_per_timestep=new_obj._opponent_budget_per_ts,
             opponent=new_obj._opponent,
+            _local_dir_cls=self._local_dir_cls,
         )
         state_me, state_opp = self._oppSpace._get_state()
         new_obj._oppSpace._set_state(state_me)
@@ -1231,6 +1236,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             gridobj=type(self.backend),
             legal_action=AlwaysLegal,
             actionClass=self._opponent_action_class,
+            _local_dir_cls=self._local_dir_cls
         )
 
         self._compute_opp_budget = self._opponent_budget_class(
@@ -1244,6 +1250,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             attack_cooldown=self._opponent_attack_cooldown,
             budget_per_timestep=self._opponent_budget_per_ts,
             opponent=self._opponent,
+            _local_dir_cls=self._local_dir_cls,
         )
         self._oppSpace.init_opponent(partial_env=self, **self._kwargs_opponent)
         self._oppSpace.reset()
@@ -3997,11 +4004,15 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         if not _add_class_output:
             return str_import
         
+        # NB: these imports needs to be consistent with what is done in
+        # griobj.init_grid(...)
         package_path, nm_ = os.path.split(output_file)
         nm_, ext = os.path.splitext(nm_)
-        if package_path not in sys.path:
-            sys.path.append(package_path)
-        module = importlib.import_module(nm_, package_path)
+        sub_repo, tmp_nm = os.path.split(package_path)
+        if sub_repo not in sys.path:
+            sys.path.append(sub_repo)
+        super_module = importlib.import_module(tmp_nm, sub_repo)
+        module = importlib.import_module(f"{tmp_nm}.{nm_}", super_module)
         cls_res = getattr(module, cls_other.__name__)
         return str_import, cls_res
 
