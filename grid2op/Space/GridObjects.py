@@ -21,6 +21,7 @@ import warnings
 import copy
 import os
 import numpy as np
+import sys
 from packaging import version
 from typing import Dict, Union, Literal, Any, List, Optional, ClassVar, Tuple
     
@@ -2882,8 +2883,9 @@ class GridObjects:
         # NB: these imports needs to be consistent with what is done in
         # base_env.generate_classes()
         super_module_nm, module_nm = os.path.split(gridobj._PATH_GRID_CLASSES)
-        super_module = importlib.import_module(module_nm, super_module_nm)
-        module = importlib.import_module(f"{module_nm}.{name_res}_file", super_module)
+        super_module = importlib.import_module(module_nm, super_module_nm)  # env/path/_grid2op_classes/
+        module_all_classes = importlib.import_module(f"{module_nm}", super_module)  # module specific to the tmpdir created
+        module = importlib.import_module(f"{module_nm}.{name_res}_file", module_all_classes)  # module containing the definition of the class
         cls_res = getattr(module, name_res)
         # do not forget to create the cls_dict once and for all
         if cls_res._CLS_DICT is None:
@@ -2950,6 +2952,13 @@ class GridObjects:
             assert _local_dir_cls.name == gridobj._PATH_GRID_CLASSES  # check that it matches (security / consistency check)
             return cls._aux_init_grid_from_cls(gridobj, name_res)
         elif gridobj._PATH_GRID_CLASSES is not None:
+            # If I end up it's because the environment is created with already initialized
+            # classes.
+            # But if i'm on a remote process, the sys.path might not be up to date
+            # So I check it
+            # sub_repo, tmp_nm = os.path.split(gridobj._PATH_GRID_CLASSES)
+            # if sub_repo not in sys.path:
+            #     sys.path.append(sub_repo)
             return cls._aux_init_grid_from_cls(gridobj, name_res)
         
         # legacy behaviour: build the class "on the fly"

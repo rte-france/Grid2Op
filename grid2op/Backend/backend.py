@@ -2084,23 +2084,16 @@ class Backend(GridObjects, ABC):
             warnings.warn("Your backend is missing the `_missing_two_busbars_support_info` "
                           "attribute. This is known issue in lightims2grid <= 0.7.5. Please "
                           "upgrade your backend. This will raise an error in the future.")
-            
+        
         orig_type = type(self)
-        if orig_type.my_bk_act_class is None:
+        if orig_type.my_bk_act_class is None and orig_type._INIT_GRID_CLS is None:
+            # NB the second part of the "if": `orig_type._INIT_GRID_CLS is None` 
+            # has been added in grid2Op 1.10.3 to handle multiprocessing correctly:
+            # classes passed in multi processing should not be initialized a second time
+            
             # class is already initialized
             # and set up the proper class and everything
             self._init_class_attr()
-
-            # hack due to changing class of imported module in the module itself
-            # future_cls = orig_type.init_grid(
-            #     type(self), force_module=type(self).__module__, _local_dir_cls=_local_dir_cls
-            # )
-            # self.__class__ = future_cls
-            # setattr(
-            #     sys.modules[type(self).__module__],
-            #     self.__class__.__name__,
-            #     self.__class__,
-            # )
             
             future_cls = orig_type.init_grid(
                 type(self), _local_dir_cls=_local_dir_cls

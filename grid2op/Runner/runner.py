@@ -74,8 +74,12 @@ class Runner(object):
 
         env = grid2op.make("l2rpn_case14_sandbox")
 
+        # use of a Runner
+        runner = Runner(**env.get_params_for_runner(), agentClass=RandomAgent)
+        res = runner.run(nb_episode=nn_episode)
+        
         ###############
-        # the gym loops
+        # the "equivalent" gym loops
         nb_episode = 5
         for i in range(nb_episode):
             obs = env.reset()
@@ -84,11 +88,10 @@ class Runner(object):
             while not done:
                 act = agent.act(obs, reward, done)
                 obs, reward, done, info = env.step(act)
-
+        # but this loop does not handle the seeding, does not save the results
+        # does not store anything related to the run you made etc.
+        # the Runner can do that with simple calls (see bellow)
         ###############
-        # equivalent with use of a Runner
-        runner = Runner(**env.get_params_for_runner(), agentClass=RandomAgent)
-        res = runner.run(nb_episode=nn_episode)
 
 
     This specific class as for main purpose to evaluate the performance of a trained
@@ -101,6 +104,109 @@ class Runner(object):
     encourage you to use the :func:`grid2op.Environment.Environment.get_params_for_runner` for
     creating a runner.
 
+    You can customize the agent instance you want with the following code:
+    
+    .. code-block:: python
+
+        import grid2op
+        from grid2op.Agent import RandomAgent # for example...
+        from grid2op.Runner import Runner
+
+        env = grid2op.make("l2rpn_case14_sandbox")
+        
+        agent_instance = RandomAgent(env.action_space)
+        runner = Runner(**env.get_params_for_runner(), agentClass=None, agentInstance=agent_instance)
+        res = runner.run(nb_episode=nn_episode)
+        
+    You can customize the seeds, the scenarios ID you want, the number of initial steps to skip, the 
+    maximum duration of an episode etc. For more information, please refer to the :func:`Runner.run`
+    
+    You can also easily retrieve the :class:`grid2op.Episode.EpisodeData` representing your runs with:
+    
+    .. code-block:: python
+
+        import grid2op
+        from grid2op.Agent import RandomAgent # for example...
+        from grid2op.Runner import Runner
+
+        env = grid2op.make("l2rpn_case14_sandbox")
+        
+        agent_instance = RandomAgent(env.action_space)
+        runner = Runner(**env.get_params_for_runner(), agentClass=None, agentInstance=agent_instance)
+        res = runner.run(nb_episode=2,
+                         add_detailed_output=True)
+        for *_, ep_data in res:
+            # ep_data are the EpisodeData you can use to do whatever
+            ...
+            
+    You can save the results in a standardized format with:
+    
+    .. code-block:: python
+
+        import grid2op
+        from grid2op.Agent import RandomAgent # for example...
+        from grid2op.Runner import Runner
+
+        env = grid2op.make("l2rpn_case14_sandbox")
+        
+        agent_instance = RandomAgent(env.action_space)
+        runner = Runner(**env.get_params_for_runner(), agentClass=None, agentInstance=agent_instance)
+        res = runner.run(nb_episode=2,
+                         save_path="A/PATH/SOMEWHERE")  # eg "/home/user/you/grid2op_results/this_run"
+                         
+    You can also easily (on some platform) easily make the evaluation faster by using the "multi processing" python
+    package with:
+    
+    .. code-block:: python
+
+        import grid2op
+        from grid2op.Agent import RandomAgent # for example...
+        from grid2op.Runner import Runner
+
+        env = grid2op.make("l2rpn_case14_sandbox")
+        
+        agent_instance = RandomAgent(env.action_space)
+        runner = Runner(**env.get_params_for_runner(), agentClass=None, agentInstance=agent_instance)
+        res = runner.run(nb_episode=2,
+                         nb_process=2)
+    
+    And, as of grid2op 1.10.3 you can know customize the multi processing context you want
+    to use to evaluate your agent, like this:
+    
+    .. code-block:: python
+
+        import multiprocessing as mp
+        import grid2op
+        from grid2op.Agent import RandomAgent # for example...
+        from grid2op.Runner import Runner
+
+        env = grid2op.make("l2rpn_case14_sandbox")
+        
+        agent_instance = RandomAgent(env.action_space)
+        
+        ctx = mp.get_context('spawn')  # or "fork" or "forkserver"
+        runner = Runner(**env.get_params_for_runner(),
+                        agentClass=None,
+                        agentInstance=agent_instance,
+                        mp_context=ctx)
+        res = runner.run(nb_episode=2,
+                         nb_process=2)
+                         
+    If you set this, the multiprocessing `Pool` used to evaluate your agents will be made with: 
+    
+    .. code-block:: python
+    
+        with mp_context.Pool(nb_process) as p:
+            ....
+            
+    Otherwise the default "Pool" is used:
+    
+    .. code-block:: python
+    
+        with Pool(nb_process) as p:
+            ....
+    
+    
     Attributes
     ----------
     envClass: ``type``
@@ -289,10 +395,11 @@ class Runner(object):
         kwargs_observation=None,
         observation_bk_class=None,
         observation_bk_kwargs=None,
-        
+        mp_context=None,
         # experimental: whether to read from local dir or generate the classes on the fly:
         _read_from_local_dir=False,
         _is_test=False,  # TODO not implemented !!
+        _local_dir_cls=None,
     ):
         """
         Initialize the Runner.
@@ -452,6 +559,14 @@ class Runner(object):
             self._backend_kwargs = backend_kwargs
         else:
             self._backend_kwargs = {}
+        
+        # we keep a reference to the local directory (tmpfile) where
+        # the classes definition are stored while the runner lives
+        self._local_dir_cls = _local_dir_cls 
+        
+        # multi processing context that controls the way the computations are 
+        # distributed when using multiple processes 
+        self._mp_context = mp_context
         
         self.__can_copy_agent = True
         if agentClass is not None:
@@ -677,6 +792,8 @@ class Runner(object):
                 observation_bk_kwargs=self._observation_bk_kwargs,
                 _raw_backend_class=self.backendClass,
                 _read_from_local_dir=self._read_from_local_dir,
+                # _local_dir_cls: we don't set it, in parrallel mode it has no sense !
+                _local_dir_cls=None
             )
 
         if self.thermal_limit_a is not None:
@@ -713,7 +830,7 @@ class Runner(object):
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
         Used to reset an environment. This method is called at the beginning of each new episode.
-        If the environment is not initialized, then it initializes it with :func:`Runner.make_env`.
+        If the environment is not initialized, then it initializes it with :func:`Runner.init_env`.
         """
         pass
 
@@ -1115,13 +1232,17 @@ class Runner(object):
                             init_states_res[i],
                             reset_options_res[i])
                 
-            if get_start_method() == 'spawn':
-                # https://github.com/rte-france/Grid2Op/issues/600
-                with get_context("spawn").Pool(nb_process) as p:
+            if self._mp_context is not None:
+                with self._mp_context.Pool(nb_process) as p:
                     tmp = p.starmap(_aux_one_process_parrallel, lists)
-            else:            
-                with Pool(nb_process) as p:
-                    tmp = p.starmap(_aux_one_process_parrallel, lists)
+            else:
+                if get_start_method() == 'spawn':
+                    # https://github.com/rte-france/Grid2Op/issues/600
+                    with get_context("spawn").Pool(nb_process) as p:
+                        tmp = p.starmap(_aux_one_process_parrallel, lists)
+                else:            
+                    with Pool(nb_process) as p:
+                        tmp = p.starmap(_aux_one_process_parrallel, lists)
             for el in tmp:
                 res += el
         return res

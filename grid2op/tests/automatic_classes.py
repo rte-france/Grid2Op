@@ -7,6 +7,8 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 import os
+import multiprocessing as mp
+
 os.environ["grid2op_class_in_file"] = "true"
 
 import sys
@@ -16,6 +18,11 @@ import importlib
 
 import grid2op
 from grid2op.MakeEnv.PathUtils import USE_CLASS_IN_FILE
+from grid2op.Runner import Runner
+from grid2op.Agent import BaseAgent
+from grid2op.Action import BaseAction
+from grid2op.Observation.baseObservation import BaseObservation
+from grid2op.Action.actionSpace import ActionSpace
 assert USE_CLASS_IN_FILE
 
 # TODO feature: in the make add a kwargs to deactivate this
@@ -23,31 +30,74 @@ assert USE_CLASS_IN_FILE
 # TODO test Multiprocess
 # TODO test multi mix
 # TODO test runner
-# TODO test env copy
 
 # TODO test gym
 # TODO two envs same name => now diff classes
 # TODO test the runner saved classes and reload
 # TODO test add_to_name
 # TODO test noshunt
+# TODO grid2op compat version
+
 # TODO test backend converters
 # TODO mode to propagate the "pointer" (this_local_dir = tempfile.TemporaryDirectory(dir=sys_path))
 #      in all copy of the environment instead of keeping it only for the first one
 # TODO test all type of backend in the observation space, including the deactivate forecast, reactivate forecast, the different backend etc.
 
+class _ThisAgentTest(BaseAgent):
+    def __init__(self,
+                 action_space: ActionSpace,
+                 _read_from_local_dir,
+                 _name_cls_obs,
+                 _name_cls_act,
+                 ):
+        super().__init__(action_space)
+        self._read_from_local_dir = _read_from_local_dir
+        self._name_cls_obs = _name_cls_obs
+        self._name_cls_act = _name_cls_act
+        
+    def act(self, observation: BaseObservation, reward: float, done: bool = False) -> BaseAction:
+        supermodule_nm, module_nm = os.path.split(self._read_from_local_dir)
+        super_module = importlib.import_module(module_nm, supermodule_nm) 
+        
+        # check observation
+        this_module = importlib.import_module(f"{module_nm}.{self._name_cls_obs}_file", super_module)       
+        if hasattr(this_module, self._name_cls_obs):
+            this_class_obs = getattr(this_module, self._name_cls_obs)
+        else:
+            raise RuntimeError(f"class {self._name_cls_obs} not found")
+        assert isinstance(observation, this_class_obs)
+        
+        # check action
+        this_module = importlib.import_module(f"{module_nm}.{self._name_cls_act}_file", super_module)       
+        if hasattr(this_module, self._name_cls_act):
+            this_class_act = getattr(this_module, self._name_cls_act)
+        else:
+            raise RuntimeError(f"class {self._name_cls_act} not found")
+        res = super().act(observation, reward, done)
+        assert isinstance(res, this_class_act)
+        return res
+
+
 class AutoClassInFileTester(unittest.TestCase):
     def get_env_name(self):
         return "l2rpn_case14_sandbox"
     
-    def test_all_classes_from_file(self,
-                                   env=None,
-                                   classes_name="l2rpn_case14_sandbox",
-                                   name_action_cls="PlayableAction_l2rpn_case14_sandbox"):
+    def setUp(self) -> None:
+        self.max_iter = 10
+        return super().setUp()
+    
+    def _aux_make_env(self, env=None):
         if env is None:
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore")
                 env = grid2op.make(self.get_env_name(), test=True)
+        return env
         
+    def test_all_classes_from_file(self,
+                                   env=None,
+                                   classes_name="l2rpn_case14_sandbox",
+                                   name_action_cls="PlayableAction_l2rpn_case14_sandbox"):
+        env = self._aux_make_env(env)
         names_cls = [f"ActionSpace_{classes_name}",
                      f"_BackendAction_{classes_name}",
                      f"CompleteAction_{classes_name}",
@@ -176,10 +226,7 @@ class AutoClassInFileTester(unittest.TestCase):
         
     def test_all_classes_from_file_env_after_reset(self, env=None):
         """test classes are still consistent even after a call to env.reset() and obs.simulate()"""
-        if env is None:
-            with warnings.catch_warnings():
-                warnings.filterwarnings("ignore")
-                env = grid2op.make(self.get_env_name(), test=True)
+        env = self._aux_make_env(env)
         obs = env.reset()
         self.test_all_classes_from_file(env=env)
         obs.simulate(env.action_space())
@@ -188,10 +235,7 @@ class AutoClassInFileTester(unittest.TestCase):
     def test_all_classes_from_file_obsenv(self, env=None):
         """test the files are correctly generated for the "forecast env" in the 
         environment even after a call to obs.reset() and obs.simulate()"""
-        if env is None:
-            with warnings.catch_warnings():
-                warnings.filterwarnings("ignore")
-                env = grid2op.make(self.get_env_name(), test=True)
+        env = self._aux_make_env(env)
         
         self.test_all_classes_from_file(env=env.observation_space.obs_env,
                                         name_action_cls="CompleteAction_l2rpn_case14_sandbox")  
@@ -210,12 +254,10 @@ class AutoClassInFileTester(unittest.TestCase):
         self.test_all_classes_from_file(env=obs._obs_env,
                                         name_action_cls="CompleteAction_l2rpn_case14_sandbox")   
     
-    def test_all_classes_from_file_env_cpy(self):
+    def test_all_classes_from_file_env_cpy(self, env=None):
         """test that when an environment is copied, then the copied env is consistent, 
         that it is consistent after a reset and that the forecast env is consistent"""
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore")
-            env = grid2op.make(self.get_env_name(), test=True)
+        env = self._aux_make_env(env)
         env_cpy = env.copy()
         self.test_all_classes_from_file(env=env_cpy)
         self.test_all_classes_from_file_env_after_reset(env=env_cpy)
@@ -223,6 +265,100 @@ class AutoClassInFileTester(unittest.TestCase):
                                         name_action_cls="CompleteAction_l2rpn_case14_sandbox")     
         self.test_all_classes_from_file_obsenv(env=env_cpy)
     
-
+    def test_all_classes_from_file_env_runner(self, env=None):
+        """this test, using the defined functions above that the runner is able to create a valid env"""
+        env = self._aux_make_env(env)
+        runner = Runner(**env.get_params_for_runner())
+        env_runner = runner.init_env()     
+        self.test_all_classes_from_file(env=env_runner)
+        self.test_all_classes_from_file_env_after_reset(env=env_runner)
+        self.test_all_classes_from_file(env=env_runner.observation_space.obs_env,
+                                        name_action_cls="CompleteAction_l2rpn_case14_sandbox")     
+        self.test_all_classes_from_file_obsenv(env=env_runner)
+        
+        # test the runner prevents the deletion of the tmp file where the classes are stored
+        # path_cls = env._local_dir_cls
+        # del env
+        # assert os.path.exists(path_cls.name)
+        env_runner = runner.init_env()     
+        self.test_all_classes_from_file(env=env_runner)
+        self.test_all_classes_from_file_env_after_reset(env=env_runner)
+        self.test_all_classes_from_file(env=env_runner.observation_space.obs_env,
+                                        name_action_cls="CompleteAction_l2rpn_case14_sandbox")     
+        self.test_all_classes_from_file_obsenv(env=env_runner)
+    
+    def test_all_classes_from_file_runner_1ep(self, env=None):
+        """this test that the runner is able to "run" (one type of run), but the tests on the classes 
+        are much lighter than in test_all_classes_from_file_env_runner"""
+        env = self._aux_make_env(env)
+        this_agent = _ThisAgentTest(env.action_space,
+                                    env._read_from_local_dir,
+                                    f"CompleteObservation_{self.get_env_name()}",
+                                    f"PlayableAction_{self.get_env_name()}",
+                                    )
+        runner = Runner(**env.get_params_for_runner(),
+                        agentClass=None,
+                        agentInstance=this_agent)
+        runner.run(nb_episode=1,
+                   max_iter=self.max_iter,
+                   env_seeds=[0],
+                   episode_id=[0])
+    
+    def test_all_classes_from_file_runner_2ep_seq(self, env=None):
+        """this test that the runner is able to "run" (one other type of run), but the tests on the classes 
+        are much lighter than in test_all_classes_from_file_env_runner"""
+        env = self._aux_make_env(env)
+        this_agent = _ThisAgentTest(env.action_space,
+                                    env._read_from_local_dir,
+                                    f"CompleteObservation_{self.get_env_name()}",
+                                    f"PlayableAction_{self.get_env_name()}",
+                                    )
+        runner = Runner(**env.get_params_for_runner(),
+                        agentClass=None,
+                        agentInstance=this_agent)
+        runner.run(nb_episode=2,
+                   max_iter=self.max_iter,
+                   env_seeds=[0, 0],
+                   episode_id=[0, 1])
+    
+    def test_all_classes_from_file_runner_2ep_par_fork(self, env=None):
+        """this test that the runner is able to "run" (one other type of run), but the tests on the classes 
+        are much lighter than in test_all_classes_from_file_env_runner"""
+        env = self._aux_make_env(env)
+        this_agent = _ThisAgentTest(env.action_space,
+                                    env._read_from_local_dir,
+                                    f"CompleteObservation_{self.get_env_name()}",
+                                    f"PlayableAction_{self.get_env_name()}",
+                                    )
+        runner = Runner(**env.get_params_for_runner(),
+                        agentClass=None,
+                        agentInstance=this_agent)
+        runner.run(nb_episode=2,
+                   nb_process=2,
+                   max_iter=self.max_iter,
+                   env_seeds=[0, 0],
+                   episode_id=[0, 1])
+    
+    def test_all_classes_from_file_runner_2ep_par_spawn(self, env=None):
+        """this test that the runner is able to "run" (one other type of run), but the tests on the classes 
+        are much lighter than in test_all_classes_from_file_env_runner"""
+        env = self._aux_make_env(env)
+        this_agent = _ThisAgentTest(env.action_space,
+                                    env._read_from_local_dir,
+                                    f"CompleteObservation_{self.get_env_name()}",
+                                    f"PlayableAction_{self.get_env_name()}",
+                                    )
+        ctx = mp.get_context('spawn')
+        runner = Runner(**env.get_params_for_runner(),
+                        agentClass=None,
+                        agentInstance=this_agent,
+                        mp_context=ctx)
+        runner.run(nb_episode=2,
+                   nb_process=2,
+                   max_iter=self.max_iter,
+                   env_seeds=[0, 0],
+                   episode_id=[0, 1])
+        
+        
 if __name__ == "__main__":
     unittest.main()

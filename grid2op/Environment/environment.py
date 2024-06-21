@@ -121,7 +121,6 @@ class Environment(BaseEnv):
         _is_test=False,
         _allow_loaded_backend=False,
         _local_dir_cls=None,  # only set at the first call to `make(...)` after should be false
-        _init_env=None,
     ):
         BaseEnv.__init__(
             self,
@@ -2130,6 +2129,7 @@ class Environment(BaseEnv):
         res["kwargs_attention_budget"] = copy.deepcopy(self._kwargs_attention_budget)
         res["has_attention_budget"] = self._has_attention_budget
         res["_read_from_local_dir"] = self._read_from_local_dir
+        res["_local_dir_cls"] = self._local_dir_cls  # should be transfered to the runner so that folder is not deleted while runner exists
         res["logger"] = self.logger
         res["kwargs_observation"] = copy.deepcopy(self._kwargs_observation)
         res["observation_bk_class"] = self._observation_bk_class
@@ -2173,7 +2173,9 @@ class Environment(BaseEnv):
                              observation_bk_kwargs,
                              _raw_backend_class,
                              _read_from_local_dir,
-                             n_busbar=DEFAULT_N_BUSBAR_PER_SUB):        
+                             _local_dir_cls,
+                             n_busbar=DEFAULT_N_BUSBAR_PER_SUB
+                             ):        
         res = cls(init_env_path=init_env_path,
                   init_grid_path=init_grid_path,
                   chronics_handler=chronics_handler,
@@ -2207,7 +2209,7 @@ class Environment(BaseEnv):
                   n_busbar=int(n_busbar),
                   _raw_backend_class=_raw_backend_class,
                   _read_from_local_dir=_read_from_local_dir,
-                  _main_env=False)
+                  _local_dir_cls=_local_dir_cls)
         return res
     
     def generate_data(self, nb_year=1, nb_core=1, seed=None, **kwargs):

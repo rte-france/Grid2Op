@@ -74,9 +74,12 @@ Next release
 - [ADDED] possibility to limit the duration of an episode with `env.reset(..., options={"max step": ...})`
 - [ADDED] possibility to specify the "reset_options" used in `env.reset` when
   using the runner with `runner.run(..., reset_options=xxx)`
+- [ADDED] the argument `mp_context` when building the runner to help pass a multiprocessing context in the
+  grid2op `Runner` 
 - [IMPROVED] more consistency in the way the classes are initialized at the creation of an environment
 - [IMPROVED] more consistency when an environment is copied (some attributes of the copied env were 
   deep copied incorrectly)
+- [IMPROVED] Doc about the runner
 
 
 [1.10.2] - 2024-05-27
