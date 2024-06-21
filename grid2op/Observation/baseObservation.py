@@ -3389,7 +3389,7 @@ class BaseObservation(GridObjects):
             sim_obs._update_internal_env_params(self._obs_env)
         return (sim_obs, *rest)  # parentheses are needed for python 3.6 at least.
 
-    def copy(self) -> Self:
+    def copy(self, env=None) -> Self:
         """
         INTERNAL
 
@@ -3418,14 +3418,16 @@ class BaseObservation(GridObjects):
         res = copy.deepcopy(self)
 
         self._obs_env = obs_env
-        res._obs_env = obs_env
-
         self.action_helper = action_helper
-        res.action_helper = action_helper
-        
         self._ptr_kwargs_env = _ptr_kwargs_env
-        res._ptr_kwargs_env = _ptr_kwargs_env
-        
+        if env is None:
+            res._obs_env = obs_env
+            res.action_helper = action_helper
+            res._ptr_kwargs_env = _ptr_kwargs_env
+        else:
+            res._obs_env = env._observation_space.obs_env
+            res.action_helper = env._observation_space.action_helper_env
+            res._ptr_kwargs_env = env._observation_space._real_env_kwargs
         return res
 
     @property

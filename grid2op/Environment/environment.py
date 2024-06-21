@@ -155,6 +155,8 @@ class Environment(BaseEnv):
             highres_sim_counter=highres_sim_counter,
             update_obs_after_reward=_update_obs_after_reward,
             n_busbar=n_busbar,  # TODO n_busbar_per_sub different num per substations: read from a config file maybe (if not provided by the user)
+            name=name,
+            _raw_backend_class=_raw_backend_class if _raw_backend_class is not None else type(backend),
             _init_obs=_init_obs,
             _is_test=_is_test,  # is this created with "test=True" # TODO not implemented !!
             _local_dir_cls=_local_dir_cls,
@@ -181,11 +183,6 @@ class Environment(BaseEnv):
         self.metadata = None
         self.spec = None
 
-        if _raw_backend_class is None:
-            self._raw_backend_class = type(backend)
-        else:
-            self._raw_backend_class = _raw_backend_class
-
         self._compat_glop_version = _compat_glop_version
 
         # for plotting
@@ -198,7 +195,6 @@ class Environment(BaseEnv):
             rewardClass,
             legalActClass,
         )
-        self._actionClass_orig = actionClass
         self._observationClass_orig = observationClass
         
     def _init_backend(
@@ -247,7 +243,8 @@ class Environment(BaseEnv):
                 "Impossible to use the same backend twice. Please create your environment with a "
                 "new backend instance (new object)."
             )    
-            
+        self._actionClass_orig = actionClass
+        
         need_process_backend = False    
         if not self.backend.is_loaded:
             if hasattr(self.backend, "init_pp_backend") and self.backend.init_pp_backend is not None:
@@ -1394,19 +1391,13 @@ class Environment(BaseEnv):
         return rgb_array
 
     def _custom_deepcopy_for_copy(self, new_obj):
-        super()._custom_deepcopy_for_copy(new_obj)
-
-        new_obj.name = self.name
-        
         new_obj.metadata = copy.deepcopy(self.metadata)
         new_obj.spec = copy.deepcopy(self.spec)
 
-        new_obj._raw_backend_class = self._raw_backend_class
         new_obj._compat_glop_version = self._compat_glop_version
-        new_obj._actionClass_orig = self._actionClass_orig
-        new_obj._observationClass_orig = self._observationClass_orig
         new_obj._max_iter = self._max_iter
         new_obj._max_step = self._max_step
+        super()._custom_deepcopy_for_copy(new_obj)
 
     def copy(self) -> "Environment":
         """

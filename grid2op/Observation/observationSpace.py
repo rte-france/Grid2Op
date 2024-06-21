@@ -459,7 +459,7 @@ class ObservationSpace(SerializableObservationSpace):
             self.obs_env.reset()
         self._env_param = copy.deepcopy(real_env.parameters)
 
-    def _custom_deepcopy_for_copy(self, new_obj):
+    def _custom_deepcopy_for_copy(self, new_obj, env=None):
         """implements a faster "res = copy.deepcopy(self)" to use
         in "self.copy"
         Do not use it anywhere else...
@@ -495,13 +495,17 @@ class ObservationSpace(SerializableObservationSpace):
         new_obj._ptr_kwargs_observation = self._ptr_kwargs_observation
         
         # real env kwargs, these is a "pointer" anyway
-        new_obj._real_env_kwargs = self._real_env_kwargs
+        if env is not None:
+            from grid2op.Environment import Environment
+            new_obj._real_env_kwargs = Environment.get_kwargs(env, False, False)
+        else:
+            new_obj._real_env_kwargs = self._real_env_kwargs
         new_obj._observation_bk_class = self._observation_bk_class
         new_obj._observation_bk_kwargs = self._observation_bk_kwargs
         
         new_obj._ObsEnv_class = self._ObsEnv_class
 
-    def copy(self, copy_backend=False):
+    def copy(self, copy_backend=False, env=None):
         """
         INTERNAL
 
@@ -522,18 +526,20 @@ class ObservationSpace(SerializableObservationSpace):
         # create an empty "me"
         my_cls = type(self)
         res = my_cls.__new__(my_cls)
-        self._custom_deepcopy_for_copy(res)
+        self._custom_deepcopy_for_copy(res, env)
 
         if not copy_backend:
             res._backend_obs = backend
             res._empty_obs = obs_.copy()
             res.obs_env = obs_env
         else:
-            res.obs_env = obs_env.copy()
-            res.obs_env._ptr_orig_obs_space = res
-            res._backend_obs = res.obs_env.backend
-            res._empty_obs = obs_.copy()
-            res._empty_obs._obs_env = res.obs_env
+            if obs_env is not None:
+                res.obs_env = obs_env.copy(env=env, new_obs_space=res)
+                res._backend_obs = res.obs_env.backend
+                res._empty_obs = obs_.copy()
+                res._empty_obs._obs_env = res.obs_env
+            else:
+                res.obs_env = None
 
         # assign back the results
         self._backend_obs = backend

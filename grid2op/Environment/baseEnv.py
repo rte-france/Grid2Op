@@ -309,6 +309,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         init_grid_path: os.PathLike,
         parameters: Parameters,
         voltagecontrolerClass: type,
+        name="unknown",
         thermal_limit_a: Optional[np.ndarray] = None,
         epsilon_poly: float = 1e-4,  # precision of the redispatching algorithm
         tol_poly: float = 1e-2,  # i need to compute a redispatching if the actual values are "more than tol_poly" the values they should be
@@ -337,12 +338,18 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         _init_obs: Optional[BaseObservation] =None,
         _local_dir_cls=None,
         _read_from_local_dir=None,
+        _raw_backend_class=None,
     ):
         GridObjects.__init__(self)
         RandomObject.__init__(self)
+        self.name = name
         self._local_dir_cls = _local_dir_cls  # suppose it's the second path to the environment, so the classes are already in the files
         self._read_from_local_dir = _read_from_local_dir
+        self._actionClass_orig = None
+        self._observationClass_orig = None
         
+        self._raw_backend_class = _raw_backend_class
+            
         self._n_busbar = n_busbar  # env attribute not class attribute !
         if other_rewards is None:
             other_rewards = {}
@@ -398,7 +405,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._helper_observation_class: ObservationSpace = None
 
         # and calendar data
-        self.time_stamp: time.struct_time = None
+        self.time_stamp: time.struct_time = datetime(year=2019, month=1, day=1)
         self.nb_time_step: datetime.timedelta = dt_int(0)
         self.delta_time_seconds = None  # number of seconds between two consecutive step
 
@@ -632,6 +639,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             raise RuntimeError("Impossible to copy your environment: the backend "
                                "class you used cannot be copied.")
         RandomObject._custom_deepcopy_for_copy(self, new_obj)
+        new_obj.name = self.name
         if dict_ is None:
             dict_ = {}
         new_obj._n_busbar = self._n_busbar
@@ -641,6 +649,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         new_obj._local_dir_cls = None  # copy of a env is not the "main" env.  TODO
         new_obj._read_from_local_dir = self._read_from_local_dir
 
+        new_obj._raw_backend_class = self._raw_backend_class
         new_obj._DEBUG = self._DEBUG
         new_obj._parameters = copy.deepcopy(self._parameters)
         new_obj.with_forecast = self.with_forecast
@@ -660,27 +669,23 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         new_obj._tol_poly = self._tol_poly
 
         #
-        new_obj._complete_action_cls = copy.deepcopy(self._complete_action_cls)
+        new_obj._complete_action_cls = self._complete_action_cls #  const
 
         # define logger
         new_obj.logger = copy.deepcopy(self.logger)  # TODO does that make any sense ?
 
         # class used for the action spaces
         new_obj._helper_action_class = self._helper_action_class  #  const
-        new_obj._helper_observation_class = self._helper_observation_class
+        new_obj._helper_observation_class = self._helper_observation_class #  const
 
         # and calendar data
         new_obj.time_stamp = self.time_stamp
         new_obj.nb_time_step = self.nb_time_step
         new_obj.delta_time_seconds = self.delta_time_seconds
 
-        # observation
-        if self.current_obs is not None:
-            new_obj.current_obs = self.current_obs.copy()
-
         # backend
         # backend action
-        new_obj._backend_action_class = self._backend_action_class
+        new_obj._backend_action_class = self._backend_action_class #  const
         new_obj._backend_action = copy.deepcopy(self._backend_action)
 
         # specific to Basic Env, do not change
@@ -769,25 +774,29 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         new_obj._rewardClass = self._rewardClass
         new_obj._actionClass = self._actionClass
+        new_obj._actionClass_orig = self._actionClass_orig
         new_obj._observationClass = self._observationClass
+        new_obj._observationClass_orig = self._observationClass_orig
         new_obj._legalActClass = self._legalActClass
-        new_obj._observation_space = self._observation_space.copy(copy_backend=True)
-        new_obj._observation_space._legal_action = (
-            new_obj._game_rules.legal_action
-        )  # TODO this does not respect SOLID principles at all !
-        new_obj._kwargs_observation = copy.deepcopy(self._kwargs_observation)
-        new_obj._observation_space._ptr_kwargs_observation = new_obj._kwargs_observation
-        new_obj._names_chronics_to_backend = self._names_chronics_to_backend
-        new_obj._reward_helper = copy.deepcopy(self._reward_helper)
-
-        # gym compatibility
-        new_obj.reward_range = copy.deepcopy(self.reward_range)
-        new_obj._viewer = copy.deepcopy(self._viewer)
-        new_obj.viewer_fig = copy.deepcopy(self.viewer_fig)
-
+        new_obj._names_chronics_to_backend = self._names_chronics_to_backend  # cst
+        
         # other rewards
-        new_obj.other_rewards = copy.deepcopy(self.other_rewards)
-
+        new_obj.other_rewards = {k: copy.deepcopy(v) for k, v in self.other_rewards.items()}
+        for extra_reward in new_obj.other_rewards.values():
+            extra_reward.reset(new_obj)
+        
+        # voltage
+        new_obj._voltagecontrolerClass = self._voltagecontrolerClass
+        if self._voltage_controler is not None:
+            new_obj._voltage_controler = self._voltage_controler.copy()
+        else:
+            new_obj._voltage_controler = None
+        
+        # needed for the "Environment.get_kwargs(env, False, False)" (used in the observation_space)
+        new_obj._attention_budget_cls = self._attention_budget_cls  # const
+        new_obj._kwargs_attention_budget = copy.deepcopy(self._kwargs_attention_budget)
+        new_obj._has_attention_budget = self._has_attention_budget
+        
         # opponent
         new_obj._opponent_space_type = self._opponent_space_type
         new_obj._opponent_action_class = self._opponent_action_class  # const
@@ -804,6 +813,27 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         new_obj._compute_opp_budget = self._opponent_budget_class(
             self._opponent_action_space
         )
+        
+        new_obj._observation_bk_class = self._observation_bk_class
+        new_obj._observation_bk_kwargs = self._observation_bk_kwargs
+        
+        # do not copy it.
+        new_obj._highres_sim_counter = self._highres_sim_counter      
+        
+        # observation space (might depends on the previous things)
+        # at this stage the function "Environment.get_kwargs(env, False, False)" should run
+        new_obj._kwargs_observation = copy.deepcopy(self._kwargs_observation)
+        new_obj._observation_space = self._observation_space.copy(copy_backend=True, env=new_obj)
+        new_obj._observation_space._legal_action = (
+            new_obj._game_rules.legal_action
+        )  # TODO this does not respect SOLID principles at all !
+        new_obj._observation_space._ptr_kwargs_observation = new_obj._kwargs_observation
+        new_obj._reward_helper = copy.deepcopy(self._reward_helper)
+
+        # gym compatibility
+        new_obj.reward_range = copy.deepcopy(self.reward_range)
+        new_obj._viewer = copy.deepcopy(self._viewer)
+        new_obj.viewer_fig = copy.deepcopy(self.viewer_fig)
 
         # init the opponent
         new_obj._opponent = new_obj._opponent_class.__new__(new_obj._opponent_class)
@@ -822,11 +852,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         )
         state_me, state_opp = self._oppSpace._get_state()
         new_obj._oppSpace._set_state(state_me)
-
-        # voltage
-        new_obj._voltagecontrolerClass = self._voltagecontrolerClass
-        new_obj._voltage_controler = self._voltage_controler.copy()
-
+        
         # to change the parameters
         new_obj.__new_param = copy.deepcopy(self.__new_param)
         new_obj.__new_forecast_param = copy.deepcopy(self.__new_forecast_param)
@@ -850,19 +876,13 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         new_obj._limited_before = copy.deepcopy(self._limited_before)
 
         # attention budget
-        new_obj._has_attention_budget = self._has_attention_budget
         new_obj._attention_budget = copy.deepcopy(self._attention_budget)
-        new_obj._attention_budget_cls = self._attention_budget_cls  # const
         new_obj._is_alarm_illegal = copy.deepcopy(self._is_alarm_illegal)
         new_obj._is_alarm_used_in_reward = copy.deepcopy(self._is_alarm_used_in_reward)
 
         # alert 
         new_obj._is_alert_illegal = copy.deepcopy(self._is_alert_illegal)
         new_obj._is_alert_used_in_reward = copy.deepcopy(self._is_alert_used_in_reward)
-        
-        new_obj._kwargs_attention_budget = copy.deepcopy(self._kwargs_attention_budget)
-
-        new_obj._last_obs = self._last_obs.copy()
 
         new_obj._has_just_been_seeded = self._has_just_been_seeded
         
@@ -875,14 +895,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         else:
             new_obj._init_obs = self._init_obs.copy()
         
-        new_obj._observation_bk_class = self._observation_bk_class
-        new_obj._observation_bk_kwargs = self._observation_bk_kwargs
-        
         # do not forget !
-        new_obj._is_test = self._is_test
-        
-        # do not copy it.
-        new_obj._highres_sim_counter = self._highres_sim_counter        
+        new_obj._is_test = self._is_test  
         
         # alert
         new_obj._last_alert = copy.deepcopy(self._last_alert)
@@ -895,6 +909,15 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         new_obj._was_alert_used_after_attack = copy.deepcopy(self._was_alert_used_after_attack)
         
         new_obj._update_obs_after_reward = copy.deepcopy(self._update_obs_after_reward)
+
+        if self._last_obs is not None:
+            new_obj._last_obs = self._last_obs.copy(env=new_obj)
+        else:
+            new_obj._last_obs = None
+            
+        # observation
+        if self.current_obs is not None:
+            new_obj.current_obs = new_obj.get_obs()
 
     def get_path_env(self):
         """

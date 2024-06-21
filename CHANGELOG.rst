@@ -69,11 +69,15 @@ Next release
   was not initialized for some classes
 - [FIXED] the `_observationClass` attribute of the "observation env" (used for simulate and forecasted env)
   is now an Observation and not an Action.
+- [FIXED] a bug when deep copying an "observation environment" (it changes its class)
 - [ADDED] possibility to skip some step when calling `env.reset(..., options={"init ts": ...})`
 - [ADDED] possibility to limit the duration of an episode with `env.reset(..., options={"max step": ...})`
 - [ADDED] possibility to specify the "reset_options" used in `env.reset` when
   using the runner with `runner.run(..., reset_options=xxx)`
 - [IMPROVED] more consistency in the way the classes are initialized at the creation of an environment
+- [IMPROVED] more consistency when an environment is copied (some attributes of the copied env were 
+  deep copied incorrectly)
+
 
 [1.10.2] - 2024-05-27
 -------------------------

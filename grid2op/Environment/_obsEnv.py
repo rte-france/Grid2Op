@@ -105,12 +105,13 @@ class _ObsEnv(BaseEnv):
 
         # initialize the observation space
         self._obsClass = None
-
+        
+        cls = type(self)
         # line status (inherited from BaseEnv)
-        self._line_status = np.full(self.n_line, dtype=dt_bool, fill_value=True)
+        self._line_status = np.full(cls.n_line, dtype=dt_bool, fill_value=True)
         # line status (for this usage)
         self._line_status_me = np.ones(
-            shape=self.n_line, dtype=dt_int
+            shape=cls.n_line, dtype=dt_int
         )  # this is "line status" but encode in +1 / -1
 
         if self._thermal_limit_a is None:
@@ -118,6 +119,8 @@ class _ObsEnv(BaseEnv):
         else:
             self._thermal_limit_a[:] = thermal_limit_a
         
+        self.current_obs_init = None
+        self.current_obs = None
         self._init_backend(
             chronics_handler=_ObsCH(),
             backend=backend_instanciated,
@@ -182,6 +185,8 @@ class _ObsEnv(BaseEnv):
         if backend is None:
             self.__unusable = True
             return
+        self._actionClass_orig = actionClass
+        self._observationClass_orig = observationClass
         
         self.__unusable = False
         self._env_dc = self.parameters.ENV_DC
@@ -254,7 +259,7 @@ class _ObsEnv(BaseEnv):
         # This "environment" doesn't modify anything
         return self._do_nothing_act, None
 
-    def copy(self):
+    def copy(self, env=None, new_obs_space=None):
         """
         INTERNAL
 
@@ -270,17 +275,44 @@ class _ObsEnv(BaseEnv):
         if self.__unusable:
             raise EnvError("Impossible to use a Observation backend with an "
                            "environment that cannot be copied.")
-        backend = self.backend
-        self.backend = None
-        _highres_sim_counter = self._highres_sim_counter
-        self._highres_sim_counter = None
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", FutureWarning)
-            res = copy.deepcopy(self)
-            res.backend = backend.copy()
-        res._highres_sim_counter = _highres_sim_counter
-        self.backend = backend
-        self._highres_sim_counter = _highres_sim_counter
+            
+        my_cls = type(self)
+        res = my_cls.__new__(my_cls)
+        
+        # fill its attribute
+        res.__unusable = self.__unusable
+        res._obsClass = self._obsClass
+        res._line_status = copy.deepcopy(self._line_status)
+        res._line_status_me = copy.deepcopy(self._line_status_me)
+        if env is not None:
+            # res._ptr_orig_obs_space = env._observation_space  # this is not created when this function is called
+            # so this is why i pass the `new_obs_space` as argument
+            res._ptr_orig_obs_space = new_obs_space
+        else:
+            res._ptr_orig_obs_space = self._ptr_orig_obs_space
+        res.no_overflow_disconnection = self.parameters.NO_OVERFLOW_DISCONNECTION
+        res._topo_vect = copy.deepcopy(self._topo_vect)
+        res.is_init = self.is_init
+        if env is not None:
+            res._helper_action_env = env._helper_action_env
+        else:
+            res._helper_action_env = self._helper_action_env
+        res._disc_lines = copy.deepcopy(self._disc_lines)
+        res._highres_sim_counter = self._highres_sim_counter
+        res._max_episode_duration = self._max_episode_duration
+        
+        res.current_obs_init = self._obsClass(obs_env=None, action_helper=None)
+        res.current_obs_init.reset()
+        res.current_obs = res.current_obs_init
+        
+        # copy attribute of "super"
+        super()._custom_deepcopy_for_copy(res)
+        
+        # finish to initialize res
+        res.env_modification = res._helper_action_env()
+        res._do_nothing_act = res._helper_action_env()
+        res._backend_action_set = res._backend_action_class()
+        res.current_obs = res.current_obs_init
         return res
 
     def _reset_to_orig_state(self, obs):

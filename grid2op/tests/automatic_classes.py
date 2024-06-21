@@ -39,14 +39,6 @@ class AutoClassInFileTester(unittest.TestCase):
     def get_env_name(self):
         return "l2rpn_case14_sandbox"
     
-    def test_class_env_from_file(self):
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore")
-            env = grid2op.make(self.get_env_name(), test=True)
-            
-        from Environment_l2rpn_case14_sandbox_file import Environment_l2rpn_case14_sandbox
-        assert type(env) is Environment_l2rpn_case14_sandbox
-    
     def test_all_classes_from_file(self,
                                    env=None,
                                    classes_name="l2rpn_case14_sandbox",
@@ -107,6 +99,10 @@ class AutoClassInFileTester(unittest.TestCase):
                 if env._voltage_controler is not None:
                     # not in _ObsEnv
                     assert type(env._voltage_controler.action_space) is this_class
+                if env.chronics_handler.action_space is not None:
+                    # not in _ObsEnv
+                    assert type(env.chronics_handler.action_space) is this_class
+                    assert env.chronics_handler.action_space is env._helper_action_env
             elif name_cls == f"_BackendAction_{classes_name}":
                 assert env.backend.my_bk_act_class is this_class
                 assert isinstance(env._backend_action, this_class)
@@ -128,9 +124,21 @@ class AutoClassInFileTester(unittest.TestCase):
                 assert env._helper_action_env.subtype is this_class
             elif name_cls == f"CompleteObservation_{classes_name}":
                 assert env._observation_space.subtype is this_class
+                if env.current_obs is not None:
+                    # not in _ObsEnv
+                    assert isinstance(env.current_obs, this_class)
+                if env._last_obs is not None:
+                    # not in _ObsEnv
+                    assert isinstance(env._last_obs, this_class)
                 if env.observation_space.obs_env is not None:
                     # not in _ObsEnv
                     assert env._observation_space.obs_env._observation_space.subtype is this_class
+                    if env.observation_space.obs_env.current_obs is not None:
+                        # not in _ObsEnv
+                        assert isinstance(env.observation_space.obs_env.current_obs, this_class)
+                    if env.observation_space.obs_env._last_obs is not None:
+                        # not in _ObsEnv
+                        assert isinstance(env.observation_space.obs_env._last_obs, this_class)
             elif name_cls == f"DontAct_{classes_name}":
                 assert env._oppSpace.action_space.subtype is this_class
                 assert env._opponent.action_space.subtype is this_class
@@ -139,10 +147,24 @@ class AutoClassInFileTester(unittest.TestCase):
                     # not in _ObsEnv
                     assert type(env.observation_space.obs_env) is this_class
                     assert isinstance(env.observation_space.obs_env, this_class)
+                if env.current_obs is not None and env.current_obs._obs_env is not None:
+                    # not in _ObsEnv
+                    assert type(env.current_obs._obs_env) is this_class, f"{type(env.current_obs._obs_env)}"
+                    assert isinstance(env.observation_space.obs_env, this_class)
+                if env._last_obs is not None and env._last_obs._obs_env is not None:
+                    # not in _ObsEnv
+                    assert type(env._last_obs._obs_env) is this_class, f"{type(env._last_obs._obs_env)}"
+                if env.observation_space.obs_env is not None:
+                    # not in _ObsEnv
+                    assert env.current_obs._obs_env is env.observation_space.obs_env
+                    assert env._last_obs._obs_env is env.observation_space.obs_env
             elif name_cls == f"ObservationSpace_{classes_name}":
                 if env.observation_space.obs_env is not None:
                     # not in _ObsEnv
                     assert type(env.observation_space.obs_env._observation_space) is this_class
+                    assert type(env.observation_space.obs_env._ptr_orig_obs_space) is this_class, f"{type(env.observation_space.obs_env._ptr_orig_obs_space)}"
+                    
+                    assert env.observation_space.obs_env._ptr_orig_obs_space is env._observation_space, f"{type(env.observation_space.obs_env._ptr_orig_obs_space)}"
             elif name_cls == name_action_cls:
                 assert env._action_space.subtype is this_class
                 # assert env.observation_space.obs_env._actionClass is this_class  # not it's a complete action apparently
@@ -150,24 +172,57 @@ class AutoClassInFileTester(unittest.TestCase):
                 if env._voltage_controler is not None:
                     # not in _ObsEnv
                     assert env._voltage_controler.action_space.subtype is this_class
-                
-    def test_all_classes_from_file_obsenv(self):
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore")
-            env = grid2op.make(self.get_env_name(), test=True)
+        # TODO test current_obs and _last_obs
+        
+    def test_all_classes_from_file_env_after_reset(self, env=None):
+        """test classes are still consistent even after a call to env.reset() and obs.simulate()"""
+        if env is None:
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore")
+                env = grid2op.make(self.get_env_name(), test=True)
+        obs = env.reset()
+        self.test_all_classes_from_file(env=env)
+        obs.simulate(env.action_space())
+        self.test_all_classes_from_file(env=env)
+        
+    def test_all_classes_from_file_obsenv(self, env=None):
+        """test the files are correctly generated for the "forecast env" in the 
+        environment even after a call to obs.reset() and obs.simulate()"""
+        if env is None:
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore")
+                env = grid2op.make(self.get_env_name(), test=True)
         
         self.test_all_classes_from_file(env=env.observation_space.obs_env,
-                                        name_action_cls="CompleteAction_l2rpn_case14_sandbox")      
+                                        name_action_cls="CompleteAction_l2rpn_case14_sandbox")  
+        
+        # reset and check the same
+        obs = env.reset()    
+        self.test_all_classes_from_file(env=env.observation_space.obs_env,
+                                        name_action_cls="CompleteAction_l2rpn_case14_sandbox")  
+        self.test_all_classes_from_file(env=obs._obs_env,
+                                        name_action_cls="CompleteAction_l2rpn_case14_sandbox")   
+        
+        # forecast and check the same
+        obs.simulate(env.action_space())
+        self.test_all_classes_from_file(env=env.observation_space.obs_env,
+                                        name_action_cls="CompleteAction_l2rpn_case14_sandbox")  
+        self.test_all_classes_from_file(env=obs._obs_env,
+                                        name_action_cls="CompleteAction_l2rpn_case14_sandbox")   
     
     def test_all_classes_from_file_env_cpy(self):
+        """test that when an environment is copied, then the copied env is consistent, 
+        that it is consistent after a reset and that the forecast env is consistent"""
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env = grid2op.make(self.get_env_name(), test=True)
         env_cpy = env.copy()
         self.test_all_classes_from_file(env=env_cpy)
+        self.test_all_classes_from_file_env_after_reset(env=env_cpy)
         self.test_all_classes_from_file(env=env_cpy.observation_space.obs_env,
                                         name_action_cls="CompleteAction_l2rpn_case14_sandbox")     
-                
+        self.test_all_classes_from_file_obsenv(env=env_cpy)
+    
 
 if __name__ == "__main__":
     unittest.main()
