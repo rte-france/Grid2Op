@@ -108,6 +108,14 @@ class GridStateFromFileWithForecastsWithMaintenance(GridStateFromFileWithForecas
             self.max_daily_number_per_month_maintenance = dict_[
                 "max_daily_number_per_month_maintenance"
             ]
+            
+            if "maintenance_day_of_week" in dict_:
+                self.maintenance_day_of_week = [int(el) for el in dict_[
+                    "maintenance_day_of_week"
+                ]]
+            else:
+                self.maintenance_day_of_week = np.arange(5)
+                
         super().initialize(
             order_backend_loads,
             order_backend_prods,
@@ -133,7 +141,6 @@ class GridStateFromFileWithForecastsWithMaintenance(GridStateFromFileWithForecas
         ########
         # new method to introduce generated maintenance
         self.maintenance = self._generate_maintenance()  #
-
         ##########
         # same as before in GridStateFromFileWithForecasts
         GridStateFromFileWithForecastsWithMaintenance._fix_maintenance_format(self)
@@ -171,7 +178,12 @@ class GridStateFromFileWithForecastsWithMaintenance(GridStateFromFileWithForecas
                                    daily_proba_per_month_maintenance, 
                                    max_daily_number_per_month_maintenance,
                                    space_prng,
+                                   maintenance_day_of_week=None
                                    ):
+        if maintenance_day_of_week is None:
+            # new in grid2op 1.10.3
+            maintenance_day_of_week = np.arange(5)
+            
         # define maintenance dataframe with size (nbtimesteps,nlines)
         columnsNames = name_line
         nbTimesteps = n_
@@ -203,8 +215,6 @@ class GridStateFromFileWithForecastsWithMaintenance(GridStateFromFileWithForecas
         datelist = datelist[:-1]
 
         n_lines_maintenance = len(line_to_maintenance)
-
-        _24_h = timedelta(seconds=86400)
         nb_rows = int(86400 / time_interval.total_seconds())
         selected_rows_beg = int(
             maintenance_starting_hour * 3600 / time_interval.total_seconds()
@@ -220,7 +230,7 @@ class GridStateFromFileWithForecastsWithMaintenance(GridStateFromFileWithForecas
         maxDailyMaintenance = -1
         for nb_day_since_beg, this_day in enumerate(datelist):
             dayOfWeek = this_day.weekday()
-            if dayOfWeek < 5:  # only maintenance starting on working days
+            if dayOfWeek in maintenance_day_of_week:
                 month = this_day.month
 
                 maintenance_me = np.zeros((nb_rows, nb_line_maint))
@@ -279,5 +289,9 @@ class GridStateFromFileWithForecastsWithMaintenance(GridStateFromFileWithForecas
             self.maintenance_ending_hour,
             self.daily_proba_per_month_maintenance,
             self.max_daily_number_per_month_maintenance,
-            self.space_prng
+            self.space_prng,
+            self.maintenance_day_of_week
         )
+
+    def regenerate_with_new_seed(self):
+        self._sample_maintenance()

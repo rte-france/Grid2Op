@@ -40,6 +40,8 @@ Work kind of in progress
 
 Next release
 ---------------------------------
+- TODO bug on maintenance starting at midnight (they are not correctly handled in the observation)
+  => cf script test_issue_616
 - TODO Notebook for tf_agents
 - TODO Notebook for acme
 - TODO Notebook using "keras rl" (see https://keras.io/examples/rl/ppo_cartpole/)
@@ -66,11 +68,23 @@ Next release
   (because  it should always have been like this)
 - [FIXED] a bug in the `MultiFolder` and `MultifolderWithCache` leading to the wrong 
   computation of `max_iter` on some corner cases
+- [FIXED] issue on `seed` and `MultifolderWithCache` which caused 
+  https://github.com/rte-france/Grid2Op/issues/616 
+- [FIXED] another issue with the seeding of `MultifolderWithCache`: the seed was not used
+  correctly on the cache data when calling `chronics_handler.reset` multiple times without 
+  any changes
 - [ADDED] possibility to skip some step when calling `env.reset(..., options={"init ts": ...})`
 - [ADDED] possibility to limit the duration of an episode with `env.reset(..., options={"max step": ...})`
 - [ADDED] possibility to specify the "reset_options" used in `env.reset` when
   using the runner with `runner.run(..., reset_options=xxx)`
+- [ADDED] the time series now are able to regenerate their "random" part 
+  even when "cached" thanks to the addition of the `regenerate_with_new_seed` of the 
+  `GridValue` class (in public API)
+- [ADDED] `MultifolderWithCache` now supports `FromHandlers` time series generator
 - [IMPROVED] the documentation on the `time series` folder.
+- [IMPROVED] now the "maintenance from json" (*eg* the `JSONMaintenanceHandler` or the 
+  `GridStateFromFileWithForecastsWithMaintenance`) can be customized with the day 
+  of the week where the maintenance happens (key `maintenance_day_of_week`)
 
 [1.10.2] - 2024-05-27
 -------------------------
