@@ -48,7 +48,8 @@ Next release
 - TODO jax everything that can be: create a simple env based on jax for topology manipulation, without
   redispatching or rules
 - TODO backend in jax, maybe ?
-
+- TODO done and truncated properly handled in gym_compat module (when game over
+  before the end it's probably truncated and not done) 
 
 [1.10.3] - 2024-xx-yy
 -------------------------
@@ -69,6 +70,7 @@ Next release
 - [ADDED] possibility to limit the duration of an episode with `env.reset(..., options={"max step": ...})`
 - [ADDED] possibility to specify the "reset_options" used in `env.reset` when
   using the runner with `runner.run(..., reset_options=xxx)`
+- [IMPROVED] the documentation on the `time series` folder.
 
 [1.10.2] - 2024-05-27
 -------------------------
