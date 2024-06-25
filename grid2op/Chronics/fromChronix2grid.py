@@ -310,3 +310,11 @@ class FromChronix2grid(GridValue):
             
         self.check_validity(backend=None)
         
+    def regenerate_with_new_seed(self):
+        raise ChronicsError("You should not 'cache' the data coming from the "
+                            "`FromChronix2grid`, which is probably why you ended "
+                            "up calling this function. If you want to generate data "
+                            "'on the fly' please do not use the `MultiFolder` or "
+                            "`MultiFolderWithCache` `chronics_class` when making your "
+                            "environment.")
+        

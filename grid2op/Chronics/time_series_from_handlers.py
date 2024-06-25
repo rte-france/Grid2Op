@@ -560,3 +560,7 @@ class FromHandlers(GridValue):
             raise Grid2OpException(f"The action to set the grid to its original configuration "
                                    f"is ambiguous. Please check {self.init_state_handler.path}") from reason
         return act
+    
+    def regenerate_with_new_seed(self):
+        for handl in self._active_handlers:
+            handl.regenerate_with_new_seed()

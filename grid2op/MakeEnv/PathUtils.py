@@ -51,7 +51,8 @@ if os.path.exists(DEFAULT_PATH_CONFIG):
                 USE_CLASS_IN_FILE = str_to_bool(os.environ[KEY_CLASS_IN_FILE])
             except ValueError as exc:
                 raise RuntimeError(f"Impossible to read the behaviour from `{KEY_CLASS_IN_FILE}` environment variable") from exc
-
+            
+    USE_CLASS_IN_FILE = False  # deactivated until further notice
 
 def _create_path_folder(data_path):
     if not os.path.exists(data_path):
