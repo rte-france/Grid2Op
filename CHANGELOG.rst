@@ -73,6 +73,14 @@ Next release
 - [FIXED] another issue with the seeding of `MultifolderWithCache`: the seed was not used
   correctly on the cache data when calling `chronics_handler.reset` multiple times without 
   any changes
+- [FIXED] `Backend` now properly raise EnvError (grid2op exception) instead of previously 
+  `EnvironmentError` (python default exception)
+- [FIXED] a bug in `PandaPowerBackend` (missing attribute) causing directly 
+  https://github.com/rte-france/Grid2Op/issues/617
+- [FIXED] a bug in `Environment`: the thermal limit were used when loading the environment 
+  even before the "time series" are applied (and before the user defined thermal limits were set) 
+  which could lead to disconnected powerlines even before the initial step (t=0, when time 
+  series are loaded)
 - [ADDED] possibility to skip some step when calling `env.reset(..., options={"init ts": ...})`
 - [ADDED] possibility to limit the duration of an episode with `env.reset(..., options={"max step": ...})`
 - [ADDED] possibility to specify the "reset_options" used in `env.reset` when
