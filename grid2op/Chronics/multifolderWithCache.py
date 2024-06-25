@@ -170,6 +170,11 @@ class MultifolderWithCache(Multifolder):
         Rebuilt the cache as if it were built from scratch. 
         This call might take a while to process.
         
+        This means that current data in cache will be discarded and that new data will
+        most likely be read from the hard drive.
+        
+        This might take a while.
+        
         .. danger::
             You NEED to call this function (with `env.chronics_handler.reset()`)
             if you use the `MultiFolderWithCache` class in your experiments.
@@ -189,25 +194,9 @@ class MultifolderWithCache(Multifolder):
             # everything in "_order" need to be put in cache
             path = self.subpaths[i]
             data = self._get_nex_data(path)
-            # if issubclass(self.gridvalueClass, GridStateFromFile):
-            #     data = self.gridvalueClass(
-            #         time_interval=self.time_interval,
-            #         sep=self.sep,
-            #         path=path,
-            #         max_iter=self.max_iter,
-            #         chunk_size=None,
-            #     )
-            # elif issubclass(self.gridvalueClass, FromHandlers):
-            #     data = self.gridvalueClass(
-            #         time_interval=self.time_interval,
-            # else:
-            #     raise ChronicsError("Can only use MultiFolderWithCache with GridStateFromFile "
-            #                         f"or FromHandlers and not {self.gridvalueClass}")
-            if self.seed_used is not None:
-                # seed_chronics = self.space_prng.randint(max_int)
-                # self._cached_seeds[i] = seed_chronics
+            
+            if self._cached_seeds is not None:
                 data.seed(self._cached_seeds[i])
-                data.regenerate_with_new_seed()
 
             data.initialize(
                 self._order_backend_loads,
@@ -216,6 +205,10 @@ class MultifolderWithCache(Multifolder):
                 self._order_backend_subs,
                 self._names_chronics_to_backend,
             )
+            
+            if self._cached_seeds is not None:
+                data.regenerate_with_new_seed()
+                
             self._cached_data[i] = data
             self.cache_size += 1
             if self.action_space is not None:
