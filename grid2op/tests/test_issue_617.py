@@ -100,4 +100,3 @@ class Issue617Tester(unittest.TestCase):
     
 if __name__ == "__main__":
     unittest.main()
-
