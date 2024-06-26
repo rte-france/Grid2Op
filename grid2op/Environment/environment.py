@@ -444,7 +444,14 @@ class Environment(BaseEnv):
         self._reset_redispatching()
         self._reward_to_obs = {}
         do_nothing = self._helper_action_env({})
+        
+        # see issue https://github.com/rte-france/Grid2Op/issues/617
+        # thermal limits are set AFTER this initial step
+        _no_overflow_disconnection = self._no_overflow_disconnection
+        self._no_overflow_disconnection = True
         *_, fail_to_start, info = self.step(do_nothing)
+        self._no_overflow_disconnection = _no_overflow_disconnection
+        
         if fail_to_start:
             raise Grid2OpException(
                 "Impossible to initialize the powergrid, the powerflow diverge at iteration 0. "

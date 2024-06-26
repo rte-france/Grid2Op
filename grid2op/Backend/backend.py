@@ -1019,12 +1019,7 @@ class Backend(GridObjects, ABC):
             conv, exc_me = self.runpf(is_dc=is_dc)  # run powerflow
         except Grid2OpException as exc_:
             exc_me = exc_
-        # except Exception as exc_:
-        #     exc_me = DivergingPowerflow(
-        #         f" An unexpected error occurred during the computation of the powerflow."
-        #         f"The error is: \n {exc_} \n. This is game over"
-        #     )
-
+            
         if not conv and exc_me is None:
             exc_me = DivergingPowerflow(
                 "GAME OVER: Powerflow has diverged during computation "
@@ -2160,22 +2155,22 @@ class Backend(GridObjects, ABC):
         if tmp.shape[0] != self.n_line:
             raise IncorrectNumberOfLines('returned by "backend.get_line_status()"')
         if (~np.isfinite(tmp)).any():
-            raise EnvironmentError(type(self).ERR_INIT_POWERFLOW)
+            raise EnvError(type(self).ERR_INIT_POWERFLOW)
         tmp = self.get_line_flow()
         if tmp.shape[0] != self.n_line:
             raise IncorrectNumberOfLines('returned by "backend.get_line_flow()"')
         if (~np.isfinite(tmp)).any():
-            raise EnvironmentError(type(self).ERR_INIT_POWERFLOW)
+            raise EnvError(type(self).ERR_INIT_POWERFLOW)
         tmp = self.get_thermal_limit()
         if tmp.shape[0] != self.n_line:
             raise IncorrectNumberOfLines('returned by "backend.get_thermal_limit()"')
         if (~np.isfinite(tmp)).any():
-            raise EnvironmentError(type(self).ERR_INIT_POWERFLOW)
+            raise EnvError(type(self).ERR_INIT_POWERFLOW)
         tmp = self.get_line_overflow()
         if tmp.shape[0] != self.n_line:
             raise IncorrectNumberOfLines('returned by "backend.get_line_overflow()"')
         if (~np.isfinite(tmp)).any():
-            raise EnvironmentError(type(self).ERR_INIT_POWERFLOW)
+            raise EnvError(type(self).ERR_INIT_POWERFLOW)
 
         tmp = self.generators_info()
         if len(tmp) != 3:
