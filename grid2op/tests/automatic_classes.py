@@ -8,13 +8,13 @@
 
 import os
 import multiprocessing as mp
-
-os.environ["grid2op_class_in_file"] = "true"
-
 import sys
 import warnings
 import unittest
 import importlib
+import numpy as np
+
+os.environ["grid2op_class_in_file"] = "true"
 
 import grid2op
 from grid2op.MakeEnv.PathUtils import USE_CLASS_IN_FILE
@@ -23,13 +23,13 @@ from grid2op.Agent import BaseAgent
 from grid2op.Action import BaseAction
 from grid2op.Observation.baseObservation import BaseObservation
 from grid2op.Action.actionSpace import ActionSpace
+from grid2op.Environment import MaskedEnvironment, TimedOutEnvironment, SingleEnvMultiProcess
 assert USE_CLASS_IN_FILE
 
 # TODO feature: in the make add a kwargs to deactivate this
 
 # TODO test Multiprocess
 # TODO test multi mix
-# TODO test runner
 
 # TODO test gym
 # TODO two envs same name => now diff classes
@@ -86,6 +86,17 @@ class AutoClassInFileTester(unittest.TestCase):
         self.max_iter = 10
         return super().setUp()
     
+    def _do_test_runner(self):
+        # false for multi process env
+        return True
+    
+    def _do_test_copy(self):
+        # for for multi process env
+        return True
+    
+    def _do_test_obs_env(self):
+        return True
+    
     def _aux_make_env(self, env=None):
         if env is None:
             with warnings.catch_warnings():
@@ -113,7 +124,7 @@ class AutoClassInFileTester(unittest.TestCase):
                       "_backend_action_class",
                       "_complete_action_cls",
                       "_observationClass",
-                      None, # DONT ACT not int ENV directlu
+                      None, # DONT ACT not int ENV directly
                       None, #   ObsEnv NOT IN ENV,
                       "observation_space",
                       "backend",
@@ -235,6 +246,8 @@ class AutoClassInFileTester(unittest.TestCase):
     def test_all_classes_from_file_obsenv(self, env=None):
         """test the files are correctly generated for the "forecast env" in the 
         environment even after a call to obs.reset() and obs.simulate()"""
+        if not self._do_test_obs_env():
+            self.skipTest("ObsEnv is not tested")
         env = self._aux_make_env(env)
         
         self.test_all_classes_from_file(env=env.observation_space.obs_env,
@@ -257,6 +270,8 @@ class AutoClassInFileTester(unittest.TestCase):
     def test_all_classes_from_file_env_cpy(self, env=None):
         """test that when an environment is copied, then the copied env is consistent, 
         that it is consistent after a reset and that the forecast env is consistent"""
+        if not self._do_test_copy():
+            self.skipTest("Copy is not tested")
         env = self._aux_make_env(env)
         env_cpy = env.copy()
         self.test_all_classes_from_file(env=env_cpy)
@@ -267,6 +282,8 @@ class AutoClassInFileTester(unittest.TestCase):
     
     def test_all_classes_from_file_env_runner(self, env=None):
         """this test, using the defined functions above that the runner is able to create a valid env"""
+        if not self._do_test_runner():
+            self.skipTest("Runner not tested")
         env = self._aux_make_env(env)
         runner = Runner(**env.get_params_for_runner())
         env_runner = runner.init_env()     
@@ -290,6 +307,8 @@ class AutoClassInFileTester(unittest.TestCase):
     def test_all_classes_from_file_runner_1ep(self, env=None):
         """this test that the runner is able to "run" (one type of run), but the tests on the classes 
         are much lighter than in test_all_classes_from_file_env_runner"""
+        if not self._do_test_runner():
+            self.skipTest("Runner not tested")
         env = self._aux_make_env(env)
         this_agent = _ThisAgentTest(env.action_space,
                                     env._read_from_local_dir,
@@ -307,6 +326,8 @@ class AutoClassInFileTester(unittest.TestCase):
     def test_all_classes_from_file_runner_2ep_seq(self, env=None):
         """this test that the runner is able to "run" (one other type of run), but the tests on the classes 
         are much lighter than in test_all_classes_from_file_env_runner"""
+        if not self._do_test_runner():
+            self.skipTest("Runner not tested")
         env = self._aux_make_env(env)
         this_agent = _ThisAgentTest(env.action_space,
                                     env._read_from_local_dir,
@@ -320,10 +341,14 @@ class AutoClassInFileTester(unittest.TestCase):
                    max_iter=self.max_iter,
                    env_seeds=[0, 0],
                    episode_id=[0, 1])
+        assert res[0][4] == self.max_iter
+        assert res[1][4] == self.max_iter
     
     def test_all_classes_from_file_runner_2ep_par_fork(self, env=None):
         """this test that the runner is able to "run" (one other type of run), but the tests on the classes 
         are much lighter than in test_all_classes_from_file_env_runner"""
+        if not self._do_test_runner():
+            self.skipTest("Runner not tested")
         env = self._aux_make_env(env)
         this_agent = _ThisAgentTest(env.action_space,
                                     env._read_from_local_dir,
@@ -338,10 +363,14 @@ class AutoClassInFileTester(unittest.TestCase):
                    max_iter=self.max_iter,
                    env_seeds=[0, 0],
                    episode_id=[0, 1])
+        assert res[0][4] == self.max_iter
+        assert res[1][4] == self.max_iter
     
     def test_all_classes_from_file_runner_2ep_par_spawn(self, env=None):
         """this test that the runner is able to "run" (one other type of run), but the tests on the classes 
         are much lighter than in test_all_classes_from_file_env_runner"""
+        if not self._do_test_runner():
+            self.skipTest("Runner not tested")
         env = self._aux_make_env(env)
         this_agent = _ThisAgentTest(env.action_space,
                                     env._read_from_local_dir,
@@ -353,12 +382,28 @@ class AutoClassInFileTester(unittest.TestCase):
                         agentClass=None,
                         agentInstance=this_agent,
                         mp_context=ctx)
-        runner.run(nb_episode=2,
-                   nb_process=2,
-                   max_iter=self.max_iter,
-                   env_seeds=[0, 0],
-                   episode_id=[0, 1])
+        res = runner.run(nb_episode=2,
+                         nb_process=2,
+                         max_iter=self.max_iter,
+                         env_seeds=[0, 0],
+                         episode_id=[0, 1])
+        assert res[0][4] == self.max_iter
+        assert res[1][4] == self.max_iter
         
+        
+class MaskedAutoClassTester(AutoClassInFileTester):
+
+    def _aux_make_env(self, env=None):
+        if env is None:
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore")
+                env = MaskedEnvironment(super()._aux_make_env(),
+                                        lines_of_interest=np.array([True, True, True, True, True, True,
+                                                                    False, False, False, False, False, False,
+                                                                    False, False, False, False, False, False,
+                                                                    False, False]))
+        return env
+    
         
 if __name__ == "__main__":
     unittest.main()

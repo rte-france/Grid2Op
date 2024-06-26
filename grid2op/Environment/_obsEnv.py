@@ -97,6 +97,7 @@ class _ObsEnv(BaseEnv):
             _local_dir_cls=_local_dir_cls,
             _read_from_local_dir=_read_from_local_dir
         )
+        self._do_not_erase_local_dir_cls = True
         self.__unusable = False  # unsuable if backend cannot be copied
         
         self._reward_helper = reward_helper

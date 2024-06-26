@@ -856,3 +856,21 @@ class GridValue(RandomObject, ABC):
         """
         self.__action_space = None
         # NB the action space is not closed as it is NOT own by this class
+
+    def regenerate_with_new_seed(self):
+        """
+        INTERNAL this function is called by some classes (*eg* :class:`MultifolderWithCache`)
+        when a new seed has been set. 
+        
+        For example, if you use some 'chronics' that generate part of them randomly (*eg* 
+        :class:`GridStateFromFileWithForecastsWithMaintenance`) they need to be aware of this
+        so that a reset actually update the seeds.
+        
+        This is closely related to issue https://github.com/rte-france/Grid2Op/issues/616
+        
+        .. danger::
+            This function should be called only once (not 0, not twice) after a "seed" function has been set. 
+            Otherwise results might not be fully reproducible.
+            
+        """
+        pass

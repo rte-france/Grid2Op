@@ -40,6 +40,8 @@ Work kind of in progress
 
 Next release
 ---------------------------------
+- TODO bug on maintenance starting at midnight (they are not correctly handled in the observation)
+  => cf script test_issue_616
 - TODO Notebook for tf_agents
 - TODO Notebook for acme
 - TODO Notebook using "keras rl" (see https://keras.io/examples/rl/ppo_cartpole/)
@@ -48,7 +50,8 @@ Next release
 - TODO jax everything that can be: create a simple env based on jax for topology manipulation, without
   redispatching or rules
 - TODO backend in jax, maybe ?
-
+- TODO done and truncated properly handled in gym_compat module (when game over
+  before the end it's probably truncated and not done) 
 
 [1.10.3] - 2024-xx-yy
 -------------------------
@@ -70,6 +73,19 @@ Next release
 - [FIXED] the `_observationClass` attribute of the "observation env" (used for simulate and forecasted env)
   is now an Observation and not an Action.
 - [FIXED] a bug when deep copying an "observation environment" (it changes its class)
+- [FIXED] issue on `seed` and `MultifolderWithCache` which caused 
+  https://github.com/rte-france/Grid2Op/issues/616 
+- [FIXED] another issue with the seeding of `MultifolderWithCache`: the seed was not used
+  correctly on the cache data when calling `chronics_handler.reset` multiple times without 
+  any changes
+- [FIXED] `Backend` now properly raise EnvError (grid2op exception) instead of previously 
+  `EnvironmentError` (python default exception)
+- [FIXED] a bug in `PandaPowerBackend` (missing attribute) causing directly 
+  https://github.com/rte-france/Grid2Op/issues/617
+- [FIXED] a bug in `Environment`: the thermal limit were used when loading the environment 
+  even before the "time series" are applied (and before the user defined thermal limits were set) 
+  which could lead to disconnected powerlines even before the initial step (t=0, when time 
+  series are loaded)
 - [ADDED] possibility to skip some step when calling `env.reset(..., options={"init ts": ...})`
 - [ADDED] possibility to limit the duration of an episode with `env.reset(..., options={"max step": ...})`
 - [ADDED] possibility to specify the "reset_options" used in `env.reset` when
@@ -80,7 +96,14 @@ Next release
 - [IMPROVED] more consistency when an environment is copied (some attributes of the copied env were 
   deep copied incorrectly)
 - [IMPROVED] Doc about the runner
-
+- [ADDED] the time series are now able to regenerate their "random" part 
+  even when "cached" thanks to the addition of the `regenerate_with_new_seed` of the 
+  `GridValue` class (in public API)
+- [ADDED] `MultifolderWithCache` now supports `FromHandlers` time series generator
+- [IMPROVED] the documentation on the `time series` folder.
+- [IMPROVED] now the "maintenance from json" (*eg* the `JSONMaintenanceHandler` or the 
+  `GridStateFromFileWithForecastsWithMaintenance`) can be customized with the day 
+  of the week where the maintenance happens (key `maintenance_day_of_week`)
 
 [1.10.2] - 2024-05-27
 -------------------------

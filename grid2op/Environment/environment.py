@@ -122,6 +122,7 @@ class Environment(BaseEnv):
         _allow_loaded_backend=False,
         _local_dir_cls=None,  # only set at the first call to `make(...)` after should be false
     ):
+        print(f"Creating env {id(self)}")
         BaseEnv.__init__(
             self,
             init_env_path=init_env_path,
@@ -449,7 +450,14 @@ class Environment(BaseEnv):
         self._reset_redispatching()
         self._reward_to_obs = {}
         do_nothing = self._helper_action_env({})
+        
+        # see issue https://github.com/rte-france/Grid2Op/issues/617
+        # thermal limits are set AFTER this initial step
+        _no_overflow_disconnection = self._no_overflow_disconnection
+        self._no_overflow_disconnection = True
         *_, fail_to_start, info = self.step(do_nothing)
+        self._no_overflow_disconnection = _no_overflow_disconnection
+        
         if fail_to_start:
             raise Grid2OpException(
                 "Impossible to initialize the powergrid, the powerflow diverge at iteration 0. "
@@ -2130,6 +2138,7 @@ class Environment(BaseEnv):
         res["has_attention_budget"] = self._has_attention_budget
         res["_read_from_local_dir"] = self._read_from_local_dir
         res["_local_dir_cls"] = self._local_dir_cls  # should be transfered to the runner so that folder is not deleted while runner exists
+        print(f'{id(self._local_dir_cls) = }')
         res["logger"] = self.logger
         res["kwargs_observation"] = copy.deepcopy(self._kwargs_observation)
         res["observation_bk_class"] = self._observation_bk_class

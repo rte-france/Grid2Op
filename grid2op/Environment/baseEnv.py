@@ -340,6 +340,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         _read_from_local_dir=None,
         _raw_backend_class=None,
     ):
+        print(f"Creating BaseEnv {id(self)}")
+        #: flag to indicate not to erase the directory when the env has been used
+        self._do_not_erase_local_dir_cls = False
         GridObjects.__init__(self)
         RandomObject.__init__(self)
         self.name = name
@@ -638,6 +641,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         if not self.backend._can_be_copied:
             raise RuntimeError("Impossible to copy your environment: the backend "
                                "class you used cannot be copied.")
+        print(f"Making {id(new_obj)} with _custom_deepcopy_for_copy")
         RandomObject._custom_deepcopy_for_copy(self, new_obj)
         new_obj.name = self.name
         if dict_ is None:
@@ -647,6 +651,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         new_obj._init_grid_path = copy.deepcopy(self._init_grid_path)
         new_obj._init_env_path = copy.deepcopy(self._init_env_path)
         new_obj._local_dir_cls = None  # copy of a env is not the "main" env.  TODO
+        new_obj._do_not_erase_local_dir_cls = self._do_not_erase_local_dir_cls
         new_obj._read_from_local_dir = self._read_from_local_dir
 
         new_obj._raw_backend_class = self._raw_backend_class
@@ -847,8 +852,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             attack_duration=new_obj._opponent_attack_duration,
             attack_cooldown=new_obj._opponent_attack_cooldown,
             budget_per_timestep=new_obj._opponent_budget_per_ts,
-            opponent=new_obj._opponent,
-            _local_dir_cls=self._local_dir_cls,
+            opponent=new_obj._opponent
         )
         state_me, state_opp = self._oppSpace._get_state()
         new_obj._oppSpace._set_state(state_me)
@@ -3729,11 +3733,21 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 delattr(self, attr_nm)
             setattr(self, attr_nm, None)
         
+        if self._do_not_erase_local_dir_cls:
+            # The resources are not held by this env, so 
+            # I do not remove them
+            # (case for ObsEnv or ForecastedEnv)
+            return
+        
         if self._local_dir_cls is not None:
             # I am the "keeper" of the temporary directory
             # deleting this env should also delete the temporary directory
-            self._local_dir_cls.cleanup()
-            self._local_dir_cls = None
+            if not (hasattr(self._local_dir_cls, "_RUNNER_DO_NOT_ERASE") and not self._local_dir_cls._RUNNER_DO_NOT_ERASE):
+                # BUT if a runner uses it, then I should not delete it !
+                print(f"Deleting the file {id(self._local_dir_cls)} from {id(self)}")
+                self._local_dir_cls.cleanup()
+                self._local_dir_cls = None
+                # In this case it's likely that the OS will clean it for grid2op with a warning...
 
     def attach_layout(self, grid_layout):
         """

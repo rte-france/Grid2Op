@@ -8,14 +8,17 @@
 
 import copy
 import numpy as np
+import os
 from typing import Tuple, Union, List
+
 from grid2op.Environment.environment import Environment
 from grid2op.Exceptions import EnvError
 from grid2op.dtypes import dt_bool, dt_float, dt_int
 from grid2op.Space import DEFAULT_N_BUSBAR_PER_SUB
+from grid2op.MakeEnv.PathUtils import USE_CLASS_IN_FILE
 
 
-class MaskedEnvironment(Environment):  # TODO heritage ou alors on met un truc de base
+class MaskedEnvironment(Environment):
     """This class is the grid2op implementation of a "maked" environment: lines not in the 
     `lines_of_interest` mask will NOT be deactivated by the environment is the flow is too high
     (or moderately high for too long.)
@@ -25,6 +28,29 @@ class MaskedEnvironment(Environment):  # TODO heritage ou alors on met un truc d
     
     .. warning::
         At time of writing, the behaviour of "obs.simulate" is not modified
+        
+    Examples
+    ---------
+    
+    We recommend you build such an environment with:
+    
+    .. code-block:: python
+    
+        import grid2op
+        from grid2op.Environment import MaskedEnvironment
+        
+        env_name = "l2rpn_case14_sandbox"
+        lines_of_interest = np.array([True, True, True, True, True, True,
+                                      False, False, False, False, False, False,
+                                      False, False, False, False, False, False,
+                                      False, False])
+        env = MaskedEnvironment(grid2op.make(env_name),
+                                lines_of_interest=lines_of_interest)
+                                
+                                
+    In particular, make sure to use `grid2op.make(...)` when creating the MaskedEnvironment 
+    and not to use another environment.
+    
     """  
     # some kind of infinity value
     # NB we multiply np.finfo(dt_float).max by a small number (1e-7) to avoid overflow
@@ -40,13 +66,37 @@ class MaskedEnvironment(Environment):  # TODO heritage ou alors on met un truc d
         
         self._lines_of_interest = self._make_lines_of_interest(lines_of_interest)
         if isinstance(grid2op_env, Environment):
-            super().__init__(**grid2op_env.get_kwargs())
+            kwargs = grid2op_env.get_kwargs()
+            if USE_CLASS_IN_FILE:
+                # I need to build the classes
+                
+                # first take the "ownership" of the tmp directory
+                kwargs["_local_dir_cls"] = grid2op_env._local_dir_cls
+                grid2op_env._local_dir_cls = None
+                print("here")
+                # then generate the proper classes
+                sys_path = os.path.join(grid2op_env.get_path_env(), "_grid2op_classes", kwargs["_local_dir_cls"].name)
+                bk_type = type(grid2op_env.backend)
+                _PATH_GRID_CLASSES = bk_type._PATH_GRID_CLASSES
+                bk_type._PATH_GRID_CLASSES = None
+                my_type_tmp = type(self).init_grid(gridobj=bk_type, _local_dir_cls=None)
+                bk_type._PATH_GRID_CLASSES = _PATH_GRID_CLASSES
+                txt_, cls_res_me = grid2op_env._aux_gen_classes(my_type_tmp,
+                                                                sys_path,
+                                                                _add_class_output=True)
+                # then add the class to the init file
+                with open(os.path.join(sys_path, "__init__.py"), "a", encoding="utf-8") as f:
+                    f.write(txt_)
+            print(f"finish the use of env {id(grid2op_env)}")
+                    
+            super().__init__(**kwargs)
         elif isinstance(grid2op_env, dict):
             super().__init__(**grid2op_env)
         else:
             raise EnvError(f"For MaskedEnvironment you need to provide "
                            f"either an Environment or a dict "
                            f"for grid2op_env. You provided: {type(grid2op_env)}")
+        print(f"finish creation of {id(self)}")
         
     def _make_lines_of_interest(self, lines_of_interest):
         # NB is called BEFORE the env has been created...
@@ -123,6 +173,7 @@ class MaskedEnvironment(Environment):  # TODO heritage ou alors on met un truc d
                              _raw_backend_class,
                              _read_from_local_dir,
                              n_busbar=DEFAULT_N_BUSBAR_PER_SUB):
+        
         res = MaskedEnvironment(grid2op_env={"init_env_path": init_env_path,
                                              "init_grid_path": init_grid_path,
                                              "chronics_handler": chronics_handler,

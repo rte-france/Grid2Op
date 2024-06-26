@@ -21,7 +21,7 @@ from grid2op.Opponent.opponentSpace import OpponentSpace
 from grid2op.Reward import FlatReward, BaseReward
 from grid2op.Rules import AlwaysLegal
 from grid2op.Environment import Environment
-from grid2op.Chronics import ChronicsHandler, GridStateFromFile, GridValue
+from grid2op.Chronics import ChronicsHandler, GridStateFromFile, GridValue, MultifolderWithCache
 from grid2op.Backend import Backend, PandaPowerBackend
 from grid2op.Parameters import Parameters
 from grid2op.Agent import DoNothingAgent, BaseAgent
@@ -538,7 +538,11 @@ class Runner(object):
                 'grid2op.GridValue. Please modify "gridStateclass" parameter.'
             )
         self.gridStateclass = gridStateclass
-
+        if issubclass(gridStateclass, MultifolderWithCache):
+            warnings.warn("We do not recommend to use the `MultifolderWithCache` during the "
+                          "evaluation of your agents. It is possible but you might end up with "
+                          "side effects (see issue 616 for example). It is safer to use the "
+                          "`Multifolder` class as a drop-in replacement.")
         self.envClass._check_rules_correct(legalActClass)
         self.legalActClass = legalActClass
 
@@ -821,6 +825,7 @@ class Runner(object):
         It is called by :func:`Runner.reset`.
         """
         env, self.agent = self._new_env(self.parameters)
+        print(f"Runner.init_env: making an env {id(env)}")
         return env
 
     def reset(self):
@@ -1157,6 +1162,7 @@ class Runner(object):
                 reset_options=reset_options
             )
         else:
+            self._local_dir_cls._RUNNER_DO_NOT_ERASE = True
             self._clean_up()
 
             nb_process = int(nb_process)
