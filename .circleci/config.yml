@@ -178,7 +178,7 @@ jobs:
                command: |
                    source venv_test/bin/activate
                    python -m pip install -U pip setuptools wheel
-                   python -m pip install -U lightsim2grid==0.5.3 gymnasium "numpy<1.22" "pandapower<2.14.9"
+                   python -m pip install -U lightsim2grid==0.5.3 gymnasium "numpy<1.22"
             - run:
                command: |
                    source venv_test/bin/activate
@@ -205,7 +205,7 @@ jobs:
                command: |
                    source venv_test/bin/activate
                    python -m pip install -U pip setuptools wheel
-                   python -m pip install -U lightsim2grid==0.6.0 gymnasium
+                   python -m pip install -U lightsim2grid==0.6.0 gymnasium "numpy<1.22"
             - run:
                command: |
                    source venv_test/bin/activate

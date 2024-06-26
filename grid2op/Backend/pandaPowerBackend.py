@@ -17,12 +17,16 @@ from typing import Optional, Union, Tuple
 
 import pandapower as pp
 import scipy
+# check that pandapower does not introduce some 
+from packaging import version
 
 import grid2op
 from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Action import BaseAction
 from grid2op.Exceptions import BackendError
 from grid2op.Backend.backend import Backend
+
+MIN_LS_VERSION_VM_PU = version.parse("0.6.0")
 
 try:
     import numba
@@ -543,6 +547,23 @@ class PandaPowerBackend(Backend):
         self._in_service_trafo_col_id = int((self._grid.trafo.columns == "in_service").nonzero()[0][0])
         self._in_service_storage_cold_id = int((self._grid.storage.columns == "in_service").nonzero()[0][0])
         self.comp_time = 0.
+        
+        # hack for backward compat with oldest lightsim2grid version
+        try:
+            import lightsim2grid
+            if version.parse(lightsim2grid.__version__) < MIN_LS_VERSION_VM_PU:
+                warnings.warn("You are using a really old version of lightsim2grid. Consider upgrading.")
+                if "_options" in self._grid and "init_vm_pu" in self._grid["_options"]:
+                    try:
+                        float(self._grid["_options"]["init_vm_pu"])
+                    except ValueError as exc_:
+                        # we delete it because lightsim2grid uses it
+                        # to init its internal "GridModel" and did not check that
+                        # this is a float until MIN_LS_VERSION_VM_PU
+                        del self._grid["_options"]["init_vm_pu"]
+        except ImportError:
+            # lightsim2grid is not installed, so no risk to contaminate it
+            pass
         
     def _aux_run_pf_init(self):
         """run a powerflow when the file is being loaded. This is called three times for each call to "load_grid" """
