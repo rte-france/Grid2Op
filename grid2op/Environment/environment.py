@@ -185,6 +185,9 @@ class Environment(BaseEnv):
 
         self._compat_glop_version = _compat_glop_version
 
+        # needs to be done before "_init_backend" otherwise observationClass is not defined in the
+        # observation space (real_env_kwargs)
+        self._observationClass_orig = observationClass
         # for plotting
         self._init_backend(
             chronics_handler,
@@ -195,7 +198,6 @@ class Environment(BaseEnv):
             rewardClass,
             legalActClass,
         )
-        self._observationClass_orig = observationClass
         
     def _init_backend(
         self,
@@ -451,6 +453,9 @@ class Environment(BaseEnv):
         self._reward_to_obs = {}
         do_nothing = self._helper_action_env({})
         
+        # needs to be done at the end, but before the first "step" is called
+        self._observation_space.set_real_env_kwargs(self)
+
         # see issue https://github.com/rte-france/Grid2Op/issues/617
         # thermal limits are set AFTER this initial step
         _no_overflow_disconnection = self._no_overflow_disconnection
@@ -498,7 +503,7 @@ class Environment(BaseEnv):
 
         # reset everything to be consistent
         self._reset_vectors_and_timings()
-
+        
     def max_episode_duration(self):
         """
         Return the maximum duration (in number of steps) of the current episode.

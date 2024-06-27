@@ -325,6 +325,7 @@ class BaseMultiProcessEnvironment(GridObjects):
         self.obs_as_class = obs_as_class
         # self.__return_info = return_info
         self._waiting = True
+        self._read_from_local_dir = env._read_from_local_dir
 
     def _send_act(self, actions):
         for remote, action in zip(self._remotes, actions):

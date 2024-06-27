@@ -4163,7 +4163,12 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         # for the environment
         txt_ = self._aux_gen_classes(type(self), sys_path)
         _init_txt += txt_
-        # self.__class__ = cls_res
+        
+        # for the forecast env (we do this even if it's not used)
+        from grid2op.Environment._forecast_env import _ForecastEnv
+        for_env_cls = _ForecastEnv.init_grid(type(self.backend), _local_dir_cls=self._local_dir_cls)
+        txt_ = self._aux_gen_classes(for_env_cls, sys_path, _add_class_output=False)
+        _init_txt += txt_
         
         # for the backend
         txt_, cls_res_bk = self._aux_gen_classes(type(self.backend), sys_path, _add_class_output=True)
@@ -4206,51 +4211,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         _init_txt += "\n"
         with open(os.path.join(sys_path, "__init__.py"), mode, encoding="utf-8") as f:
             f.write(_init_txt)
-
-    def _reassign_classes(self):
-        """
-        This function allows python to "forget" the classes created at the initialization of the environment.
-        
-        It should not be used in most cases and is reserved for internal use only.
-        
-        .. versionadded: 1.10.2
-            Function added following the new behaviour introduced in this version. 
-            
-        """
-        raise RuntimeError("you should not use this !")
-        from grid2op.MakeEnv.PathUtils import USE_CLASS_IN_FILE
-        if not USE_CLASS_IN_FILE:
-            return
-    
-    def remove_all_class_folders(self):
-        """
-        This function allows python to remove all the files containing all the classes 
-        in the environment.
-        
-        .. warning::
-            If you have pending grid2op "job" using this environment, they will most likely crash
-            so use with extra care !
-        
-        It should not be used in most cases and is reserved for internal use only.
-        
-        .. versionadded: 1.10.2
-            Function added following the new behaviour introduced in this version. 
-            
-        """
-        raise RuntimeError("You should not use this now, this is handled by mktemp or something")
-        directory_path = os.path.join(self.get_path_env(), "_grid2op_classes")
-        try:
-            with os.scandir(directory_path) as entries:
-                for entry in entries:
-                    try:
-                        if entry.is_file():
-                            os.unlink(entry.path)
-                        else:
-                            shutil.rmtree(entry.path)
-                    except (OSError, FileNotFoundError):
-                        pass
-        except OSError:
-            pass
         
     def __del__(self):
         """when the environment is garbage collected, free all the memory, including cross reference to itself in the observation space."""

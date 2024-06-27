@@ -4706,6 +4706,7 @@ class BaseObservation(GridObjects):
                              prod_p=prod_p,
                              prod_v=prod_v,
                              maintenance=maintenance)
+        ch.max_iter = ch.real_data.max_iter
         
         backend = self._obs_env.backend.copy()
         backend._is_loaded = True

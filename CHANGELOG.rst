@@ -53,6 +53,7 @@ Next release
 - TODO done and truncated properly handled in gym_compat module (when game over
   before the end it's probably truncated and not done) 
 - TODO ForecastEnv in MaskedEnv ! (and obs.simulate there too !)
+- TODO finish the test in automatic_classes
 
 [1.10.3] - 2024-xx-yy
 -------------------------
@@ -87,6 +88,7 @@ Next release
   even before the "time series" are applied (and before the user defined thermal limits were set) 
   which could lead to disconnected powerlines even before the initial step (t=0, when time 
   series are loaded)
+- [FIXED] an issue with the "max_iter" for `FromNPY` time series generator
 - [ADDED] possibility to skip some step when calling `env.reset(..., options={"init ts": ...})`
 - [ADDED] possibility to limit the duration of an episode with `env.reset(..., options={"max step": ...})`
 - [ADDED] possibility to specify the "reset_options" used in `env.reset` when

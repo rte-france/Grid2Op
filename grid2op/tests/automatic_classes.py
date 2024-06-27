@@ -9,10 +9,12 @@
 import os
 import multiprocessing as mp
 import sys
+from typing import Optional
 import warnings
 import unittest
 import importlib
 import numpy as np
+from gymnasium.vector import AsyncVectorEnv
 
 os.environ["grid2op_class_in_file"] = "true"
 
@@ -23,7 +25,17 @@ from grid2op.Agent import BaseAgent
 from grid2op.Action import BaseAction
 from grid2op.Observation.baseObservation import BaseObservation
 from grid2op.Action.actionSpace import ActionSpace
-from grid2op.Environment import MaskedEnvironment, TimedOutEnvironment, SingleEnvMultiProcess
+from grid2op.Environment import (Environment,
+                                 MaskedEnvironment,
+                                 TimedOutEnvironment,
+                                 SingleEnvMultiProcess)
+from grid2op.Exceptions import NoForecastAvailable
+from grid2op.gym_compat import (GymEnv,
+                                BoxGymActSpace,
+                                BoxGymObsSpace,
+                                DiscreteActSpace,
+                                MultiDiscreteActSpace)
+
 assert USE_CLASS_IN_FILE
 
 # TODO feature: in the make add a kwargs to deactivate this
@@ -31,9 +43,9 @@ assert USE_CLASS_IN_FILE
 # TODO test Multiprocess
 # TODO test multi mix
 
-# TODO test gym
 # TODO two envs same name => now diff classes
 # TODO test the runner saved classes and reload
+
 # TODO test add_to_name
 # TODO test noshunt
 # TODO grid2op compat version
@@ -97,7 +109,7 @@ class AutoClassInFileTester(unittest.TestCase):
     def _do_test_obs_env(self):
         return True
     
-    def _aux_make_env(self, env=None):
+    def _aux_make_env(self, env: Optional[Environment]=None):
         if env is None:
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore")
@@ -105,7 +117,7 @@ class AutoClassInFileTester(unittest.TestCase):
         return env
         
     def test_all_classes_from_file(self,
-                                   env=None,
+                                   env: Optional[Environment]=None,
                                    classes_name="l2rpn_case14_sandbox",
                                    name_action_cls="PlayableAction_l2rpn_case14_sandbox"):
         env = self._aux_make_env(env)
@@ -235,15 +247,20 @@ class AutoClassInFileTester(unittest.TestCase):
                     assert env._voltage_controler.action_space.subtype is this_class
         # TODO test current_obs and _last_obs
         
-    def test_all_classes_from_file_env_after_reset(self, env=None):
+    def test_all_classes_from_file_env_after_reset(self, env: Optional[Environment]=None):
         """test classes are still consistent even after a call to env.reset() and obs.simulate()"""
         env = self._aux_make_env(env)
         obs = env.reset()
         self.test_all_classes_from_file(env=env)
-        obs.simulate(env.action_space())
-        self.test_all_classes_from_file(env=env)
+        try:
+            obs.simulate(env.action_space())
+            self.test_all_classes_from_file(env=env)
+        except NoForecastAvailable:
+            # cannot do this test if the "original" env is a _Forecast env:
+            # for l2rpn_case14_sandbox only 1 step ahead forecast are available
+            pass
         
-    def test_all_classes_from_file_obsenv(self, env=None):
+    def test_all_classes_from_file_obsenv(self, env: Optional[Environment]=None):
         """test the files are correctly generated for the "forecast env" in the 
         environment even after a call to obs.reset() and obs.simulate()"""
         if not self._do_test_obs_env():
@@ -261,13 +278,18 @@ class AutoClassInFileTester(unittest.TestCase):
                                         name_action_cls="CompleteAction_l2rpn_case14_sandbox")   
         
         # forecast and check the same
-        obs.simulate(env.action_space())
-        self.test_all_classes_from_file(env=env.observation_space.obs_env,
-                                        name_action_cls="CompleteAction_l2rpn_case14_sandbox")  
-        self.test_all_classes_from_file(env=obs._obs_env,
-                                        name_action_cls="CompleteAction_l2rpn_case14_sandbox")   
+        try:
+            obs.simulate(env.action_space())
+            self.test_all_classes_from_file(env=env.observation_space.obs_env,
+                                            name_action_cls="CompleteAction_l2rpn_case14_sandbox")  
+            self.test_all_classes_from_file(env=obs._obs_env,
+                                            name_action_cls="CompleteAction_l2rpn_case14_sandbox")  
+        except NoForecastAvailable:
+            # cannot do this test if the "original" env is a _Forecast env:
+            # for l2rpn_case14_sandbox only 1 step ahead forecast are available
+            pass 
     
-    def test_all_classes_from_file_env_cpy(self, env=None):
+    def test_all_classes_from_file_env_cpy(self, env: Optional[Environment]=None):
         """test that when an environment is copied, then the copied env is consistent, 
         that it is consistent after a reset and that the forecast env is consistent"""
         if not self._do_test_copy():
@@ -280,7 +302,7 @@ class AutoClassInFileTester(unittest.TestCase):
                                         name_action_cls="CompleteAction_l2rpn_case14_sandbox")     
         self.test_all_classes_from_file_obsenv(env=env_cpy)
     
-    def test_all_classes_from_file_env_runner(self, env=None):
+    def test_all_classes_from_file_env_runner(self, env: Optional[Environment]=None):
         """this test, using the defined functions above that the runner is able to create a valid env"""
         if not self._do_test_runner():
             self.skipTest("Runner not tested")
@@ -304,7 +326,7 @@ class AutoClassInFileTester(unittest.TestCase):
                                         name_action_cls="CompleteAction_l2rpn_case14_sandbox")     
         self.test_all_classes_from_file_obsenv(env=env_runner)
     
-    def test_all_classes_from_file_runner_1ep(self, env=None):
+    def test_all_classes_from_file_runner_1ep(self, env: Optional[Environment]=None):
         """this test that the runner is able to "run" (one type of run), but the tests on the classes 
         are much lighter than in test_all_classes_from_file_env_runner"""
         if not self._do_test_runner():
@@ -323,7 +345,7 @@ class AutoClassInFileTester(unittest.TestCase):
                    env_seeds=[0],
                    episode_id=[0])
     
-    def test_all_classes_from_file_runner_2ep_seq(self, env=None):
+    def test_all_classes_from_file_runner_2ep_seq(self, env: Optional[Environment]=None):
         """this test that the runner is able to "run" (one other type of run), but the tests on the classes 
         are much lighter than in test_all_classes_from_file_env_runner"""
         if not self._do_test_runner():
@@ -344,7 +366,7 @@ class AutoClassInFileTester(unittest.TestCase):
         assert res[0][4] == self.max_iter
         assert res[1][4] == self.max_iter
     
-    def test_all_classes_from_file_runner_2ep_par_fork(self, env=None):
+    def test_all_classes_from_file_runner_2ep_par_fork(self, env: Optional[Environment]=None):
         """this test that the runner is able to "run" (one other type of run), but the tests on the classes 
         are much lighter than in test_all_classes_from_file_env_runner"""
         if not self._do_test_runner():
@@ -366,7 +388,7 @@ class AutoClassInFileTester(unittest.TestCase):
         assert res[0][4] == self.max_iter
         assert res[1][4] == self.max_iter
     
-    def test_all_classes_from_file_runner_2ep_par_spawn(self, env=None):
+    def test_all_classes_from_file_runner_2ep_par_spawn(self, env: Optional[Environment]=None):
         """this test that the runner is able to "run" (one other type of run), but the tests on the classes 
         are much lighter than in test_all_classes_from_file_env_runner"""
         if not self._do_test_runner():
@@ -393,7 +415,7 @@ class AutoClassInFileTester(unittest.TestCase):
         
 class MaskedEnvAutoClassTester(AutoClassInFileTester):
 
-    def _aux_make_env(self, env=None):
+    def _aux_make_env(self, env: Optional[Environment]=None):
         if env is None:
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore")
@@ -407,14 +429,150 @@ class MaskedEnvAutoClassTester(AutoClassInFileTester):
         
 class TOEnvAutoClassTester(AutoClassInFileTester):
 
-    def _aux_make_env(self, env=None):
+    def _aux_make_env(self, env: Optional[Environment]=None):
         if env is None:
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore")
                 env = TimedOutEnvironment(super()._aux_make_env(),
                                           time_out_ms=1e-3)
         return env
+        
+        
+class ForEnvAutoClassTester(AutoClassInFileTester):
+
+    def _aux_make_env(self, env: Optional[Environment]=None):
+        if env is None:
+            # we create the reference environment and prevent grid2op to 
+            # to delete it (because it stores the files to the class)
+            self.ref_env = super()._aux_make_env()
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore")
+                obs = self.ref_env.get_obs()
+                res = obs.get_forecast_env()
+            self.max_iter = res._max_iter  # otherwise it fails in the runner
+        else:
+            res = env
+        return res
     
+    def tearDown(self):
+        if hasattr(self, "ref_env"):
+            self.ref_env.close()
+    
+
+# class SEMPAUtoClassTester(AutoClassInFileTester):
+#  """means i need to completely recode `test_all_classes_from_file` to take into account the return
+#     values which is a list now... and i'm not ready for it yet TODO"""          
+#     def _do_test_runner(self):
+#         # false for multi process env
+#         return False
+    
+#     def _do_test_copy(self):
+#         # for for multi process env
+#         return False
+    
+#     def _do_test_obs_env(self):
+#         return False
+
+#     def _aux_make_env(self, env: Optional[Environment]=None):
+#         if env is None:
+#             # we create the reference environment and prevent grid2op to 
+#             # to delete it (because it stores the files to the class)
+#             self.ref_env = super()._aux_make_env()
+#             with warnings.catch_warnings():
+#                 warnings.filterwarnings("ignore")
+#                 res = SingleEnvMultiProcess(self.ref_env, nb_env=2)
+#         else:
+#             res = env
+#         return res
+    
+class GymEnvAutoClassTester(unittest.TestCase):
+    def setUp(self) -> None:
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env = grid2op.make("l2rpn_case14_sandbox",
+                                    test=True,
+                                    _add_to_name=type(self).__name__)
+        self.line_id = 3
+        th_lim = self.env.get_thermal_limit() * 2.  # avoid all problem in general
+        th_lim[self.line_id] /= 10.  # make sure to get trouble in line 3
+        self.env.set_thermal_limit(th_lim)
+        
+        GymEnvAutoClassTester._init_env(self.env)
+        
+    @staticmethod  
+    def _init_env(env):
+        env.set_id(0)
+        env.seed(0)
+        env.reset()
+
+    def tearDown(self) -> None:
+        self.env.close()
+        return super().tearDown()
+
+    def _aux_run_envs(self, act, env_gym):
+        for i in range(10):
+            obs_in, reward, done, truncated, info = env_gym.step(act)
+            if i < 2:  # 2 : 2 full steps already
+                assert obs_in["timestep_overflow"][self.line_id] == i + 1, f"error for step {i}: {obs_in['timestep_overflow'][self.line_id]}"
+            else:
+                # cooldown applied for line 3: 
+                # - it disconnect stuff in `self.env_in`
+                # - it does not affect anything in `self.env_out`
+                assert not obs_in["line_status"][self.line_id]
+                
+    def test_gym_with_step(self):
+        """test the step function also disconnects (or not) the lines"""
+        env_gym = GymEnv(self.env)
+        act = {}
+        self._aux_run_envs(act, env_gym)
+        env_gym.reset()
+        self._aux_run_envs(act, env_gym)
+            
+    def test_gym_normal(self):
+        """test I can create the gym env"""
+        env_gym = GymEnv(self.env)
+        env_gym.reset()
+    
+    def test_gym_box(self):
+        """test I can create the gym env with box ob space and act space"""
+        env_gym = GymEnv(self.env)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env_gym.action_space = BoxGymActSpace(self.env.action_space)
+            env_gym.observation_space = BoxGymObsSpace(self.env.observation_space)
+        env_gym.reset()
+    
+    def test_gym_discrete(self):
+        """test I can create the gym env with discrete act space"""
+        env_gym = GymEnv(self.env)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env_gym.action_space = DiscreteActSpace(self.env.action_space)
+        env_gym.reset()
+        act = 0
+        self._aux_run_envs(act, env_gym)
+        
+    def test_gym_multidiscrete(self):
+        """test I can create the gym env with multi discrete act space"""
+        env_gym = GymEnv(self.env)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env_gym.action_space = MultiDiscreteActSpace(self.env.action_space)
+        env_gym.reset()
+        act = env_gym.action_space.sample()
+        act[:] = 0
+        self._aux_run_envs(act, env_gym)
+        
+    def test_asynch_fork(self):
+        async_vect_env = AsyncVectorEnv((lambda: GymEnv(self.env), lambda: GymEnv(self.env)),
+                                        context="fork")
+        obs = async_vect_env.reset()
+        
+    def test_asynch_spawn(self):
+        async_vect_env = AsyncVectorEnv((lambda: GymEnv(self.env), lambda: GymEnv(self.env)),
+                                        context="spawn")
+        obs = async_vect_env.reset()
+        
         
 if __name__ == "__main__":
     unittest.main()

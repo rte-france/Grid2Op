@@ -1161,7 +1161,8 @@ class Runner(object):
                 reset_options=reset_options
             )
         else:
-            self._local_dir_cls._RUNNER_DO_NOT_ERASE = True
+            if  self._local_dir_cls is not None:
+                self._local_dir_cls._RUNNER_DO_NOT_ERASE = True
             self._clean_up()
 
             nb_process = int(nb_process)
