@@ -34,6 +34,7 @@ from grid2op.Opponent import BaseOpponent, NeverAttackBudget
 from grid2op.operator_attention import LinearAttentionBudget
 from grid2op.Space import DEFAULT_N_BUSBAR_PER_SUB
 from grid2op.typing_variables import RESET_OPTIONS_TYPING, N_BUSBAR_PER_SUB_TYPING
+from grid2op.MakeEnv.PathUtils import USE_CLASS_IN_FILE
 
 
 class Environment(BaseEnv):
@@ -122,7 +123,6 @@ class Environment(BaseEnv):
         _allow_loaded_backend=False,
         _local_dir_cls=None,  # only set at the first call to `make(...)` after should be false
     ):
-        print(f"Creating env {id(self)}")
         BaseEnv.__init__(
             self,
             init_env_path=init_env_path,
@@ -2138,7 +2138,6 @@ class Environment(BaseEnv):
         res["has_attention_budget"] = self._has_attention_budget
         res["_read_from_local_dir"] = self._read_from_local_dir
         res["_local_dir_cls"] = self._local_dir_cls  # should be transfered to the runner so that folder is not deleted while runner exists
-        print(f'{id(self._local_dir_cls) = }')
         res["logger"] = self.logger
         res["kwargs_observation"] = copy.deepcopy(self._kwargs_observation)
         res["observation_bk_class"] = self._observation_bk_class
@@ -2294,3 +2293,20 @@ class Environment(BaseEnv):
             env=self, seed=seed, nb_scenario=nb_year, nb_core=nb_core,
             **kwargs
         )
+
+    def _add_classes_in_files(self, sys_path, bk_type):            
+        if USE_CLASS_IN_FILE:
+            # then generate the proper classes
+            _PATH_GRID_CLASSES = bk_type._PATH_GRID_CLASSES
+            try:
+                bk_type._PATH_GRID_CLASSES = None
+                my_type_tmp = type(self).init_grid(gridobj=bk_type, _local_dir_cls=None)
+                txt_, cls_res_me = self._aux_gen_classes(my_type_tmp,
+                                                         sys_path,
+                                                         _add_class_output=True)
+                # then add the class to the init file
+                with open(os.path.join(sys_path, "__init__.py"), "a", encoding="utf-8") as f:
+                    f.write(txt_)
+            finally:
+                # make sure to put back the correct _PATH_GRID_CLASSES
+                bk_type._PATH_GRID_CLASSES = _PATH_GRID_CLASSES

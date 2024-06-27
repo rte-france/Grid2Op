@@ -73,22 +73,11 @@ class MaskedEnvironment(Environment):
                 # first take the "ownership" of the tmp directory
                 kwargs["_local_dir_cls"] = grid2op_env._local_dir_cls
                 grid2op_env._local_dir_cls = None
-                print("here")
+                
                 # then generate the proper classes
-                sys_path = os.path.join(grid2op_env.get_path_env(), "_grid2op_classes", kwargs["_local_dir_cls"].name)
+                sys_path = os.path.abspath(kwargs["_local_dir_cls"].name)
                 bk_type = type(grid2op_env.backend)
-                _PATH_GRID_CLASSES = bk_type._PATH_GRID_CLASSES
-                bk_type._PATH_GRID_CLASSES = None
-                my_type_tmp = type(self).init_grid(gridobj=bk_type, _local_dir_cls=None)
-                bk_type._PATH_GRID_CLASSES = _PATH_GRID_CLASSES
-                txt_, cls_res_me = grid2op_env._aux_gen_classes(my_type_tmp,
-                                                                sys_path,
-                                                                _add_class_output=True)
-                # then add the class to the init file
-                with open(os.path.join(sys_path, "__init__.py"), "a", encoding="utf-8") as f:
-                    f.write(txt_)
-            print(f"finish the use of env {id(grid2op_env)}")
-                    
+                self._add_classes_in_files(sys_path, bk_type)
             super().__init__(**kwargs)
         elif isinstance(grid2op_env, dict):
             super().__init__(**grid2op_env)
@@ -96,7 +85,6 @@ class MaskedEnvironment(Environment):
             raise EnvError(f"For MaskedEnvironment you need to provide "
                            f"either an Environment or a dict "
                            f"for grid2op_env. You provided: {type(grid2op_env)}")
-        print(f"finish creation of {id(self)}")
         
     def _make_lines_of_interest(self, lines_of_interest):
         # NB is called BEFORE the env has been created...

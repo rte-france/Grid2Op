@@ -340,7 +340,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         _read_from_local_dir=None,
         _raw_backend_class=None,
     ):
-        print(f"Creating BaseEnv {id(self)}")
         #: flag to indicate not to erase the directory when the env has been used
         self._do_not_erase_local_dir_cls = False
         GridObjects.__init__(self)
@@ -641,7 +640,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         if not self.backend._can_be_copied:
             raise RuntimeError("Impossible to copy your environment: the backend "
                                "class you used cannot be copied.")
-        print(f"Making {id(new_obj)} with _custom_deepcopy_for_copy")
         RandomObject._custom_deepcopy_for_copy(self, new_obj)
         new_obj.name = self.name
         if dict_ is None:
@@ -3744,7 +3742,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             # deleting this env should also delete the temporary directory
             if not (hasattr(self._local_dir_cls, "_RUNNER_DO_NOT_ERASE") and not self._local_dir_cls._RUNNER_DO_NOT_ERASE):
                 # BUT if a runner uses it, then I should not delete it !
-                print(f"Deleting the file {id(self._local_dir_cls)} from {id(self)}")
                 self._local_dir_cls.cleanup()
                 self._local_dir_cls = None
                 # In this case it's likely that the OS will clean it for grid2op with a warning...

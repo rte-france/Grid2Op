@@ -9,12 +9,14 @@
 import time
 from math import floor
 from typing import Any, Dict, Tuple, Union, List, Literal
-    
+import os
+
 from grid2op.Environment.environment import Environment
 from grid2op.Action import BaseAction
 from grid2op.Observation import BaseObservation
 from grid2op.Exceptions import EnvError
 from grid2op.Space import DEFAULT_N_BUSBAR_PER_SUB
+from grid2op.MakeEnv.PathUtils import USE_CLASS_IN_FILE
 
 
 class TimedOutEnvironment(Environment):  # TODO heritage ou alors on met un truc de base
@@ -71,7 +73,19 @@ class TimedOutEnvironment(Environment):  # TODO heritage ou alors on met un truc
         self._nb_dn_last = 0
         self._is_init_dn = False
         if isinstance(grid2op_env, Environment):
-            super().__init__(**grid2op_env.get_kwargs())
+            kwargs = grid2op_env.get_kwargs()
+            if USE_CLASS_IN_FILE:
+                # I need to build the classes
+                
+                # first take the "ownership" of the tmp directory
+                kwargs["_local_dir_cls"] = grid2op_env._local_dir_cls
+                grid2op_env._local_dir_cls = None
+                
+                # then generate the proper classes
+                sys_path = os.path.abspath(kwargs["_local_dir_cls"].name)
+                bk_type = type(grid2op_env.backend)
+                self._add_classes_in_files(sys_path, bk_type)
+            super().__init__(**kwargs)
         elif isinstance(grid2op_env, dict):
             super().__init__(**grid2op_env)
         else:

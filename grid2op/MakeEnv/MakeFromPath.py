@@ -972,7 +972,6 @@ def make_from_dataset_path(
             init_env.backend = None  # to avoid to close the backend when init_env is deleted
             init_env._local_dir_cls = None
             classes_path = this_local_dir.name
-            print(f"creating init_env {id(init_env)}")
         else:
             classes_path = sys_path
         allow_loaded_backend = True
@@ -996,7 +995,6 @@ def make_from_dataset_path(
                     f'Please remove "{sys_path}" and call `env.generate_classes()` where env is an '
                     f"environment created with `experimental_read_from_local_dir=False` (default)"
                 )
-    print("done with init_env normally...")
     # Finally instantiate env from config & overrides
     # including (if activated the new grid2op behaviour)
     env = Environment(
@@ -1043,7 +1041,5 @@ def make_from_dataset_path(
     # Set graph layout if not None and not an empty dict
     if graph_layout is not None and graph_layout:
         env.attach_layout(graph_layout)
-    
-    print(f"creating real env {id(env)}")
 
     return env

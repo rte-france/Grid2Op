@@ -52,6 +52,7 @@ Next release
 - TODO backend in jax, maybe ?
 - TODO done and truncated properly handled in gym_compat module (when game over
   before the end it's probably truncated and not done) 
+- TODO ForecastEnv in MaskedEnv ! (and obs.simulate there too !)
 
 [1.10.3] - 2024-xx-yy
 -------------------------

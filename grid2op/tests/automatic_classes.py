@@ -337,10 +337,10 @@ class AutoClassInFileTester(unittest.TestCase):
         runner = Runner(**env.get_params_for_runner(),
                         agentClass=None,
                         agentInstance=this_agent)
-        runner.run(nb_episode=2,
-                   max_iter=self.max_iter,
-                   env_seeds=[0, 0],
-                   episode_id=[0, 1])
+        res = runner.run(nb_episode=2,
+                         max_iter=self.max_iter,
+                         env_seeds=[0, 0],
+                         episode_id=[0, 1])
         assert res[0][4] == self.max_iter
         assert res[1][4] == self.max_iter
     
@@ -358,11 +358,11 @@ class AutoClassInFileTester(unittest.TestCase):
         runner = Runner(**env.get_params_for_runner(),
                         agentClass=None,
                         agentInstance=this_agent)
-        runner.run(nb_episode=2,
-                   nb_process=2,
-                   max_iter=self.max_iter,
-                   env_seeds=[0, 0],
-                   episode_id=[0, 1])
+        res = runner.run(nb_episode=2,
+                         nb_process=2,
+                         max_iter=self.max_iter,
+                         env_seeds=[0, 0],
+                         episode_id=[0, 1])
         assert res[0][4] == self.max_iter
         assert res[1][4] == self.max_iter
     
@@ -391,7 +391,7 @@ class AutoClassInFileTester(unittest.TestCase):
         assert res[1][4] == self.max_iter
         
         
-class MaskedAutoClassTester(AutoClassInFileTester):
+class MaskedEnvAutoClassTester(AutoClassInFileTester):
 
     def _aux_make_env(self, env=None):
         if env is None:
@@ -402,6 +402,17 @@ class MaskedAutoClassTester(AutoClassInFileTester):
                                                                     False, False, False, False, False, False,
                                                                     False, False, False, False, False, False,
                                                                     False, False]))
+        return env
+        
+        
+class TOEnvAutoClassTester(AutoClassInFileTester):
+
+    def _aux_make_env(self, env=None):
+        if env is None:
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore")
+                env = TimedOutEnvironment(super()._aux_make_env(),
+                                          time_out_ms=1e-3)
         return env
     
         

@@ -825,7 +825,6 @@ class Runner(object):
         It is called by :func:`Runner.reset`.
         """
         env, self.agent = self._new_env(self.parameters)
-        print(f"Runner.init_env: making an env {id(env)}")
         return env
 
     def reset(self):

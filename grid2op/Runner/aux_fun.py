@@ -58,7 +58,6 @@ def _aux_one_process_parrallel(
         # `ep_id`: grid2op id of the episode i want to play
         # `i`: my id of the episode played (0, 1, ... episode_this_process)
         env, agent = runner._new_env(parameters=parameters)
-        print(f"{process_id=}: {id(env)}, {env._local_dir_cls}")
         try:
             env_seed = None
             if env_seeds is not None:
