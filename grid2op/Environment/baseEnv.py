@@ -3736,7 +3736,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             # I do not remove them
             # (case for ObsEnv or ForecastedEnv)
             return
+        self._aux_close_local_dir_cls()
         
+    def _aux_close_local_dir_cls(self):
         if self._local_dir_cls is not None:
             # I am the "keeper" of the temporary directory
             # deleting this env should also delete the temporary directory
@@ -3745,7 +3747,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 self._local_dir_cls.cleanup()
                 self._local_dir_cls = None
                 # In this case it's likely that the OS will clean it for grid2op with a warning...
-
+                
     def attach_layout(self, grid_layout):
         """
         Compare to the method of the base class, this one performs a check.
@@ -4009,7 +4011,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             )
         self.__new_reward_func = new_reward_func
 
-    def _aux_gen_classes(self, cls_other, sys_path, _add_class_output=False):
+    @staticmethod
+    def _aux_gen_classes(cls_other, sys_path, _add_class_output=False):
         if not isinstance(cls_other, type):
             raise RuntimeError(f"cls_other should be a type and not an object !: {cls_other}")
         if not issubclass(cls_other, GridObjects):

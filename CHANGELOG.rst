@@ -40,6 +40,7 @@ Work kind of in progress
 
 Next release
 ---------------------------------
+- TODO doc for the "new" feature of automatic "experimental_read_from_local_dir"
 - TODO bug on maintenance starting at midnight (they are not correctly handled in the observation)
   => cf script test_issue_616
 - TODO Notebook for tf_agents
@@ -54,6 +55,7 @@ Next release
   before the end it's probably truncated and not done) 
 - TODO ForecastEnv in MaskedEnv ! (and obs.simulate there too !)
 - TODO finish the test in automatic_classes
+- TODO in multi-mix increase the reset options with the mix the user wants
 
 [1.10.3] - 2024-xx-yy
 -------------------------
@@ -899,7 +901,7 @@ Next release
   `Issue#185 <https://github.com/rte-france/Grid2Op/issues/185>`_ )
 - [IMPROVED] the seed of openAI gym for composed action space (see issue `https://github.com/openai/gym/issues/2166`):
   in waiting for an official fix, grid2op will use the solution proposed there
-  https://github.com/openai/gym/issues/2166#issuecomment-803984619 )
+  https://github.com/openai/gym/issues/2166#issuecomment-803984619
 
 [1.5.1] - 2021-04-15
 -----------------------

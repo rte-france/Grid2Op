@@ -250,12 +250,14 @@ def _aux_make_multimix(
     n_busbar=2,
     _add_to_name="",
     _compat_glop_version=None,
+    _overload_name_multimix=None,
     logger=None,
     **kwargs
 ) -> Environment:
     # Local import to prevent imports loop
     from grid2op.Environment import MultiMixEnvironment
-
+    if _overload_name_multimix is not None:
+        raise RuntimeError("You should not create a MultiMix with `_overload_name_multimix`.")
     return MultiMixEnvironment(
         dataset_path,
         experimental_read_from_local_dir=experimental_read_from_local_dir,
@@ -277,6 +279,7 @@ def make(
     n_busbar=2,
     _add_to_name : str="",
     _compat_glop_version : Optional[str]=None,
+    _overload_name_multimix : Optional[str]=None,  # do not use !
     **kwargs
 ) -> Environment:
     """
@@ -327,6 +330,9 @@ def make(
 
     _compat_glop_version:
         Internal, do not use (and can only be used when setting "test=True")
+        
+    _overload_name_multimix:
+        Internal, do not use !
 
     Returns
     -------
@@ -419,6 +425,7 @@ def make(
             dataset_path=dataset,
             _add_to_name=_add_to_name_tmp,
             _compat_glop_version=_compat_glop_version_tmp,
+            _overload_name_multimix=_overload_name_multimix,
             n_busbar=n_busbar,
             **kwargs
         )
@@ -430,7 +437,7 @@ def make(
     )
 
     # Unknown dev env
-    if test and dataset_name not in TEST_DEV_ENVS:
+    if _overload_name_multimix is None and test and dataset_name not in TEST_DEV_ENVS:
         raise Grid2OpException(_MAKE_UNKNOWN_ENV.format(dataset))
     
     # Known test env and test flag enabled
@@ -443,7 +450,13 @@ def make(
             or dataset_name.startswith("educ")
         ):
             warnings.warn(_MAKE_DEV_ENV_DEPRECATED_WARN.format(dataset_name))
-        ds_path = TEST_DEV_ENVS[dataset_name]
+        if _overload_name_multimix:
+            # make is invoked from a Multimix 
+            path_multimix = TEST_DEV_ENVS[_overload_name_multimix]
+            ds_path = os.path.join(path_multimix, dataset_name)
+        else:
+            # normal behaviour
+            ds_path = TEST_DEV_ENVS[dataset_name]
         # Check if multimix from path
         if _aux_is_multimix(ds_path):
 
@@ -463,6 +476,7 @@ def make(
             _add_to_name=_add_to_name,
             _compat_glop_version=_compat_glop_version,
             experimental_read_from_local_dir=experimental_read_from_local_dir,
+            _overload_name_multimix=_overload_name_multimix,
             **kwargs
         )
 
@@ -475,6 +489,7 @@ def make(
             logger=logger,
             n_busbar=n_busbar,
             experimental_read_from_local_dir=experimental_read_from_local_dir,
+            _overload_name_multimix=_overload_name_multimix
             **kwargs
         )
 
@@ -494,5 +509,6 @@ def make(
         logger=logger,
         n_busbar=n_busbar,
         experimental_read_from_local_dir=experimental_read_from_local_dir,
+        _overload_name_multimix=_overload_name_multimix,
         **kwargs
     )

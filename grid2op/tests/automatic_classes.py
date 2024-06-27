@@ -40,11 +40,11 @@ assert USE_CLASS_IN_FILE
 
 # TODO feature: in the make add a kwargs to deactivate this
 
-# TODO test Multiprocess
+
 # TODO test multi mix
+# TODO test the runner saved classes and reload
 
 # TODO two envs same name => now diff classes
-# TODO test the runner saved classes and reload
 
 # TODO test add_to_name
 # TODO test noshunt
@@ -118,13 +118,19 @@ class AutoClassInFileTester(unittest.TestCase):
         
     def test_all_classes_from_file(self,
                                    env: Optional[Environment]=None,
-                                   classes_name="l2rpn_case14_sandbox",
-                                   name_action_cls="PlayableAction_l2rpn_case14_sandbox"):
+                                   classes_name=None,
+                                   name_complete_obs_cls="CompleteObservation_{}",
+                                   name_observation_cls="CompleteObservation_{}",
+                                   name_action_cls="PlayableAction_{}"):
+        if classes_name is None:
+            classes_name = self.get_env_name()
+        name_action_cls = name_action_cls.format(classes_name)
         env = self._aux_make_env(env)
         names_cls = [f"ActionSpace_{classes_name}",
                      f"_BackendAction_{classes_name}",
                      f"CompleteAction_{classes_name}",
-                     f"CompleteObservation_{classes_name}",
+                     name_observation_cls.format(classes_name),
+                     name_complete_obs_cls.format(classes_name),
                      f"DontAct_{classes_name}",
                      f"_ObsEnv_{classes_name}",
                      f"ObservationSpace_{classes_name}",
@@ -157,9 +163,9 @@ class AutoClassInFileTester(unittest.TestCase):
             if name_attr is not None:
                 the_attr = getattr(env, name_attr)
                 if isinstance(the_attr, type):
-                    assert the_attr is this_class, f"error for {name_cls} (env.{name_attr})"
+                    assert the_attr is this_class, f"error for {the_attr} vs {this_class} env.{name_attr}"
                 else:
-                    assert type(the_attr) is this_class, f"error for {name_cls} (env.{name_attr})"
+                    assert type(the_attr) is this_class, f"error for {type(the_attr)} vs {this_class} (env.{name_attr})"
                 assert this_class._CLS_DICT is not None, f'error for {name_cls}'
                 assert this_class._CLS_DICT_EXTENDED is not None, f'error for {name_cls}'
                 
@@ -268,22 +274,22 @@ class AutoClassInFileTester(unittest.TestCase):
         env = self._aux_make_env(env)
         
         self.test_all_classes_from_file(env=env.observation_space.obs_env,
-                                        name_action_cls="CompleteAction_l2rpn_case14_sandbox")  
+                                        name_action_cls="CompleteAction_{}")  
         
         # reset and check the same
         obs = env.reset()    
         self.test_all_classes_from_file(env=env.observation_space.obs_env,
-                                        name_action_cls="CompleteAction_l2rpn_case14_sandbox")  
+                                        name_action_cls="CompleteAction_{}")  
         self.test_all_classes_from_file(env=obs._obs_env,
-                                        name_action_cls="CompleteAction_l2rpn_case14_sandbox")   
+                                        name_action_cls="CompleteAction_{}")   
         
         # forecast and check the same
         try:
             obs.simulate(env.action_space())
             self.test_all_classes_from_file(env=env.observation_space.obs_env,
-                                            name_action_cls="CompleteAction_l2rpn_case14_sandbox")  
+                                            name_action_cls="CompleteAction_{}")  
             self.test_all_classes_from_file(env=obs._obs_env,
-                                            name_action_cls="CompleteAction_l2rpn_case14_sandbox")  
+                                            name_action_cls="CompleteAction_{}")  
         except NoForecastAvailable:
             # cannot do this test if the "original" env is a _Forecast env:
             # for l2rpn_case14_sandbox only 1 step ahead forecast are available
@@ -299,7 +305,7 @@ class AutoClassInFileTester(unittest.TestCase):
         self.test_all_classes_from_file(env=env_cpy)
         self.test_all_classes_from_file_env_after_reset(env=env_cpy)
         self.test_all_classes_from_file(env=env_cpy.observation_space.obs_env,
-                                        name_action_cls="CompleteAction_l2rpn_case14_sandbox")     
+                                        name_action_cls="CompleteAction_{}")     
         self.test_all_classes_from_file_obsenv(env=env_cpy)
     
     def test_all_classes_from_file_env_runner(self, env: Optional[Environment]=None):
@@ -312,7 +318,7 @@ class AutoClassInFileTester(unittest.TestCase):
         self.test_all_classes_from_file(env=env_runner)
         self.test_all_classes_from_file_env_after_reset(env=env_runner)
         self.test_all_classes_from_file(env=env_runner.observation_space.obs_env,
-                                        name_action_cls="CompleteAction_l2rpn_case14_sandbox")     
+                                        name_action_cls="CompleteAction_{}")     
         self.test_all_classes_from_file_obsenv(env=env_runner)
         
         # test the runner prevents the deletion of the tmp file where the classes are stored
@@ -323,7 +329,7 @@ class AutoClassInFileTester(unittest.TestCase):
         self.test_all_classes_from_file(env=env_runner)
         self.test_all_classes_from_file_env_after_reset(env=env_runner)
         self.test_all_classes_from_file(env=env_runner.observation_space.obs_env,
-                                        name_action_cls="CompleteAction_l2rpn_case14_sandbox")     
+                                        name_action_cls="CompleteAction_{}")     
         self.test_all_classes_from_file_obsenv(env=env_runner)
     
     def test_all_classes_from_file_runner_1ep(self, env: Optional[Environment]=None):
@@ -572,6 +578,12 @@ class GymEnvAutoClassTester(unittest.TestCase):
         async_vect_env = AsyncVectorEnv((lambda: GymEnv(self.env), lambda: GymEnv(self.env)),
                                         context="spawn")
         obs = async_vect_env.reset()
+        
+        
+class MultiMixEnvAutoClassTester(AutoClassInFileTester):
+    def get_env_name(self):
+        return "l2rpn_neurips_2020_track2"
+    # TODO gym for that too
         
         
 if __name__ == "__main__":

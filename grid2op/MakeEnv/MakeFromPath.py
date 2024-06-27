@@ -127,6 +127,7 @@ def make_from_dataset_path(
     n_busbar=2,
     _add_to_name="",
     _compat_glop_version=None,
+    _overload_name_multimix=None,
     **kwargs,
 ) -> Environment:
     """
@@ -962,6 +963,7 @@ def make_from_dataset_path(
                                    _compat_glop_version=_compat_glop_version,
                                    _read_from_local_dir=None,  # first environment to generate the classes and save them
                                    _local_dir_cls=None,
+                                   _overload_name_multimix=_overload_name_multimix,
                                    kwargs_observation=kwargs_observation,
                                    observation_bk_class=observation_backend_class,
                                    observation_bk_kwargs=observation_backend_kwargs,

@@ -122,6 +122,7 @@ class Environment(BaseEnv):
         _is_test=False,
         _allow_loaded_backend=False,
         _local_dir_cls=None,  # only set at the first call to `make(...)` after should be false
+        _overload_name_multimix=None,
     ):
         BaseEnv.__init__(
             self,
@@ -162,12 +163,20 @@ class Environment(BaseEnv):
             _local_dir_cls=_local_dir_cls,
             _read_from_local_dir=_read_from_local_dir,
         )
+        
         if name == "unknown":
             warnings.warn(
                 'It is NOT recommended to create an environment without "make" and EVEN LESS '
                 "to use an environment without a name..."
             )
-        self.name = name
+            
+        if _overload_name_multimix is not None:
+            # this means that the "make" call is issued from the 
+            # creation of a MultiMix.
+            # So I use the base name instead.
+            self.name = _overload_name_multimix
+        else:
+            self.name = name
         
         # to remember if the user specified a "max_iter" at some point
         self._max_iter = chronics_handler.max_iter  # for all episode, set in the chronics_handler or by a call to `env.set_max_iter`

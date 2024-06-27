@@ -16,6 +16,9 @@ from grid2op.dtypes import dt_int, dt_float
 from grid2op.Space import GridObjects, RandomObject, DEFAULT_N_BUSBAR_PER_SUB
 from grid2op.Exceptions import EnvError, Grid2OpException
 from grid2op.Observation import BaseObservation
+from grid2op.MakeEnv.PathUtils import USE_CLASS_IN_FILE
+from grid2op.Environment.baseEnv import BaseEnv
+from grid2op.typing_variables import STEP_INFO_TYPING, RESET_OPTIONS_TYPING
 
 
 class MultiMixEnvironment(GridObjects, RandomObject):
@@ -154,7 +157,7 @@ class MultiMixEnvironment(GridObjects, RandomObject):
 
     """
 
-    KEYS_RESET_OPTIONS = {"time serie id"}
+    KEYS_RESET_OPTIONS = BaseEnv.KEYS_RESET_OPTIONS
     
     def __init__(
         self,
@@ -184,61 +187,54 @@ class MultiMixEnvironment(GridObjects, RandomObject):
                 # was introduced in grid2op 1.7.1
                 backend_kwargs = kwargs["backend"]._my_kwargs
             del kwargs["backend"]
-
-        # Inline import to prevent cyclical import
-        from grid2op.MakeEnv.Make import make
-
+        
+        li_mix_dirs = [mix_dir for mix_dir in sorted(os.listdir(envs_dir)) if os.path.isdir(os.path.join(envs_dir, mix_dir))]
+        if li_mix_dirs is []:
+            raise EnvError("We did not find any mix in this environment.")
+        
+        # Make sure GridObject class attributes are set from first env
+        # Should be fine since the grid is the same for all envs
+        multi_env_name = os.path.basename(os.path.abspath(envs_dir)) + _add_to_name
+        env_for_init = self._aux_create_a_mix(li_mix_dirs[0],
+                                              logger,
+                                              backendClass,
+                                              backend_kwargs,
+                                              _add_to_name,
+                                              _compat_glop_version,
+                                              n_busbar,
+                                              _test,
+                                              experimental_read_from_local_dir,
+                                              multi_env_name,
+                                              kwargs)
+        self._local_dir_cls = None
+        cls_res_me = self._aux_add_class_file(env_for_init)
+        if cls_res_me is not None:
+            self.__class__ = cls_res_me
+        else:
+            self.__class__ = type(self).init_grid(type(env_for_init.backend))
+        self.mix_envs.append(env_for_init)
+        
         # TODO reuse same observation_space and action_space in all the envs maybe ?
         try:
-            for env_dir in sorted(os.listdir(envs_dir)):
-                env_path = os.path.join(envs_dir, env_dir)
-                if not os.path.isdir(env_path):
+            for env_dir in li_mix_dirs[1:]:
+                mix_path = os.path.join(envs_dir, env_dir)
+                if not os.path.isdir(mix_path):
                     continue
-                this_logger = (
-                    logger.getChild(f"MultiMixEnvironment_{env_dir}")
-                    if logger is not None
-                    else None
-                )
-                # Special case for backend
-                if backendClass is not None:
-                    try:
-                        # should pass with grid2op >= 1.7.1
-                        bk = backendClass(**backend_kwargs)
-                    except TypeError as exc_:
-                        # with grid2Op version prior to 1.7.1
-                        # you might have trouble with 
-                        # "TypeError: __init__() got an unexpected keyword argument 'can_be_copied'"
-                        msg_ = ("Impossible to create a backend for each mix using the "
-                                "backend key-word arguments. Falling back to creating "
-                                "with no argument at all (default behaviour with grid2op <= 1.7.0).")
-                        warnings.warn(msg_)
-                        bk = backendClass()
-                    env = make(
-                        env_path,
-                        backend=bk,
-                        _add_to_name=_add_to_name,
-                        _compat_glop_version=_compat_glop_version,
-                        n_busbar=n_busbar,
-                        test=_test,
-                        logger=this_logger,
-                        experimental_read_from_local_dir=experimental_read_from_local_dir,
-                        **kwargs,
-                    )
-                else:
-                    env = make(
-                        env_path,
-                        n_busbar=n_busbar,
-                        _add_to_name=_add_to_name,
-                        _compat_glop_version=_compat_glop_version,
-                        test=_test,
-                        logger=this_logger,
-                        experimental_read_from_local_dir=experimental_read_from_local_dir,
-                        **kwargs,
-                    )
-                self.mix_envs.append(env)
+                mix = self._aux_create_a_mix(mix_path,
+                                             logger,
+                                             backendClass,
+                                             backend_kwargs,
+                                             _add_to_name,
+                                             _compat_glop_version,
+                                             n_busbar,
+                                             _test,
+                                             experimental_read_from_local_dir,
+                                             multi_env_name,
+                                             kwargs)
+                self.mix_envs.append(mix)
         except Exception as exc_:
             err_msg = "MultiMix environment creation failed: {}".format(exc_)
-            raise EnvError(err_msg)
+            raise EnvError(err_msg) from exc_
 
         if len(self.mix_envs) == 0:
             err_msg = "MultiMix envs_dir did not contain any valid env"
@@ -246,14 +242,92 @@ class MultiMixEnvironment(GridObjects, RandomObject):
 
         self.env_index = 0
         self.current_env = self.mix_envs[self.env_index]
-        # Make sure GridObject class attributes are set from first env
-        # Should be fine since the grid is the same for all envs
-        multi_env_name = os.path.basename(os.path.abspath(envs_dir)) + _add_to_name
-        save_env_name = self.current_env.env_name
-        self.current_env.env_name = multi_env_name
-        self.__class__ = self.init_grid(self.current_env)
-        self.current_env.env_name = save_env_name
 
+    def _aux_add_class_file(self, env_for_init):
+        if USE_CLASS_IN_FILE:
+            bk_type = type(env_for_init.backend)
+            sys_path = os.path.abspath(env_for_init.get_path_env())
+            self._local_dir_cls = env_for_init._local_dir_cls
+            env_for_init._local_dir_cls = None
+            # then generate the proper classes
+            _PATH_GRID_CLASSES = bk_type._PATH_GRID_CLASSES
+            try:
+                bk_type._PATH_GRID_CLASSES = None
+                my_type_tmp = type(self).init_grid(gridobj=bk_type, _local_dir_cls=None)
+                txt_, cls_res_me = BaseEnv._aux_gen_classes(my_type_tmp,
+                                                            sys_path,
+                                                            _add_class_output=True)
+                # then add the class to the init file
+                with open(os.path.join(sys_path, "__init__.py"), "a", encoding="utf-8") as f:
+                    f.write(txt_)
+            finally:
+                # make sure to put back the correct _PATH_GRID_CLASSES
+                bk_type._PATH_GRID_CLASSES = _PATH_GRID_CLASSES
+            return cls_res_me
+        return None
+        
+    def _aux_create_a_mix(self,
+                          mix_path,
+                          logger,
+                          backendClass,
+                          backend_kwargs,
+                          _add_to_name,
+                          _compat_glop_version,
+                          n_busbar,
+                          _test,
+                          experimental_read_from_local_dir,
+                          multi_env_name,
+                          kwargs
+                          ):
+        # Inline import to prevent cyclical import
+        from grid2op.MakeEnv.Make import make
+        
+        this_logger = (
+            logger.getChild(f"MultiMixEnvironment_{mix_path}")
+            if logger is not None
+            else None
+        )
+        
+        # Special case for backend
+        if backendClass is not None:
+            try:
+                # should pass with grid2op >= 1.7.1
+                bk = backendClass(**backend_kwargs)
+            except TypeError as exc_:
+                # with grid2Op version prior to 1.7.1
+                # you might have trouble with 
+                # "TypeError: __init__() got an unexpected keyword argument 'can_be_copied'"
+                msg_ = ("Impossible to create a backend for each mix using the "
+                        "backend key-word arguments. Falling back to creating "
+                        "with no argument at all (default behaviour with grid2op <= 1.7.0).")
+                warnings.warn(msg_)
+                bk = backendClass()
+            mix = make(
+                mix_path,
+                backend=bk,
+                _add_to_name=_add_to_name,
+                _compat_glop_version=_compat_glop_version,
+                n_busbar=n_busbar,
+                test=_test,
+                logger=this_logger,
+                experimental_read_from_local_dir=experimental_read_from_local_dir,
+                _overload_name_multimix=multi_env_name,
+                **kwargs,
+            )
+        else:
+            mix = make(
+                mix_path,
+                n_busbar=n_busbar,
+                _add_to_name=_add_to_name,
+                _compat_glop_version=_compat_glop_version,
+                test=_test,
+                logger=this_logger,
+                experimental_read_from_local_dir=experimental_read_from_local_dir,
+                _overload_name_multimix=multi_env_name,
+                **kwargs,
+            )
+        return mix
+    
     def get_path_env(self):
         """
         Get the path that allows to create this environment.
@@ -370,7 +444,7 @@ class MultiMixEnvironment(GridObjects, RandomObject):
               *,
               seed: Union[int, None] = None,
               random=False,
-              options: Union[Dict[Union[str, Literal["time serie id"]], Union[int, str]], None] = None) -> BaseObservation:
+              options: RESET_OPTIONS_TYPING = None) -> BaseObservation:
         
         if self.__closed:
             raise EnvError("This environment is closed, you cannot use it.")
@@ -389,13 +463,7 @@ class MultiMixEnvironment(GridObjects, RandomObject):
             self.env_index = (self.env_index + 1) % len(self.mix_envs)
 
         self.current_env = self.mix_envs[self.env_index]
-        
-        if options is not None and "time serie id" in options:
-            self.set_id(options["time serie id"])
-                    
-        if seed is not None:
-            self.seed(seed)
-        return self.current_env.reset()
+        return self.current_env.reset(seed=seed, options=options)
 
     def seed(self, seed=None):
         """
@@ -490,6 +558,10 @@ class MultiMixEnvironment(GridObjects, RandomObject):
 
         for mix in self.mix_envs:
             mix.close()
+            
+        # free the resources (temporary directory)
+        BaseEnv._aux_close_local_dir_cls(self)
+            
         self.__closed = True
 
     def attach_layout(self, grid_layout):
