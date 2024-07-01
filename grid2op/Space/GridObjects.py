@@ -4149,10 +4149,13 @@ class GridObjects:
             if dict_["_PATH_GRID_CLASSES"] is not None:
                 cls._PATH_GRID_CLASSES = str(dict_["_PATH_GRID_CLASSES"])
             else:
-                cls._PATH_GRID_CLASSES = None
+                cls._PATH_GRID_CLASSES = None  
         elif "_PATH_ENV" in dict_:
             # legacy mode in grid2op <= 1.10.1 this was saved in "PATH_ENV"
-            cls._PATH_GRID_CLASSES = str(dict_["_PATH_ENV"])
+            if dict_["_PATH_ENV"] is not None:
+                cls._PATH_GRID_CLASSES = str(dict_["_PATH_ENV"])
+            else:
+                cls._PATH_GRID_CLASSES = None
         else:
             cls._PATH_GRID_CLASSES = None
         

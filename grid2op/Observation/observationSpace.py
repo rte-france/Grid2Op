@@ -533,12 +533,15 @@ class ObservationSpace(SerializableObservationSpace):
             res._empty_obs = obs_.copy()
             res.obs_env = obs_env
         else:
+            # backend needs to be copied
             if obs_env is not None:
+                # I also need to copy the obs env
                 res.obs_env = obs_env.copy(env=env, new_obs_space=res)
                 res._backend_obs = res.obs_env.backend
                 res._empty_obs = obs_.copy()
                 res._empty_obs._obs_env = res.obs_env
             else:
+                # no obs env: I do nothing
                 res.obs_env = None
 
         # assign back the results

@@ -918,7 +918,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             new_obj._last_obs = None
             
         # observation
-        if self.current_obs is not None:
+        from grid2op.Environment._obsEnv import _ObsEnv
+        if self.current_obs is not None and not isinstance(self, _ObsEnv):
+            # breaks for some version of lightsim2grid... (a powerflow need to be run to retrieve the observation)
             new_obj.current_obs = new_obj.get_obs()
 
     def get_path_env(self):

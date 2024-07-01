@@ -629,6 +629,7 @@ class MultiMixEnvAutoClassTester(AutoClassInFileTester):
                                    name_complete_obs_cls="CompleteObservation_{}",
                                    name_observation_cls=None,
                                    name_action_cls=None):
+        env_orig = env
         env = self._aux_make_env(env)
         try:
             super().test_all_classes_from_file(env,
@@ -647,9 +648,12 @@ class MultiMixEnvAutoClassTester(AutoClassInFileTester):
                                                     name_action_cls=name_action_cls
                                                     )
         finally:
-            env.close()
+            if env_orig is None:
+                # need to clean the env I created
+                env.close()
         
     def test_all_classes_from_file_env_after_reset(self, env: Optional[Environment]=None):
+        env_orig = env
         env = self._aux_make_env(env)
         try:
             super().test_all_classes_from_file_env_after_reset(env)
@@ -658,9 +662,12 @@ class MultiMixEnvAutoClassTester(AutoClassInFileTester):
                 for mix in env:
                     super().test_all_classes_from_file_env_after_reset(mix)
         finally:
-            env.close()
+            if env_orig is None:
+                # need to clean the env I created
+                env.close()
     
     def test_all_classes_from_file_obsenv(self, env: Optional[Environment]=None):
+        env_orig = env
         env = self._aux_make_env(env)
         try:
             super().test_all_classes_from_file_obsenv(env)
@@ -669,9 +676,12 @@ class MultiMixEnvAutoClassTester(AutoClassInFileTester):
                 for mix in env:
                     super().test_all_classes_from_file_obsenv(mix)
         finally:
-            env.close()
+            if env_orig is None:
+                # need to clean the env I created
+                env.close()
     
     def test_all_classes_from_file_env_cpy(self, env: Optional[Environment]=None):
+        env_orig = env
         env = self._aux_make_env(env)
         try:
             super().test_all_classes_from_file_env_cpy(env)
@@ -680,9 +690,12 @@ class MultiMixEnvAutoClassTester(AutoClassInFileTester):
                 for mix in env:
                     super().test_all_classes_from_file_env_cpy(mix)
         finally:
-            env.close()
+            if env_orig is None:
+                # need to clean the env I created
+                env.close()
                 
     def test_all_classes_from_file_env_runner(self, env: Optional[Environment]=None):
+        env_orig = env
         env = self._aux_make_env(env)
         try:
             if isinstance(env, MultiMixEnvironment):
@@ -693,9 +706,12 @@ class MultiMixEnvAutoClassTester(AutoClassInFileTester):
                 # runner does not handle multimix
                 super().test_all_classes_from_file_env_runner(env)  
         finally:
-            env.close()
+            if env_orig is None:
+                # need to clean the env I created
+                env.close()
                 
     def test_all_classes_from_file_runner_1ep(self, env: Optional[Environment]=None):
+        env_orig = env
         env = self._aux_make_env(env)
         try:
             if isinstance(env, MultiMixEnvironment):
@@ -706,9 +722,12 @@ class MultiMixEnvAutoClassTester(AutoClassInFileTester):
                 # runner does not handle multimix
                 super().test_all_classes_from_file_runner_1ep(env)  
         finally:
-            env.close()
+            if env_orig is None:
+                # need to clean the env I created
+                env.close()
                 
     def test_all_classes_from_file_runner_2ep_seq(self, env: Optional[Environment]=None):
+        env_orig = env
         env = self._aux_make_env(env)
         try:
             if isinstance(env, MultiMixEnvironment):
@@ -719,9 +738,12 @@ class MultiMixEnvAutoClassTester(AutoClassInFileTester):
                 # runner does not handle multimix
                 super().test_all_classes_from_file_runner_2ep_seq(env)  
         finally:
-            env.close()
+            if env_orig is None:
+                # need to clean the env I created
+                env.close()
                 
     def test_all_classes_from_file_runner_2ep_par_fork(self, env: Optional[Environment]=None):
+        env_orig = env
         env = self._aux_make_env(env)
         try:
             if isinstance(env, MultiMixEnvironment):
@@ -732,9 +754,12 @@ class MultiMixEnvAutoClassTester(AutoClassInFileTester):
                 # runner does not handle multimix
                 super().test_all_classes_from_file_runner_2ep_par_fork(env)  
         finally:
-            env.close()
+            if env_orig is None:
+                # need to clean the env I created
+                env.close()
                 
     def test_all_classes_from_file_runner_2ep_par_spawn(self, env: Optional[Environment]=None):
+        env_orig = env
         env = self._aux_make_env(env)
         try:
             if isinstance(env, MultiMixEnvironment):
@@ -745,9 +770,12 @@ class MultiMixEnvAutoClassTester(AutoClassInFileTester):
                 # runner does not handle multimix
                 super().test_all_classes_from_file_runner_2ep_par_spawn(env)  
         finally:
-            env.close()
+            if env_orig is None:
+                # need to clean the env I created
+                env.close()
             
     def test_forecast_env_basic(self, env: Optional[Environment]=None):
+        env_orig = env
         env = self._aux_make_env(env)
         try:
             if isinstance(env, MultiMixEnvironment):
@@ -757,7 +785,9 @@ class MultiMixEnvAutoClassTester(AutoClassInFileTester):
                     for_env = obs.get_forecast_env()
                     super().test_all_classes_from_file(for_env)
         finally:
-            env.close()
+            if env_orig is None:
+                # need to clean the env I created
+                env.close()
 
         
 if __name__ == "__main__":
