@@ -37,8 +37,6 @@ from grid2op.gym_compat import (GymEnv,
                                 DiscreteActSpace,
                                 MultiDiscreteActSpace)
 
-# TODO feature: in the make add a kwargs to deactivate this
-
 # TODO test the runner saved classes and reload
 
 # TODO two envs same name => now diff classes
@@ -48,8 +46,6 @@ from grid2op.gym_compat import (GymEnv,
 # TODO grid2op compat version
 
 # TODO test backend converters
-# TODO mode to propagate the "pointer" (this_local_dir = tempfile.TemporaryDirectory(dir=sys_path))
-#      in all copy of the environment instead of keeping it only for the first one
 # TODO test all type of backend in the observation space, including the deactivate forecast, reactivate forecast, the different backend etc.
 
 class _ThisAgentTest(BaseAgent):
@@ -634,104 +630,134 @@ class MultiMixEnvAutoClassTester(AutoClassInFileTester):
                                    name_observation_cls=None,
                                    name_action_cls=None):
         env = self._aux_make_env(env)
-        super().test_all_classes_from_file(env,
-                                           classes_name=classes_name,
-                                           name_complete_obs_cls=name_complete_obs_cls,
-                                           name_observation_cls=name_observation_cls,
-                                           name_action_cls=name_action_cls
-                                           )
-        if isinstance(env, MultiMixEnvironment):
-            # test each mix of a multi mix
-            for mix in env:
-                super().test_all_classes_from_file(mix,
-                                                classes_name=classes_name,
-                                                name_complete_obs_cls=name_complete_obs_cls,
-                                                name_observation_cls=name_observation_cls,
-                                                name_action_cls=name_action_cls
-                                                )
-    
+        try:
+            super().test_all_classes_from_file(env,
+                                            classes_name=classes_name,
+                                            name_complete_obs_cls=name_complete_obs_cls,
+                                            name_observation_cls=name_observation_cls,
+                                            name_action_cls=name_action_cls
+                                            )
+            if isinstance(env, MultiMixEnvironment):
+                # test each mix of a multi mix
+                for mix in env:
+                    super().test_all_classes_from_file(mix,
+                                                    classes_name=classes_name,
+                                                    name_complete_obs_cls=name_complete_obs_cls,
+                                                    name_observation_cls=name_observation_cls,
+                                                    name_action_cls=name_action_cls
+                                                    )
+        finally:
+            env.close()
+        
     def test_all_classes_from_file_env_after_reset(self, env: Optional[Environment]=None):
         env = self._aux_make_env(env)
-        super().test_all_classes_from_file_env_after_reset(env)
-        if isinstance(env, MultiMixEnvironment):
-            # test each mix of a multimix
-            for mix in env:
-                super().test_all_classes_from_file_env_after_reset(mix)
+        try:
+            super().test_all_classes_from_file_env_after_reset(env)
+            if isinstance(env, MultiMixEnvironment):
+                # test each mix of a multimix
+                for mix in env:
+                    super().test_all_classes_from_file_env_after_reset(mix)
+        finally:
+            env.close()
     
     def test_all_classes_from_file_obsenv(self, env: Optional[Environment]=None):
         env = self._aux_make_env(env)
-        super().test_all_classes_from_file_obsenv(env)
-        if isinstance(env, MultiMixEnvironment):
-            # test each mix of a multimix
-            for mix in env:
-                super().test_all_classes_from_file_obsenv(mix)
+        try:
+            super().test_all_classes_from_file_obsenv(env)
+            if isinstance(env, MultiMixEnvironment):
+                # test each mix of a multimix
+                for mix in env:
+                    super().test_all_classes_from_file_obsenv(mix)
+        finally:
+            env.close()
     
     def test_all_classes_from_file_env_cpy(self, env: Optional[Environment]=None):
         env = self._aux_make_env(env)
-        super().test_all_classes_from_file_env_cpy(env)
-        if isinstance(env, MultiMixEnvironment):
-            # test each mix of a multimix
-            for mix in env:
-                super().test_all_classes_from_file_env_cpy(mix)
+        try:
+            super().test_all_classes_from_file_env_cpy(env)
+            if isinstance(env, MultiMixEnvironment):
+                # test each mix of a multimix
+                for mix in env:
+                    super().test_all_classes_from_file_env_cpy(mix)
+        finally:
+            env.close()
                 
     def test_all_classes_from_file_env_runner(self, env: Optional[Environment]=None):
         env = self._aux_make_env(env)
-        if isinstance(env, MultiMixEnvironment):
-            # test each mix of a multimix
-            for mix in env:
-                super().test_all_classes_from_file_env_runner(mix)
-        else:
-            # runner does not handle multimix
-            super().test_all_classes_from_file_env_runner(env)  
+        try:
+            if isinstance(env, MultiMixEnvironment):
+                # test each mix of a multimix
+                for mix in env:
+                    super().test_all_classes_from_file_env_runner(mix)
+            else:
+                # runner does not handle multimix
+                super().test_all_classes_from_file_env_runner(env)  
+        finally:
+            env.close()
                 
     def test_all_classes_from_file_runner_1ep(self, env: Optional[Environment]=None):
         env = self._aux_make_env(env)
-        if isinstance(env, MultiMixEnvironment):
-            # test each mix of a multimix
-            for mix in env:
-                super().test_all_classes_from_file_runner_1ep(mix)
-        else:
-            # runner does not handle multimix
-            super().test_all_classes_from_file_runner_1ep(env)  
+        try:
+            if isinstance(env, MultiMixEnvironment):
+                # test each mix of a multimix
+                for mix in env:
+                    super().test_all_classes_from_file_runner_1ep(mix)
+            else:
+                # runner does not handle multimix
+                super().test_all_classes_from_file_runner_1ep(env)  
+        finally:
+            env.close()
                 
     def test_all_classes_from_file_runner_2ep_seq(self, env: Optional[Environment]=None):
         env = self._aux_make_env(env)
-        if isinstance(env, MultiMixEnvironment):
-            # test each mix of a multimix
-            for mix in env:
-                super().test_all_classes_from_file_runner_2ep_seq(mix)
-        else:
-            # runner does not handle multimix
-            super().test_all_classes_from_file_runner_2ep_seq(env)  
+        try:
+            if isinstance(env, MultiMixEnvironment):
+                # test each mix of a multimix
+                for mix in env:
+                    super().test_all_classes_from_file_runner_2ep_seq(mix)
+            else:
+                # runner does not handle multimix
+                super().test_all_classes_from_file_runner_2ep_seq(env)  
+        finally:
+            env.close()
                 
     def test_all_classes_from_file_runner_2ep_par_fork(self, env: Optional[Environment]=None):
         env = self._aux_make_env(env)
-        if isinstance(env, MultiMixEnvironment):
-            # test each mix of a multimix
-            for mix in env:
-                super().test_all_classes_from_file_runner_2ep_par_fork(mix)
-        else:
-            # runner does not handle multimix
-            super().test_all_classes_from_file_runner_2ep_par_fork(env)  
+        try:
+            if isinstance(env, MultiMixEnvironment):
+                # test each mix of a multimix
+                for mix in env:
+                    super().test_all_classes_from_file_runner_2ep_par_fork(mix)
+            else:
+                # runner does not handle multimix
+                super().test_all_classes_from_file_runner_2ep_par_fork(env)  
+        finally:
+            env.close()
                 
     def test_all_classes_from_file_runner_2ep_par_spawn(self, env: Optional[Environment]=None):
         env = self._aux_make_env(env)
-        if isinstance(env, MultiMixEnvironment):
-            # test each mix of a multimix
-            for mix in env:
-                super().test_all_classes_from_file_runner_2ep_par_spawn(mix)
-        else:
-            # runner does not handle multimix
-            super().test_all_classes_from_file_runner_2ep_par_spawn(env)  
+        try:
+            if isinstance(env, MultiMixEnvironment):
+                # test each mix of a multimix
+                for mix in env:
+                    super().test_all_classes_from_file_runner_2ep_par_spawn(mix)
+            else:
+                # runner does not handle multimix
+                super().test_all_classes_from_file_runner_2ep_par_spawn(env)  
+        finally:
+            env.close()
             
     def test_forecast_env_basic(self, env: Optional[Environment]=None):
         env = self._aux_make_env(env)
-        if isinstance(env, MultiMixEnvironment):
-            # test each mix of a multimix
-            for mix in env:
-                obs = mix.reset()
-                for_env = obs.get_forecast_env()
-                super().test_all_classes_from_file(for_env)
+        try:
+            if isinstance(env, MultiMixEnvironment):
+                # test each mix of a multimix
+                for mix in env:
+                    obs = mix.reset()
+                    for_env = obs.get_forecast_env()
+                    super().test_all_classes_from_file(for_env)
+        finally:
+            env.close()
 
         
 if __name__ == "__main__":
