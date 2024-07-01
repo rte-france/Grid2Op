@@ -637,9 +637,13 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         if self.__closed:
             raise RuntimeError("Impossible to make a copy of a closed environment !")
 
-        if not self.backend._can_be_copied:
-            raise RuntimeError("Impossible to copy your environment: the backend "
-                               "class you used cannot be copied.")
+        if hasattr(self.backend, "_can_be_copied"):
+            if not self.backend._can_be_copied:
+                # introduced later on, might not be copied perfectly for some older backends
+                raise RuntimeError("Impossible to copy your environment: the backend "
+                                "class you used cannot be copied.")
+            # for earlier backend it is not possible to check this so I ignore it.
+            
         RandomObject._custom_deepcopy_for_copy(self, new_obj)
         new_obj.name = self.name
         if dict_ is None:

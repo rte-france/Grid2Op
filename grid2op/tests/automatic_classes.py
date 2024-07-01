@@ -8,7 +8,6 @@
 
 import os
 import multiprocessing as mp
-import sys
 from typing import Optional
 import warnings
 import unittest
@@ -16,10 +15,8 @@ import importlib
 import numpy as np
 from gymnasium.vector import AsyncVectorEnv
 
-os.environ["grid2op_class_in_file"] = "true"
 
 import grid2op
-from grid2op.MakeEnv.PathUtils import USE_CLASS_IN_FILE
 from grid2op.Runner import Runner
 from grid2op.Agent import BaseAgent
 from grid2op.Action import BaseAction
@@ -113,11 +110,10 @@ class AutoClassInFileTester(unittest.TestCase):
         return True
     
     def _aux_make_env(self, env: Optional[Environment]=None):
-        assert USE_CLASS_IN_FILE
         if env is None:
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore")
-                env = grid2op.make(self.get_env_name(), test=True)
+                env = grid2op.make(self.get_env_name(), test=True, class_in_file=True)
         assert env.classes_are_in_files()
         return env
     
@@ -526,7 +522,7 @@ class GymEnvAutoClassTester(unittest.TestCase):
             warnings.filterwarnings("ignore")
             self.env = grid2op.make("l2rpn_case14_sandbox",
                                     test=True,
-                                    _add_to_name=type(self).__name__)
+                                    class_in_file=True)
         self.line_id = 3
         th_lim = self.env.get_thermal_limit() * 2.  # avoid all problem in general
         th_lim[self.line_id] /= 10.  # make sure to get trouble in line 3

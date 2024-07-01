@@ -230,6 +230,7 @@ class TimedOutEnvironment(Environment):  # TODO heritage ou alors on met un truc
                              observation_bk_kwargs,
                              _raw_backend_class,
                              _read_from_local_dir,
+                             _local_dir_cls,
                              _overload_name_multimix,
                              n_busbar=DEFAULT_N_BUSBAR_PER_SUB):
         res = TimedOutEnvironment(grid2op_env={"init_env_path": init_env_path,
@@ -265,6 +266,7 @@ class TimedOutEnvironment(Environment):  # TODO heritage ou alors on met un truc
                                                "_raw_backend_class": _raw_backend_class,
                                                "_read_from_local_dir": _read_from_local_dir,
                                                "n_busbar": int(n_busbar),
+                                               "_local_dir_cls": _local_dir_cls,
                                                "_overload_name_multimix": _overload_name_multimix},
                                   **other_env_kwargs)
         return res
