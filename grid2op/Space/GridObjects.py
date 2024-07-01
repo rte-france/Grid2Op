@@ -4146,7 +4146,10 @@ class GridObjects:
             cls.glop_version = cls.BEFORE_COMPAT_VERSION
 
         if "_PATH_GRID_CLASSES" in dict_:
-            cls._PATH_GRID_CLASSES = str(dict_["_PATH_GRID_CLASSES"])
+            if dict_["_PATH_GRID_CLASSES"] is not None:
+                cls._PATH_GRID_CLASSES = str(dict_["_PATH_GRID_CLASSES"])
+            else:
+                cls._PATH_GRID_CLASSES = None
         elif "_PATH_ENV" in dict_:
             # legacy mode in grid2op <= 1.10.1 this was saved in "PATH_ENV"
             cls._PATH_GRID_CLASSES = str(dict_["_PATH_ENV"])

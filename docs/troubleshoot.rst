@@ -182,6 +182,8 @@ interact in a weird (and unpredictable) way with the `class_in_file` so we would
 - either use `grid2op.make(..., class_in_file=True)`
 - or use `grid2op.make(..., experimental_read_from_local_dir=True)`
 
+Thus we **DO NOT** recommend to use something like 
+`grid2op.make(..., experimental_read_from_local_dir=True, class_in_file=True)`
 
 
 .. include:: final.rst

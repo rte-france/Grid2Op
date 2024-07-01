@@ -185,7 +185,8 @@ class SerializableSpace(GridObjects, RandomObject):
         gridobj = GridObjects.from_dict(dict_)
         actionClass_str = extract_from_dict(dict_, "_init_subtype", str)
         actionClass_li = actionClass_str.split(".")
-
+        _local_dir_cls = None  # TODO when reading back the data
+        
         if actionClass_li[-1] in globals():
             subtype = globals()[actionClass_li[-1]]
         else:

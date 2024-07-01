@@ -452,7 +452,7 @@ def make(
             warnings.warn(_MAKE_DEV_ENV_DEPRECATED_WARN.format(dataset_name))
         if _overload_name_multimix:
             # make is invoked from a Multimix 
-            path_multimix = TEST_DEV_ENVS[_overload_name_multimix]
+            path_multimix = TEST_DEV_ENVS[_overload_name_multimix[0]]
             ds_path = os.path.join(path_multimix, dataset_name)
         else:
             # normal behaviour

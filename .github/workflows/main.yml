@@ -183,7 +183,7 @@ jobs:
             name: ubuntu,
             os: ubuntu-latest,
           }
-      python:
+        python:
           - {
             name: cp310,
             version: '3.10',

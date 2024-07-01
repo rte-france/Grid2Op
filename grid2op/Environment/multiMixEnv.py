@@ -177,6 +177,7 @@ class MultiMixEnvironment(GridObjects, RandomObject):
         self.mix_envs = []
         self._env_dir = os.path.abspath(envs_dir)
         self.__closed = False
+        self._do_not_erase_local_dir_cls = False
         # Special case handling for backend
         # TODO: with backend.copy() instead !
         backendClass = None
@@ -194,7 +195,7 @@ class MultiMixEnvironment(GridObjects, RandomObject):
         
         # Make sure GridObject class attributes are set from first env
         # Should be fine since the grid is the same for all envs
-        multi_env_name = os.path.basename(os.path.abspath(envs_dir)) + _add_to_name
+        multi_env_name = (os.path.basename(os.path.abspath(envs_dir)), _add_to_name)
         env_for_init = self._aux_create_a_mix(li_mix_dirs[0],
                                               logger,
                                               backendClass,
@@ -213,7 +214,6 @@ class MultiMixEnvironment(GridObjects, RandomObject):
         else:
             self.__class__ = type(self).init_grid(type(env_for_init.backend))
         self.mix_envs.append(env_for_init)
-        self._do_not_erase_local_dir_cls = False
         self._local_dir_cls = env_for_init._local_dir_cls
         
         # TODO reuse same observation_space and action_space in all the envs maybe ?
