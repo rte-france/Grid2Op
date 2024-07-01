@@ -96,7 +96,9 @@ ERR_MSG_KWARGS = {
                                   "obs.simulate and obs.get_forecasted_env). If provided, this should "
                                   "be a type / class and not an instance of this class. (by default it's None)"),
     "observation_backend_kwargs": ("key-word arguments to build the observation backend (used for Simulator, "
-    " obs.simulate and obs.get_forecasted_env). This should be a dictionnary. (by default it's None)")
+    " obs.simulate and obs.get_forecasted_env). This should be a dictionnary. (by default it's None)"),
+    "class_in_file": ("experimental: tell grid2op to store the classes generated in the hard drive "
+                      "which can solve lots of pickle / multi processing related issue"),
 }
 
 NAME_CHRONICS_FOLDER = "chronics"
@@ -878,7 +880,12 @@ def make_from_dataset_path(
     allow_loaded_backend = False
     classes_path = None
     init_env = None
-    if USE_CLASS_IN_FILE:
+    this_local_dir = None
+    use_class_in_files = USE_CLASS_IN_FILE
+    if "class_in_file" in kwargs:
+        classes_in_file_kwargs = bool(kwargs["class_in_file"])
+        use_class_in_files = classes_in_file_kwargs
+    if use_class_in_files:
         sys_path = os.path.join(os.path.split(grid_path_abs)[0], "_grid2op_classes")
         if not os.path.exists(sys_path):
             try:
@@ -1031,6 +1038,7 @@ def make_from_dataset_path(
         _read_from_local_dir=classes_path,
         _allow_loaded_backend=allow_loaded_backend,
         _local_dir_cls=this_local_dir,
+        _overload_name_multimix=_overload_name_multimix,
         kwargs_observation=kwargs_observation,
         observation_bk_class=observation_backend_class,
         observation_bk_kwargs=observation_backend_kwargs,

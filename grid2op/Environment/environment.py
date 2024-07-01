@@ -175,9 +175,10 @@ class Environment(BaseEnv):
             # creation of a MultiMix.
             # So I use the base name instead.
             self.name = _overload_name_multimix
+            self._overload_name_multimix = _overload_name_multimix
         else:
             self.name = name
-        
+            self._overload_name_multimix = None
         # to remember if the user specified a "max_iter" at some point
         self._max_iter = chronics_handler.max_iter  # for all episode, set in the chronics_handler or by a call to `env.set_max_iter`
         self._max_step = None  # for the current episode
@@ -1418,6 +1419,7 @@ class Environment(BaseEnv):
         new_obj._compat_glop_version = self._compat_glop_version
         new_obj._max_iter = self._max_iter
         new_obj._max_step = self._max_step
+        new_obj._overload_name_multimix = self._overload_name_multimix
         super()._custom_deepcopy_for_copy(new_obj)
 
     def copy(self) -> "Environment":
@@ -2112,6 +2114,7 @@ class Environment(BaseEnv):
         res["envClass"] = Environment  # TODO !
         res["gridStateclass"] = self.chronics_handler.chronicsClass
         res["backendClass"] = self._raw_backend_class
+        res["_overload_name_multimix"] = self._overload_name_multimix
         if hasattr(self.backend, "_my_kwargs"):
             res["backend_kwargs"] = self.backend._my_kwargs
         else:
@@ -2196,6 +2199,7 @@ class Environment(BaseEnv):
                              _raw_backend_class,
                              _read_from_local_dir,
                              _local_dir_cls,
+                             _overload_name_multimix,
                              n_busbar=DEFAULT_N_BUSBAR_PER_SUB
                              ):        
         res = cls(init_env_path=init_env_path,
@@ -2231,7 +2235,8 @@ class Environment(BaseEnv):
                   n_busbar=int(n_busbar),
                   _raw_backend_class=_raw_backend_class,
                   _read_from_local_dir=_read_from_local_dir,
-                  _local_dir_cls=_local_dir_cls)
+                  _local_dir_cls=_local_dir_cls,
+                  _overload_name_multimix=_overload_name_multimix)
         return res
     
     def generate_data(self, nb_year=1, nb_core=1, seed=None, **kwargs):

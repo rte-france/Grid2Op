@@ -447,6 +447,7 @@ alert (when the attack is happening)
 
 Disclaimer
 -----------
+
 Grid2op is a research testbed platform, it has not been tested in "production" context
 
 Going further
@@ -458,3 +459,5 @@ more information and a detailed tour about the issue that grid2op tries to addre
 
 .. note:: As of writing (december 2020) most of these notebooks focus on the "agent" part of grid2op. We would welcome
     any contribution to better explain the other aspect of this platform.
+
+.. include:: final.rst

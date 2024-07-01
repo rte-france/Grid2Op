@@ -213,6 +213,8 @@ class MultiMixEnvironment(GridObjects, RandomObject):
         else:
             self.__class__ = type(self).init_grid(type(env_for_init.backend))
         self.mix_envs.append(env_for_init)
+        self._do_not_erase_local_dir_cls = False
+        self._local_dir_cls = env_for_init._local_dir_cls
         
         # TODO reuse same observation_space and action_space in all the envs maybe ?
         try:
@@ -240,13 +242,17 @@ class MultiMixEnvironment(GridObjects, RandomObject):
             err_msg = "MultiMix envs_dir did not contain any valid env"
             raise EnvError(err_msg)
 
+        # tell every mix the "MultiMix" is responsible for deleting the 
+        # folder that stores the classes definition
+        for el in self.mix_envs:
+            el._do_not_erase_local_dir_cls = True
         self.env_index = 0
         self.current_env = self.mix_envs[self.env_index]
 
     def _aux_add_class_file(self, env_for_init):
         if USE_CLASS_IN_FILE:
             bk_type = type(env_for_init.backend)
-            sys_path = os.path.abspath(env_for_init.get_path_env())
+            sys_path = os.path.abspath(env_for_init._local_dir_cls.name)
             self._local_dir_cls = env_for_init._local_dir_cls
             env_for_init._local_dir_cls = None
             # then generate the proper classes
@@ -287,7 +293,7 @@ class MultiMixEnvironment(GridObjects, RandomObject):
             if logger is not None
             else None
         )
-        
+
         # Special case for backend
         if backendClass is not None:
             try:
@@ -400,6 +406,13 @@ class MultiMixEnvironment(GridObjects, RandomObject):
         current_env = self.current_env
         self.current_env = None
 
+        # do not copy these attributes
+        _do_not_erase_local_dir_cls = self._do_not_erase_local_dir_cls
+        self._do_not_erase_local_dir_cls = None
+        _local_dir_cls = self._local_dir_cls
+        self._local_dir_cls = None
+        
+        # create the new object and copy the normal attribute
         cls = self.__class__
         res = cls.__new__(cls)
         for k in self.__dict__:
@@ -407,11 +420,19 @@ class MultiMixEnvironment(GridObjects, RandomObject):
                 # this is handled elsewhere
                 continue
             setattr(res, k, copy.deepcopy(getattr(self, k)))
+        # now deal with the mixes
         res.mix_envs = [mix.copy() for mix in mix_envs]
         res.current_env = res.mix_envs[res.env_index]
-
+        # finally deal with the ownership of the class folder
+        res._do_not_erase_local_dir_cls = True
+        res._local_dir_cls = _local_dir_cls
+        
+        # put back attributes of `self` that have been put aside
         self.mix_envs = mix_envs
         self.current_env = current_env
+        self._local_dir_cls = _local_dir_cls
+        self._do_not_erase_local_dir_cls = _do_not_erase_local_dir_cls
+        
         return res
 
     def __getitem__(self, key):
@@ -559,10 +580,16 @@ class MultiMixEnvironment(GridObjects, RandomObject):
         for mix in self.mix_envs:
             mix.close()
             
+        self.__closed = True
+        
         # free the resources (temporary directory)
+        if self._do_not_erase_local_dir_cls:
+            # The resources are not held by this env, so 
+            # I do not remove them
+            # (case for ObsEnv or ForecastedEnv)
+            return
         BaseEnv._aux_close_local_dir_cls(self)
             
-        self.__closed = True
 
     def attach_layout(self, grid_layout):
         if self.__closed:

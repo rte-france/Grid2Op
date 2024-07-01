@@ -400,6 +400,7 @@ class Runner(object):
         _read_from_local_dir=False,
         _is_test=False,  # TODO not implemented !!
         _local_dir_cls=None,
+        _overload_name_multimix=None
     ):
         """
         Initialize the Runner.
@@ -467,6 +468,7 @@ class Runner(object):
         self._n_busbar = n_busbar
         self.with_forecast = with_forecast
         self.name_env = name_env
+        self._overload_name_multimix = _overload_name_multimix
         if not isinstance(envClass, type):
             raise Grid2OpException(
                 'Parameter "envClass" used to build the Runner should be a type (a class) and not an object '
@@ -796,8 +798,9 @@ class Runner(object):
                 observation_bk_kwargs=self._observation_bk_kwargs,
                 _raw_backend_class=self.backendClass,
                 _read_from_local_dir=self._read_from_local_dir,
-                # _local_dir_cls: we don't set it, in parrallel mode it has no sense !
-                _local_dir_cls=None
+                # _local_dir_cls: we don't set it, in parrallel mode it makes no sense !
+                _local_dir_cls=None,
+                _overload_name_multimix=self._overload_name_multimix
             )
 
         if self.thermal_limit_a is not None:
@@ -1296,6 +1299,7 @@ class Runner(object):
             "kwargs_observation": self._kwargs_observation,
             "_read_from_local_dir": self._read_from_local_dir,
             "_is_test": self._is_test,
+            "_overload_name_multimix": self._overload_name_multimix
         }
         return res
 

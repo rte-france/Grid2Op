@@ -8,7 +8,7 @@
 
 
 from datetime import datetime
-import shutil
+import tempfile
 import logging
 import time
 import copy
@@ -4373,3 +4373,16 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                         type(legalActClass)
                     )
                 )
+                
+    def classes_are_in_files(self) -> bool:
+        """
+        
+        Whether the classes created when this environment has been made are
+        store on the hard drive (will return `True`) or not.
+        
+        .. info::
+            This will become the default behaviour in future grid2op versions.
+                
+        See :ref:`troubleshoot_pickle` for more information.
+        """
+        return self._read_from_local_dir is not None

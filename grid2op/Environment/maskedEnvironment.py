@@ -127,6 +127,7 @@ class MaskedEnvironment(Environment):
     
     @classmethod
     def init_obj_from_kwargs(cls,
+                             *,
                              other_env_kwargs,
                              init_env_path,
                              init_grid_path,
@@ -160,6 +161,7 @@ class MaskedEnvironment(Environment):
                              observation_bk_kwargs,
                              _raw_backend_class,
                              _read_from_local_dir,
+                             _overload_name_multimix,
                              n_busbar=DEFAULT_N_BUSBAR_PER_SUB):
         
         res = MaskedEnvironment(grid2op_env={"init_env_path": init_env_path,
@@ -194,6 +196,7 @@ class MaskedEnvironment(Environment):
                                              "observation_bk_kwargs": observation_bk_kwargs,
                                              "n_busbar": int(n_busbar),
                                              "_raw_backend_class": _raw_backend_class,
-                                             "_read_from_local_dir": _read_from_local_dir},
+                                             "_read_from_local_dir": _read_from_local_dir,
+                                             "_overload_name_multimix": _overload_name_multimix},
                                   **other_env_kwargs)
         return res

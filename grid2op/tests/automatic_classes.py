@@ -28,7 +28,8 @@ from grid2op.Action.actionSpace import ActionSpace
 from grid2op.Environment import (Environment,
                                  MaskedEnvironment,
                                  TimedOutEnvironment,
-                                 SingleEnvMultiProcess)
+                                 SingleEnvMultiProcess,
+                                 MultiMixEnvironment)
 from grid2op.Exceptions import NoForecastAvailable
 from grid2op.gym_compat import (GymEnv,
                                 BoxGymActSpace,
@@ -36,12 +37,8 @@ from grid2op.gym_compat import (GymEnv,
                                 DiscreteActSpace,
                                 MultiDiscreteActSpace)
 
-assert USE_CLASS_IN_FILE
-
 # TODO feature: in the make add a kwargs to deactivate this
 
-
-# TODO test multi mix
 # TODO test the runner saved classes and reload
 
 # TODO two envs same name => now diff classes
@@ -90,6 +87,16 @@ class _ThisAgentTest(BaseAgent):
         return res
 
 
+class AutoClassMakeTester(unittest.TestCase):
+    """test that the kwargs `class_in_file=False` erase the default behaviour """
+    def test_in_make(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = grid2op.make("l2rpn_case14_sandbox", test=True, class_in_file=False)
+        assert env._read_from_local_dir is None
+        assert not env.classes_are_in_files()
+    
+    
 class AutoClassInFileTester(unittest.TestCase):
     def get_env_name(self):
         return "l2rpn_case14_sandbox"
@@ -110,20 +117,33 @@ class AutoClassInFileTester(unittest.TestCase):
         return True
     
     def _aux_make_env(self, env: Optional[Environment]=None):
+        assert USE_CLASS_IN_FILE
         if env is None:
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore")
                 env = grid2op.make(self.get_env_name(), test=True)
+        assert env.classes_are_in_files()
         return env
-        
+    
+    def _aux_get_obs_cls(self):
+        return "CompleteObservation_{}"
+    
+    def _aux_get_act_cls(self):
+        return "PlayableAction_{}"
+    
     def test_all_classes_from_file(self,
                                    env: Optional[Environment]=None,
                                    classes_name=None,
                                    name_complete_obs_cls="CompleteObservation_{}",
-                                   name_observation_cls="CompleteObservation_{}",
-                                   name_action_cls="PlayableAction_{}"):
+                                   name_observation_cls=None,
+                                   name_action_cls=None):
         if classes_name is None:
             classes_name = self.get_env_name()
+        if name_observation_cls is None:
+            name_observation_cls = self._aux_get_obs_cls().format(classes_name)
+        if name_action_cls is None:
+            name_action_cls = self._aux_get_act_cls().format(classes_name)
+            
         name_action_cls = name_action_cls.format(classes_name)
         env = self._aux_make_env(env)
         names_cls = [f"ActionSpace_{classes_name}",
@@ -142,6 +162,7 @@ class AutoClassInFileTester(unittest.TestCase):
                       "_backend_action_class",
                       "_complete_action_cls",
                       "_observationClass",
+                      None,  # Complete Observation in the forecast !
                       None, # DONT ACT not int ENV directly
                       None, #   ObsEnv NOT IN ENV,
                       "observation_space",
@@ -201,7 +222,8 @@ class AutoClassInFileTester(unittest.TestCase):
                     assert env.observation_space.obs_env._actionClass is this_class
                 
                 assert env._helper_action_env.subtype is this_class
-            elif name_cls == f"CompleteObservation_{classes_name}":
+            elif name_cls == name_observation_cls.format(classes_name):
+                # observation of the env
                 assert env._observation_space.subtype is this_class
                 if env.current_obs is not None:
                     # not in _ObsEnv
@@ -209,6 +231,8 @@ class AutoClassInFileTester(unittest.TestCase):
                 if env._last_obs is not None:
                     # not in _ObsEnv
                     assert isinstance(env._last_obs, this_class)
+            elif name_cls == name_observation_cls.format(classes_name):
+                # observation of the forecast
                 if env.observation_space.obs_env is not None:
                     # not in _ObsEnv
                     assert env._observation_space.obs_env._observation_space.subtype is this_class
@@ -274,22 +298,27 @@ class AutoClassInFileTester(unittest.TestCase):
         env = self._aux_make_env(env)
         
         self.test_all_classes_from_file(env=env.observation_space.obs_env,
-                                        name_action_cls="CompleteAction_{}")  
+                                        name_action_cls="CompleteAction_{}",
+                                        name_observation_cls="CompleteObservation_{}")  
         
         # reset and check the same
         obs = env.reset()    
         self.test_all_classes_from_file(env=env.observation_space.obs_env,
-                                        name_action_cls="CompleteAction_{}")  
+                                        name_action_cls="CompleteAction_{}",
+                                        name_observation_cls="CompleteObservation_{}")  
         self.test_all_classes_from_file(env=obs._obs_env,
-                                        name_action_cls="CompleteAction_{}")   
+                                        name_action_cls="CompleteAction_{}",
+                                        name_observation_cls="CompleteObservation_{}")   
         
         # forecast and check the same
         try:
             obs.simulate(env.action_space())
             self.test_all_classes_from_file(env=env.observation_space.obs_env,
-                                            name_action_cls="CompleteAction_{}")  
+                                            name_action_cls="CompleteAction_{}",
+                                            name_observation_cls="CompleteObservation_{}")  
             self.test_all_classes_from_file(env=obs._obs_env,
-                                            name_action_cls="CompleteAction_{}")  
+                                            name_action_cls="CompleteAction_{}",
+                                            name_observation_cls="CompleteObservation_{}")  
         except NoForecastAvailable:
             # cannot do this test if the "original" env is a _Forecast env:
             # for l2rpn_case14_sandbox only 1 step ahead forecast are available
@@ -305,7 +334,9 @@ class AutoClassInFileTester(unittest.TestCase):
         self.test_all_classes_from_file(env=env_cpy)
         self.test_all_classes_from_file_env_after_reset(env=env_cpy)
         self.test_all_classes_from_file(env=env_cpy.observation_space.obs_env,
-                                        name_action_cls="CompleteAction_{}")     
+                                        name_action_cls="CompleteAction_{}",
+                                        name_observation_cls="CompleteObservation_{}"
+                                        )     
         self.test_all_classes_from_file_obsenv(env=env_cpy)
     
     def test_all_classes_from_file_env_runner(self, env: Optional[Environment]=None):
@@ -318,7 +349,8 @@ class AutoClassInFileTester(unittest.TestCase):
         self.test_all_classes_from_file(env=env_runner)
         self.test_all_classes_from_file_env_after_reset(env=env_runner)
         self.test_all_classes_from_file(env=env_runner.observation_space.obs_env,
-                                        name_action_cls="CompleteAction_{}")     
+                                        name_action_cls="CompleteAction_{}",
+                                        name_observation_cls="CompleteObservation_{}")     
         self.test_all_classes_from_file_obsenv(env=env_runner)
         
         # test the runner prevents the deletion of the tmp file where the classes are stored
@@ -329,7 +361,8 @@ class AutoClassInFileTester(unittest.TestCase):
         self.test_all_classes_from_file(env=env_runner)
         self.test_all_classes_from_file_env_after_reset(env=env_runner)
         self.test_all_classes_from_file(env=env_runner.observation_space.obs_env,
-                                        name_action_cls="CompleteAction_{}")     
+                                        name_action_cls="CompleteAction_{}",
+                                        name_observation_cls="CompleteObservation_{}")     
         self.test_all_classes_from_file_obsenv(env=env_runner)
     
     def test_all_classes_from_file_runner_1ep(self, env: Optional[Environment]=None):
@@ -340,8 +373,8 @@ class AutoClassInFileTester(unittest.TestCase):
         env = self._aux_make_env(env)
         this_agent = _ThisAgentTest(env.action_space,
                                     env._read_from_local_dir,
-                                    f"CompleteObservation_{self.get_env_name()}",
-                                    f"PlayableAction_{self.get_env_name()}",
+                                    self._aux_get_obs_cls().format(self.get_env_name()),
+                                    self._aux_get_act_cls().format(self.get_env_name()),
                                     )
         runner = Runner(**env.get_params_for_runner(),
                         agentClass=None,
@@ -359,8 +392,8 @@ class AutoClassInFileTester(unittest.TestCase):
         env = self._aux_make_env(env)
         this_agent = _ThisAgentTest(env.action_space,
                                     env._read_from_local_dir,
-                                    f"CompleteObservation_{self.get_env_name()}",
-                                    f"PlayableAction_{self.get_env_name()}",
+                                    self._aux_get_obs_cls().format(self.get_env_name()),
+                                    self._aux_get_act_cls().format(self.get_env_name()),
                                     )
         runner = Runner(**env.get_params_for_runner(),
                         agentClass=None,
@@ -380,8 +413,8 @@ class AutoClassInFileTester(unittest.TestCase):
         env = self._aux_make_env(env)
         this_agent = _ThisAgentTest(env.action_space,
                                     env._read_from_local_dir,
-                                    f"CompleteObservation_{self.get_env_name()}",
-                                    f"PlayableAction_{self.get_env_name()}",
+                                    self._aux_get_obs_cls().format(self.get_env_name()),
+                                    self._aux_get_act_cls().format(self.get_env_name()),
                                     )
         runner = Runner(**env.get_params_for_runner(),
                         agentClass=None,
@@ -402,8 +435,8 @@ class AutoClassInFileTester(unittest.TestCase):
         env = self._aux_make_env(env)
         this_agent = _ThisAgentTest(env.action_space,
                                     env._read_from_local_dir,
-                                    f"CompleteObservation_{self.get_env_name()}",
-                                    f"PlayableAction_{self.get_env_name()}",
+                                    self._aux_get_obs_cls().format(self.get_env_name()),
+                                    self._aux_get_act_cls().format(self.get_env_name()),
                                     )
         ctx = mp.get_context('spawn')
         runner = Runner(**env.get_params_for_runner(),
@@ -581,10 +614,125 @@ class GymEnvAutoClassTester(unittest.TestCase):
         
         
 class MultiMixEnvAutoClassTester(AutoClassInFileTester):
+    def _aux_get_obs_cls(self):
+        return "ObservationNeurips2020_{}"
+    
+    def _aux_get_act_cls(self):
+        return "ActionNeurips2020_{}"
+    
     def get_env_name(self):
         return "l2rpn_neurips_2020_track2"
     # TODO gym for that too
-        
+    
+    # def _do_test_runner(self):
+    #     return False
+    
+    def test_all_classes_from_file(self,
+                                   env: Optional[Environment]=None,
+                                   classes_name=None,
+                                   name_complete_obs_cls="CompleteObservation_{}",
+                                   name_observation_cls=None,
+                                   name_action_cls=None):
+        env = self._aux_make_env(env)
+        super().test_all_classes_from_file(env,
+                                           classes_name=classes_name,
+                                           name_complete_obs_cls=name_complete_obs_cls,
+                                           name_observation_cls=name_observation_cls,
+                                           name_action_cls=name_action_cls
+                                           )
+        if isinstance(env, MultiMixEnvironment):
+            # test each mix of a multi mix
+            for mix in env:
+                super().test_all_classes_from_file(mix,
+                                                classes_name=classes_name,
+                                                name_complete_obs_cls=name_complete_obs_cls,
+                                                name_observation_cls=name_observation_cls,
+                                                name_action_cls=name_action_cls
+                                                )
+    
+    def test_all_classes_from_file_env_after_reset(self, env: Optional[Environment]=None):
+        env = self._aux_make_env(env)
+        super().test_all_classes_from_file_env_after_reset(env)
+        if isinstance(env, MultiMixEnvironment):
+            # test each mix of a multimix
+            for mix in env:
+                super().test_all_classes_from_file_env_after_reset(mix)
+    
+    def test_all_classes_from_file_obsenv(self, env: Optional[Environment]=None):
+        env = self._aux_make_env(env)
+        super().test_all_classes_from_file_obsenv(env)
+        if isinstance(env, MultiMixEnvironment):
+            # test each mix of a multimix
+            for mix in env:
+                super().test_all_classes_from_file_obsenv(mix)
+    
+    def test_all_classes_from_file_env_cpy(self, env: Optional[Environment]=None):
+        env = self._aux_make_env(env)
+        super().test_all_classes_from_file_env_cpy(env)
+        if isinstance(env, MultiMixEnvironment):
+            # test each mix of a multimix
+            for mix in env:
+                super().test_all_classes_from_file_env_cpy(mix)
+                
+    def test_all_classes_from_file_env_runner(self, env: Optional[Environment]=None):
+        env = self._aux_make_env(env)
+        if isinstance(env, MultiMixEnvironment):
+            # test each mix of a multimix
+            for mix in env:
+                super().test_all_classes_from_file_env_runner(mix)
+        else:
+            # runner does not handle multimix
+            super().test_all_classes_from_file_env_runner(env)  
+                
+    def test_all_classes_from_file_runner_1ep(self, env: Optional[Environment]=None):
+        env = self._aux_make_env(env)
+        if isinstance(env, MultiMixEnvironment):
+            # test each mix of a multimix
+            for mix in env:
+                super().test_all_classes_from_file_runner_1ep(mix)
+        else:
+            # runner does not handle multimix
+            super().test_all_classes_from_file_runner_1ep(env)  
+                
+    def test_all_classes_from_file_runner_2ep_seq(self, env: Optional[Environment]=None):
+        env = self._aux_make_env(env)
+        if isinstance(env, MultiMixEnvironment):
+            # test each mix of a multimix
+            for mix in env:
+                super().test_all_classes_from_file_runner_2ep_seq(mix)
+        else:
+            # runner does not handle multimix
+            super().test_all_classes_from_file_runner_2ep_seq(env)  
+                
+    def test_all_classes_from_file_runner_2ep_par_fork(self, env: Optional[Environment]=None):
+        env = self._aux_make_env(env)
+        if isinstance(env, MultiMixEnvironment):
+            # test each mix of a multimix
+            for mix in env:
+                super().test_all_classes_from_file_runner_2ep_par_fork(mix)
+        else:
+            # runner does not handle multimix
+            super().test_all_classes_from_file_runner_2ep_par_fork(env)  
+                
+    def test_all_classes_from_file_runner_2ep_par_spawn(self, env: Optional[Environment]=None):
+        env = self._aux_make_env(env)
+        if isinstance(env, MultiMixEnvironment):
+            # test each mix of a multimix
+            for mix in env:
+                super().test_all_classes_from_file_runner_2ep_par_spawn(mix)
+        else:
+            # runner does not handle multimix
+            super().test_all_classes_from_file_runner_2ep_par_spawn(env)  
+            
+    def test_forecast_env_basic(self, env: Optional[Environment]=None):
+        env = self._aux_make_env(env)
+        if isinstance(env, MultiMixEnvironment):
+            # test each mix of a multimix
+            for mix in env:
+                obs = mix.reset()
+                for_env = obs.get_forecast_env()
+                super().test_all_classes_from_file(for_env)
+
         
 if __name__ == "__main__":
     unittest.main()
