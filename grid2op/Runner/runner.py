@@ -397,7 +397,7 @@ class Runner(object):
         observation_bk_kwargs=None,
         mp_context=None,
         # experimental: whether to read from local dir or generate the classes on the fly:
-        _read_from_local_dir=False,
+        _read_from_local_dir=None,
         _is_test=False,  # TODO not implemented !!
         _local_dir_cls=None,
         _overload_name_multimix=None

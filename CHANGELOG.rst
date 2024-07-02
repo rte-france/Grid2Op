@@ -40,6 +40,7 @@ Work kind of in progress
 
 Next release
 ---------------------------------
+- numpy 2 compat (need pandapower for that)
 - TODO doc for the "new" feature of automatic "experimental_read_from_local_dir"
 - TODO bug on maintenance starting at midnight (they are not correctly handled in the observation)
   => cf script test_issue_616
@@ -56,6 +57,7 @@ Next release
 - TODO ForecastEnv in MaskedEnv ! (and obs.simulate there too !)
 - TODO finish the test in automatic_classes
 - TODO in multi-mix increase the reset options with the mix the user wants
+- TODO L2RPN scores as reward (sum loads after the game over and have it in the final reward)
 
 [1.10.3] - 2024-xx-yy
 -------------------------
@@ -91,6 +93,8 @@ Next release
   which could lead to disconnected powerlines even before the initial step (t=0, when time 
   series are loaded)
 - [FIXED] an issue with the "max_iter" for `FromNPY` time series generator
+- [FIXED] a bug in `MultiMixEnvironment` : a multi-mix could be created even if the underlying 
+  powergrids (for each mix) where not the same.
 - [ADDED] possibility to skip some step when calling `env.reset(..., options={"init ts": ...})`
 - [ADDED] possibility to limit the duration of an episode with `env.reset(..., options={"max step": ...})`
 - [ADDED] possibility to specify the "reset_options" used in `env.reset` when
@@ -109,6 +113,8 @@ Next release
 - [IMPROVED] now the "maintenance from json" (*eg* the `JSONMaintenanceHandler` or the 
   `GridStateFromFileWithForecastsWithMaintenance`) can be customized with the day 
   of the week where the maintenance happens (key `maintenance_day_of_week`)
+- [IMPROVED] in case of "`MultiMixEnvironment`" there is now only class generated for 
+  all the underlying mixes (instead of having one class per mixes)
 
 [1.10.2] - 2024-05-27
 -------------------------

@@ -174,11 +174,13 @@ class Environment(BaseEnv):
             # this means that the "make" call is issued from the 
             # creation of a MultiMix.
             # So I use the base name instead.
-            self.name = "".join(_overload_name_multimix)
+            self.name = "".join(_overload_name_multimix[1:])
+            self.multimix_mix_name = name
             self._overload_name_multimix = _overload_name_multimix
         else:
             self.name = name
             self._overload_name_multimix = None
+            self.multimix_mix_name = None
         # to remember if the user specified a "max_iter" at some point
         self._max_iter = chronics_handler.max_iter  # for all episode, set in the chronics_handler or by a call to `env.set_max_iter`
         self._max_step = None  # for the current episode
@@ -1420,6 +1422,7 @@ class Environment(BaseEnv):
         new_obj._max_iter = self._max_iter
         new_obj._max_step = self._max_step
         new_obj._overload_name_multimix = self._overload_name_multimix
+        new_obj.multimix_mix_name = self.multimix_mix_name
         super()._custom_deepcopy_for_copy(new_obj)
 
     def copy(self) -> "Environment":

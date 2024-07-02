@@ -178,6 +178,9 @@ class MultiMixEnvironment(GridObjects, RandomObject):
         self._env_dir = os.path.abspath(envs_dir)
         self.__closed = False
         self._do_not_erase_local_dir_cls = False
+        self._local_dir_cls = None
+        if not os.path.exists(envs_dir):
+            raise EnvError(f"There is nothing at {envs_dir}")
         # Special case handling for backend
         # TODO: with backend.copy() instead !
         backendClass = None
@@ -189,14 +192,15 @@ class MultiMixEnvironment(GridObjects, RandomObject):
                 backend_kwargs = kwargs["backend"]._my_kwargs
             del kwargs["backend"]
         
-        li_mix_dirs = [mix_dir for mix_dir in sorted(os.listdir(envs_dir)) if os.path.isdir(os.path.join(envs_dir, mix_dir))]
-        if li_mix_dirs is []:
-            raise EnvError("We did not find any mix in this environment.")
+        li_mix_nms = [mix_name for mix_name in sorted(os.listdir(envs_dir)) if os.path.isdir(os.path.join(envs_dir, mix_name))]
+        if not li_mix_nms:
+            raise EnvError("We did not find any mix in this multi-mix environment.")
         
         # Make sure GridObject class attributes are set from first env
         # Should be fine since the grid is the same for all envs
-        multi_env_name = (os.path.basename(os.path.abspath(envs_dir)), _add_to_name)
-        env_for_init = self._aux_create_a_mix(li_mix_dirs[0],
+        multi_env_name = (envs_dir, os.path.basename(os.path.abspath(envs_dir)), _add_to_name)
+        env_for_init = self._aux_create_a_mix(envs_dir,
+                                              li_mix_nms[0],
                                               logger,
                                               backendClass,
                                               backend_kwargs,
@@ -207,7 +211,6 @@ class MultiMixEnvironment(GridObjects, RandomObject):
                                               experimental_read_from_local_dir,
                                               multi_env_name,
                                               kwargs)
-        self._local_dir_cls = None
         cls_res_me = self._aux_add_class_file(env_for_init)
         if cls_res_me is not None:
             self.__class__ = cls_res_me
@@ -218,11 +221,12 @@ class MultiMixEnvironment(GridObjects, RandomObject):
         
         # TODO reuse same observation_space and action_space in all the envs maybe ?
         try:
-            for env_dir in li_mix_dirs[1:]:
-                mix_path = os.path.join(envs_dir, env_dir)
+            for mix_name in li_mix_nms[1:]:
+                mix_path = os.path.join(envs_dir, mix_name)
                 if not os.path.isdir(mix_path):
                     continue
-                mix = self._aux_create_a_mix(mix_path,
+                mix = self._aux_create_a_mix(envs_dir,
+                                             mix_name,
                                              logger,
                                              backendClass,
                                              backend_kwargs,
@@ -273,7 +277,8 @@ class MultiMixEnvironment(GridObjects, RandomObject):
         return None
         
     def _aux_create_a_mix(self,
-                          mix_path,
+                          envs_dir,
+                          mix_name,
                           logger,
                           backendClass,
                           backend_kwargs,
@@ -289,11 +294,11 @@ class MultiMixEnvironment(GridObjects, RandomObject):
         from grid2op.MakeEnv.Make import make
         
         this_logger = (
-            logger.getChild(f"MultiMixEnvironment_{mix_path}")
+            logger.getChild(f"MultiMixEnvironment_{mix_name}")
             if logger is not None
             else None
         )
-
+        mix_path = os.path.join(envs_dir, mix_name)
         # Special case for backend
         if backendClass is not None:
             try:
@@ -384,11 +389,13 @@ class MultiMixEnvironment(GridObjects, RandomObject):
 
     def __getattr__(self, name):
         # TODO what if name is an integer ? make it possible to loop with integer here
+        if self.__closed:
+            raise EnvError("This environment is closed, you cannot use it.")
         return getattr(self.current_env, name)
 
     def keys(self):
         for mix in self.mix_envs:
-            yield mix.name
+            yield mix.multimix_mix_name
 
     def values(self):
         for mix in self.mix_envs:
@@ -396,7 +403,7 @@ class MultiMixEnvironment(GridObjects, RandomObject):
 
     def items(self):
         for mix in self.mix_envs:
-            yield mix.name, mix
+            yield mix.multimix_mix_name, mix
 
     def copy(self):
         if self.__closed:
@@ -455,7 +462,7 @@ class MultiMixEnvironment(GridObjects, RandomObject):
             raise EnvError("This environment is closed, you cannot use it.")
         # Search for key
         for mix in self.mix_envs:
-            if mix.name == key:
+            if mix.multimix_mix_name == key:
                 return mix
 
         # Not found by name

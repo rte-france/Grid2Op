@@ -1005,7 +1005,7 @@ def make_from_dataset_path(
                     f"environment created with `experimental_read_from_local_dir=False` (default)"
                 )
     # Finally instantiate env from config & overrides
-    # including (if activated the new grid2op behaviour)
+    # including (if activated the new grid2op behaviour)    
     env = Environment(
         init_env_path=os.path.abspath(dataset_path),
         init_grid_path=grid_path_abs,
@@ -1042,8 +1042,7 @@ def make_from_dataset_path(
         kwargs_observation=kwargs_observation,
         observation_bk_class=observation_backend_class,
         observation_bk_kwargs=observation_backend_kwargs,
-    )
-            
+    )   
     # Update the thermal limit if any
     if thermal_limits is not None:
         env.set_thermal_limit(thermal_limits)

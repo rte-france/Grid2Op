@@ -270,6 +270,15 @@ def _aux_make_multimix(
     )
 
 
+def _get_path_multimix(_overload_name_multimix) -> str:
+    baseenv_path, multi_mix_name, add_to_name = _overload_name_multimix
+    if os.path.exists(baseenv_path):
+        return baseenv_path
+    if multi_mix_name in TEST_DEV_ENVS:
+        return TEST_DEV_ENVS[multi_mix_name]
+    raise Grid2OpException(f"Unknown multimix environment with name {multi_mix_name} that should be located at {baseenv_path}.")
+    
+    
 def make(
     dataset : Union[str, os.PathLike],
     *,
@@ -452,7 +461,7 @@ def make(
             warnings.warn(_MAKE_DEV_ENV_DEPRECATED_WARN.format(dataset_name))
         if _overload_name_multimix:
             # make is invoked from a Multimix 
-            path_multimix = TEST_DEV_ENVS[_overload_name_multimix[0]]
+            path_multimix = _get_path_multimix(_overload_name_multimix)
             ds_path = os.path.join(path_multimix, dataset_name)
         else:
             # normal behaviour
