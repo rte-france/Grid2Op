@@ -2316,8 +2316,8 @@ class Environment(BaseEnv):
             **kwargs
         )
 
-    def _add_classes_in_files(self, sys_path, bk_type):            
-        if USE_CLASS_IN_FILE:
+    def _add_classes_in_files(self, sys_path, bk_type, are_classes_in_files):            
+        if are_classes_in_files:
             # then generate the proper classes
             _PATH_GRID_CLASSES = bk_type._PATH_GRID_CLASSES
             try:

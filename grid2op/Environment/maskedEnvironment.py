@@ -67,7 +67,7 @@ class MaskedEnvironment(Environment):
         self._lines_of_interest = self._make_lines_of_interest(lines_of_interest)
         if isinstance(grid2op_env, Environment):
             kwargs = grid2op_env.get_kwargs()
-            if USE_CLASS_IN_FILE:
+            if grid2op_env.classes_are_in_files():
                 # I need to build the classes
                 
                 # first take the "ownership" of the tmp directory
@@ -77,7 +77,7 @@ class MaskedEnvironment(Environment):
                 # then generate the proper classes
                 sys_path = os.path.abspath(kwargs["_local_dir_cls"].name)
                 bk_type = type(grid2op_env.backend)
-                self._add_classes_in_files(sys_path, bk_type)
+                self._add_classes_in_files(sys_path, bk_type, grid2op_env.classes_are_in_files())
             super().__init__(**kwargs)
         elif isinstance(grid2op_env, dict):
             super().__init__(**grid2op_env)

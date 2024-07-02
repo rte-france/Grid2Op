@@ -254,7 +254,7 @@ class MultiMixEnvironment(GridObjects, RandomObject):
         self.current_env = self.mix_envs[self.env_index]
 
     def _aux_add_class_file(self, env_for_init):
-        if USE_CLASS_IN_FILE:
+        if env_for_init.classes_are_in_files():
             bk_type = type(env_for_init.backend)
             sys_path = os.path.abspath(env_for_init._local_dir_cls.name)
             self._local_dir_cls = env_for_init._local_dir_cls
