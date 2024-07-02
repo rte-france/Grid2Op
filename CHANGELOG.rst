@@ -101,20 +101,22 @@ Next release
   using the runner with `runner.run(..., reset_options=xxx)`
 - [ADDED] the argument `mp_context` when building the runner to help pass a multiprocessing context in the
   grid2op `Runner` 
-- [IMPROVED] more consistency in the way the classes are initialized at the creation of an environment
-- [IMPROVED] more consistency when an environment is copied (some attributes of the copied env were 
-  deep copied incorrectly)
-- [IMPROVED] Doc about the runner
 - [ADDED] the time series are now able to regenerate their "random" part 
   even when "cached" thanks to the addition of the `regenerate_with_new_seed` of the 
   `GridValue` class (in public API)
 - [ADDED] `MultifolderWithCache` now supports `FromHandlers` time series generator
+- [IMPROVED] more consistency in the way the classes are initialized at the creation of an environment
+- [IMPROVED] more consistency when an environment is copied (some attributes of the copied env were 
+  deep copied incorrectly)
+- [IMPROVED] Doc about the runner
 - [IMPROVED] the documentation on the `time series` folder.
 - [IMPROVED] now the "maintenance from json" (*eg* the `JSONMaintenanceHandler` or the 
   `GridStateFromFileWithForecastsWithMaintenance`) can be customized with the day 
   of the week where the maintenance happens (key `maintenance_day_of_week`)
 - [IMPROVED] in case of "`MultiMixEnvironment`" there is now only class generated for 
   all the underlying mixes (instead of having one class per mixes)
+- [IMPROVED] the `EpisodeData` have now explicitely a mode where they can be shared accross 
+  processes (using `fork` at least), see `ep_data.make_serializable`
 
 [1.10.2] - 2024-05-27
 -------------------------

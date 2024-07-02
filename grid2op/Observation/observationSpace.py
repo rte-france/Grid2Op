@@ -89,14 +89,10 @@ class ObservationSpace(SerializableObservationSpace):
             from grid2op.Action import CompleteAction
             actionClass = CompleteAction
             
-        if logger is None:
-            self.logger = logging.getLogger(__name__)
-            self.logger.disabled = True
-        else:
-            self.logger: logging.Logger = logger.getChild("grid2op_ObsSpace")
         self._init_observationClass = observationClass
         SerializableObservationSpace.__init__(
-            self, gridobj, observationClass=observationClass, _local_dir_cls=_local_dir_cls
+            self, gridobj, observationClass=observationClass, _local_dir_cls=_local_dir_cls,
+            logger=logger,
         )
         self.with_forecast = with_forecast
         self._simulate_parameters = copy.deepcopy(env.parameters)
@@ -269,10 +265,11 @@ class ObservationSpace(SerializableObservationSpace):
             self._backend_obs.close()
             self._backend_obs = None
         self.with_forecast = False
-        env.deactivate_forecast()
-        env.backend._can_be_copied = False
-        self.logger.warn("Forecasts have been deactivated because "
-                         "the backend cannot be copied.")
+        if env is not None:
+            env.deactivate_forecast()
+            env.backend._can_be_copied = False
+        self.logger.warning("Forecasts have been deactivated because "
+                            "the backend cannot be copied.")
     
     def reactivate_forecast(self, env):
         if self.__can_never_use_simulate:

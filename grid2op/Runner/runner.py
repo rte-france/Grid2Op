@@ -1227,7 +1227,6 @@ class Runner(object):
                 lists = [(self,) for _ in enumerate(process_ids)]
             else:
                 lists = [(Runner(**self._get_params()),) for _ in enumerate(process_ids)]
-            
             for i, pn in enumerate(process_ids):
                 lists[i] = (*lists[i],
                             pn,
@@ -1240,7 +1239,6 @@ class Runner(object):
                             add_nb_highres_sim,
                             init_states_res[i],
                             reset_options_res[i])
-                
             if self._mp_context is not None:
                 with self._mp_context.Pool(nb_process) as p:
                     tmp = p.starmap(_aux_one_process_parrallel, lists)

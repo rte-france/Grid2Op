@@ -337,6 +337,7 @@ def _aux_run_one_episode(
         episode.set_episode_times(env, time_act, beg_, end_)
 
     episode.to_disk()
+    episode.make_serializable()
     name_chron = env.chronics_handler.get_name()
     return (name_chron, cum_reward,
             int(time_step),
