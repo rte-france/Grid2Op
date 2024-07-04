@@ -19,7 +19,7 @@ from test_issue_283 import Issue283Tester
 from test_issue_379 import Issue379Tester
 from test_issue_407 import Issue407Tester
 from test_issue_418 import Issue418Tester
-from test_gym_compat import (TestGymCompatModule,
+from test_defaultgym_compat import (TestGymCompatModule,
                              TestBoxGymObsSpace,
                              TestBoxGymActSpace,
                              TestMultiDiscreteGymActSpace,
@@ -38,6 +38,15 @@ from test_GymConverter import (TestWithoutConverterWCCI,
                                )
 from test_timeOutEnvironment import TestTOEnvGym
 from test_pickling import TestMultiProc
+from test_alert_gym_compat import *
+from test_basic_env_ls import TestBasicEnvironmentGym
+from test_gym_asynch_env import *
+from test_l2rpn_idf_2023 import TestL2RPNIDF2023Tester
+from test_MaskedEnvironment import TestMaskedEnvironmentGym
+from test_multidiscrete_act_space import *
+from test_n_busbar_per_sub import TestGym_3busbars, TestGym_1busbar
+from test_timeOutEnvironment import TestTOEnvGym
+
 
 if __name__ == "__main__":
     unittest.main()

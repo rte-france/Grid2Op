@@ -1291,13 +1291,19 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             # the class has already been initialized
             return
         # remember the original grid2op class
-        type(self)._INIT_GRID_CLS = type(self)
+        orig_cls = type(self)
 
-        bk_type = type(
-            self.backend
-        )  # be careful here: you need to initialize from the class, and not from the object
+        # be careful here: you need to initialize from the class, and not from the object
+        bk_type = type(self.backend)  
         # create the proper environment class for this specific environment
-        self.__class__ = type(self).init_grid(bk_type, _local_dir_cls=self._local_dir_cls)
+        new_cls = type(self).init_grid(bk_type, _local_dir_cls=self._local_dir_cls)
+        # assign the right initial grid class
+        if orig_cls._INIT_GRID_CLS is None:
+            new_cls._INIT_GRID_CLS = orig_cls
+        else:
+            new_cls._INIT_GRID_CLS = orig_cls._INIT_GRID_CLS
+            
+        self.__class__  = new_cls
 
     def _has_been_initialized(self):
         # type of power flow to play

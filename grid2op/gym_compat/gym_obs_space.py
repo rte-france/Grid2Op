@@ -85,17 +85,43 @@ class __AuxGymObservationSpace:
     `env.gen_pmin` and `env.gen_pmax` are not always ensured in grid2op)
 
     """
-
+    ALLOWED_ENV_CLS = (Environment, MultiMixEnvironment, BaseMultiProcessEnvironment)
     def __init__(self, env, dict_variables=None):
         if not isinstance(
-            env, (Environment, MultiMixEnvironment, BaseMultiProcessEnvironment)
+            env, type(self).ALLOWED_ENV_CLS + (type(self), )
         ):
             raise RuntimeError(
                 "GymActionSpace must be created with an Environment of an ActionSpace (or a Converter)"
             )
 
-        self._init_env = env
-        self.initial_obs_space = self._init_env.observation_space
+        # self._init_env = env
+        if isinstance(env, type(self).ALLOWED_ENV_CLS):
+            init_env_cls = type(env)
+            if init_env_cls._CLS_DICT_EXTENDED is None:
+                # make sure the _CLS_DICT_EXTENDED exists
+                tmp_ = {}
+                init_env_cls._make_cls_dict_extended(init_env_cls, res=tmp_, as_list=False, copy_=False, _topo_vect_only=False)
+            self.init_env_cls_dict = init_env_cls._CLS_DICT_EXTENDED.copy()
+            # retrieve an empty observation an disable the forecast feature
+            self.initial_obs = env.observation_space.get_empty_observation()
+            self.initial_obs._obs_env = None
+            self.initial_obs._ptr_kwargs_env = None
+            
+            self._tol_poly = env.observation_space.obs_env._tol_poly
+            self._env_params = env.parameters
+            self._opp_attack_max_duration = env._oppSpace.attack_max_duration
+        elif isinstance(env, type(self)):
+            self.init_env_cls_dict = env.init_env_cls_dict.copy()
+            
+            # retrieve an empty observation an disable the forecast feature
+            self.initial_obs = env.initial_obs
+            
+            self._tol_poly = env._tol_poly
+            self._env_params = env._env_params
+            self._opp_attack_max_duration = env._opp_attack_max_duration
+        else:
+            raise RuntimeError("Unknown way to build a gym observation space")
+        
         dict_ = {}  # will represent the gym.Dict space
         
         if dict_variables is None:
@@ -105,48 +131,48 @@ class __AuxGymObservationSpace:
                     type(self)._BoxType(
                         low=0.,
                         high=np.inf,
-                        shape=(self._init_env.n_line, ),
+                        shape=(self.init_env_cls_dict["n_line"], ),
                         dtype=dt_float,
                     ),
                 "theta_or":
                      type(self)._BoxType(
                         low=-180.,
                         high=180.,
-                        shape=(self._init_env.n_line, ),
+                        shape=(self.init_env_cls_dict["n_line"], ),
                         dtype=dt_float,
                     ),
                 "theta_ex":
                      type(self)._BoxType(
                         low=-180.,
                         high=180.,
-                        shape=(self._init_env.n_line, ),
+                        shape=(self.init_env_cls_dict["n_line"], ),
                         dtype=dt_float,
                     ),
                 "load_theta":
                      type(self)._BoxType(
                         low=-180.,
                         high=180.,
-                        shape=(self._init_env.n_load, ),
+                        shape=(self.init_env_cls_dict["n_load"], ),
                         dtype=dt_float,
                     ),
                 "gen_theta":
                      type(self)._BoxType(
                         low=-180.,
                         high=180.,
-                        shape=(self._init_env.n_gen, ),
+                        shape=(self.init_env_cls_dict["n_gen"], ),
                         dtype=dt_float,
                     )
                 }
-            if self._init_env.n_storage:
+            if self.init_env_cls_dict["n_storage"]:
                 dict_variables["storage_theta"] = type(self)._BoxType(
                         low=-180.,
                         high=180.,
-                        shape=(self._init_env.n_storage, ),
+                        shape=(self.init_env_cls_dict["n_storage"], ),
                         dtype=dt_float,
                     )
                 
         self._fill_dict_obs_space(
-            dict_, env.observation_space, env.parameters, env._oppSpace, dict_variables
+            dict_, dict_variables
         )
         super().__init__(dict_, dict_variables=dict_variables) # super should point to _BaseGymSpaceConverter
 
@@ -202,11 +228,11 @@ class __AuxGymObservationSpace:
                     f"Impossible to find key {key} in your observation space"
                 )
         my_dict[key] = fun
-        res = type(self)(self._init_env, my_dict)
+        res = type(self)(self, my_dict)
         return res
 
     def _fill_dict_obs_space(
-        self, dict_, observation_space, env_params, opponent_space, dict_variables={}
+        self, dict_, dict_variables={}
     ):
         for attr_nm in dict_variables:
             # case where the user specified a dedicated encoding
@@ -214,17 +240,17 @@ class __AuxGymObservationSpace:
                 # none is by default to disable this feature
                 continue
             if isinstance(dict_variables[attr_nm], type(self)._SpaceType):
-                if hasattr(observation_space._template_obj, attr_nm):
+                if hasattr(self.initial_obs, attr_nm):
                     # add it only if attribute exists in the observation
                     dict_[attr_nm] = dict_variables[attr_nm]
             else:
                 dict_[attr_nm] = dict_variables[attr_nm].my_space
-        
+                
         # by default consider all attributes that are vectorized    
         for attr_nm, sh, dt in zip(
-            observation_space.attr_list_vect,
-            observation_space.shape,
-            observation_space.dtype,
+            type(self.initial_obs).attr_list_vect,
+            self.initial_obs.shapes(),
+            self.initial_obs.dtypes(),
         ):
             if sh == 0:
                 # do not add "empty" (=0 dimension) arrays to gym otherwise it crashes
@@ -253,15 +279,15 @@ class __AuxGymObservationSpace:
                     my_type = type(self)._DiscreteType(n=8)
                 elif attr_nm == "topo_vect":
                     my_type = type(self)._BoxType(low=-1,
-                                                  high=observation_space.n_busbar_per_sub,
+                                                  high=self.init_env_cls_dict["n_busbar_per_sub"],
                                                   shape=shape, dtype=dt)
                 elif attr_nm == "time_before_cooldown_line":
                     my_type = type(self)._BoxType(
                         low=0,
                         high=max(
-                            env_params.NB_TIMESTEP_COOLDOWN_LINE,
-                            env_params.NB_TIMESTEP_RECONNECTION,
-                            opponent_space.attack_max_duration,
+                            self._env_params.NB_TIMESTEP_COOLDOWN_LINE,
+                            self._env_params.NB_TIMESTEP_RECONNECTION,
+                            self._opp_attack_max_duration,
                         ),
                         shape=shape,
                         dtype=dt,
@@ -269,7 +295,7 @@ class __AuxGymObservationSpace:
                 elif attr_nm == "time_before_cooldown_sub":
                     my_type = type(self)._BoxType(
                         low=0,
-                        high=env_params.NB_TIMESTEP_COOLDOWN_SUB,
+                        high=self._env_params.NB_TIMESTEP_COOLDOWN_SUB,
                         shape=shape,
                         dtype=dt,
                     )
@@ -314,17 +340,17 @@ class __AuxGymObservationSpace:
                 shape = (sh,)
                 SpaceType = type(self)._BoxType
                 if attr_nm == "gen_p" or attr_nm == "gen_p_before_curtail":
-                    low = copy.deepcopy(observation_space.gen_pmin)
-                    high = copy.deepcopy(observation_space.gen_pmax)
+                    low = copy.deepcopy(self.init_env_cls_dict["gen_pmin"])
+                    high = copy.deepcopy(self.init_env_cls_dict["gen_pmax"])
                     shape = None
 
                     # for redispatching
-                    low -= observation_space.obs_env._tol_poly
-                    high += observation_space.obs_env._tol_poly
+                    low -= self._tol_poly
+                    high += self._tol_poly
 
                     # for "power losses" that are not properly computed in the original data
                     extra_for_losses = _compute_extra_power_for_losses(
-                        observation_space
+                        self.init_env_cls_dict
                     )
                     low -= extra_for_losses
                     high += extra_for_losses
@@ -343,17 +369,17 @@ class __AuxGymObservationSpace:
                 elif attr_nm == "target_dispatch" or attr_nm == "actual_dispatch":
                     # TODO check that to be sure
                     low = np.minimum(
-                        observation_space.gen_pmin, -observation_space.gen_pmax
+                        self.init_env_cls_dict["gen_pmin"], -self.init_env_cls_dict["gen_pmax"]
                     )
                     high = np.maximum(
-                        -observation_space.gen_pmin, +observation_space.gen_pmax
+                        -self.init_env_cls_dict["gen_pmin"], +self.init_env_cls_dict["gen_pmax"]
                     )
                 elif attr_nm == "storage_power" or attr_nm == "storage_power_target":
-                    low = -observation_space.storage_max_p_prod
-                    high = observation_space.storage_max_p_absorb
+                    low = -self.init_env_cls_dict["storage_max_p_prod"]
+                    high = self.init_env_cls_dict["storage_max_p_absorb"]
                 elif attr_nm == "storage_charge":
-                    low = np.zeros(observation_space.n_storage, dtype=dt_float)
-                    high = observation_space.storage_Emax
+                    low = np.zeros(self.init_env_cls_dict["n_storage"], dtype=dt_float)
+                    high = self.init_env_cls_dict["storage_Emax"]
                 elif (
                     attr_nm == "curtailment"
                     or attr_nm == "curtailment_limit"
@@ -369,10 +395,10 @@ class __AuxGymObservationSpace:
                     high = np.inf
                 elif attr_nm == "gen_margin_up":
                     low = 0.0
-                    high = observation_space.gen_max_ramp_up
+                    high = self.init_env_cls_dict["gen_max_ramp_up"]
                 elif attr_nm == "gen_margin_down":
                     low = 0.0
-                    high = observation_space.gen_max_ramp_down
+                    high = self.init_env_cls_dict["gen_max_ramp_down"]
                     
                 # curtailment, curtailment_limit, gen_p_before_curtail
                 my_type = SpaceType(low=low, high=high, shape=shape, dtype=dt)
@@ -396,7 +422,7 @@ class __AuxGymObservationSpace:
         grid2oplike_observation: :class:`grid2op.Observation.BaseObservation`
             The corresponding grid2op observation
         """
-        res = self.initial_obs_space.get_empty_observation()
+        res = self.initial_obs.copy()
         for k, v in gymlike_observation.items():
             try:
                 res._assign_attr_from_name(k, v)

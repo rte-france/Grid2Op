@@ -2954,11 +2954,6 @@ class GridObjects:
         elif gridobj._PATH_GRID_CLASSES is not None:
             # If I end up it's because the environment is created with already initialized
             # classes.
-            # But if i'm on a remote process, the sys.path might not be up to date
-            # So I check it
-            # sub_repo, tmp_nm = os.path.split(gridobj._PATH_GRID_CLASSES)
-            # if sub_repo not in sys.path:
-            #     sys.path.append(sub_repo)
             return cls._aux_init_grid_from_cls(gridobj, name_res)
         
         # legacy behaviour: build the class "on the fly"
