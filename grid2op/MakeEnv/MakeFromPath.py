@@ -1004,6 +1004,9 @@ def make_from_dataset_path(
                     f'Please remove "{sys_path}" and call `env.generate_classes()` where env is an '
                     f"environment created with `experimental_read_from_local_dir=False` (default)"
                 )
+            import sys
+            sys.path.append(os.path.split(os.path.abspath(sys_path))[0])
+            classes_path = sys_path
     # Finally instantiate env from config & overrides
     # including (if activated the new grid2op behaviour)    
     env = Environment(

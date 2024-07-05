@@ -2352,14 +2352,14 @@ class GridObjects:
             
             # the "alarm" feature is supported
             assert isinstance(
-                cls.alarms_area_names, list
-            ), "cls.alarms_area_names should be a list"
+                cls.alarms_area_names, (list, tuple)
+            ), "cls.alarms_area_names should be a list or a tuple"
             assert isinstance(
                 cls.alarms_lines_area, dict
             ), "cls.alarms_lines_area should be a dict"
             assert isinstance(
-                cls.alarms_area_lines, list
-            ), "cls.alarms_area_lines should be a dict"
+                cls.alarms_area_lines, (list, tuple)
+            ), "cls.alarms_area_lines should be a list or a tuple"
             assert (
                 len(cls.alarms_area_names) == cls.dim_alarms
             ), "len(cls.alarms_area_names) != cls.dim_alarms"
@@ -2883,6 +2883,16 @@ class GridObjects:
         # NB: these imports needs to be consistent with what is done in
         # base_env.generate_classes()
         super_module_nm, module_nm = os.path.split(gridobj._PATH_GRID_CLASSES)
+        if module_nm == "_grid2op_classes":
+            # legacy "experimental_read_from_local_dir"
+            # issue was the module "_grid2op_classes" had the same name
+            # regardless of the environment, so grid2op was "confused"
+            env_path, env_nm = os.path.split(super_module_nm)
+            sys.path.append(env_path)
+            super_supermodule = importlib.import_module(env_nm)
+            module_nm = f"{env_nm}.{module_nm}"
+            super_module_nm = super_supermodule
+        
         super_module = importlib.import_module(module_nm, super_module_nm)  # env/path/_grid2op_classes/
         module_all_classes = importlib.import_module(f"{module_nm}", super_module)  # module specific to the tmpdir created
         module = importlib.import_module(f"{module_nm}.{name_res}_file", module_all_classes)  # module containing the definition of the class
@@ -5005,7 +5015,7 @@ class {cls.__name__}({cls._INIT_GRID_CLS.__name__}):
     alarms_area_lines = {alarms_area_lines_str}
 
     # alert feature
-    dim_alert = {cls.dim_alerts}
+    dim_alerts = {cls.dim_alerts}
     alertable_line_names = {alertable_line_names_str}
     alertable_line_ids = {alertable_line_ids_str}
 

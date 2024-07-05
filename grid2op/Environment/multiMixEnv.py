@@ -163,7 +163,7 @@ class MultiMixEnvironment(GridObjects, RandomObject):
         self,
         envs_dir,
         logger=None,
-        experimental_read_from_local_dir=False,
+        experimental_read_from_local_dir=None,
         n_busbar=DEFAULT_N_BUSBAR_PER_SUB,
         _add_to_name="",  # internal, for test only, do not use !
         _compat_glop_version=None,  # internal, for test only, do not use !
@@ -215,7 +215,7 @@ class MultiMixEnvironment(GridObjects, RandomObject):
         if cls_res_me is not None:
             self.__class__ = cls_res_me
         else:
-            self.__class__ = type(self).init_grid(type(env_for_init.backend))
+            self.__class__ = type(self).init_grid(type(env_for_init.backend), _local_dir_cls=env_for_init._local_dir_cls)
         self.mix_envs.append(env_for_init)
         self._local_dir_cls = env_for_init._local_dir_cls
         
@@ -254,7 +254,7 @@ class MultiMixEnvironment(GridObjects, RandomObject):
         self.current_env = self.mix_envs[self.env_index]
 
     def _aux_add_class_file(self, env_for_init):
-        if env_for_init.classes_are_in_files():
+        if env_for_init.classes_are_in_files() and env_for_init._local_dir_cls is not None:
             bk_type = type(env_for_init.backend)
             sys_path = os.path.abspath(env_for_init._local_dir_cls.name)
             self._local_dir_cls = env_for_init._local_dir_cls
@@ -612,5 +612,14 @@ class MultiMixEnvironment(GridObjects, RandomObject):
     def generate_classes(self):
         # TODO this is not really a good idea, as the multi-mix itself is not read from the
         # files !
-        for mix in self.mix_envs:
-            mix.generate_classes()
+        # for mix in self.mix_envs:
+            # mix.generate_classes()
+        mix_for_classes = self.mix_envs[0]
+        path_cls = os.path.join(mix_for_classes.get_path_env(), "_grid2op_classes")
+        if not os.path.exists(path_cls):
+            try:
+                os.mkdir(path_cls)
+            except FileExistsError:
+                pass
+        mix_for_classes.generate_classes()
+        self._aux_add_class_file(mix_for_classes)

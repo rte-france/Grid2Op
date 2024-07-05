@@ -61,6 +61,7 @@ Next release
 - TODO finish the test in automatic_classes
 - TODO in multi-mix increase the reset options with the mix the user wants
 - TODO L2RPN scores as reward (sum loads after the game over and have it in the final reward)
+- TODO on CI: test only gym, only gymnasium and keep current test for both gym and gymnasium
 
 [1.10.3] - 2024-07-yy
 -------------------------
@@ -105,6 +106,7 @@ Next release
 - [FIXED] an issue with the "max_iter" for `FromNPY` time series generator
 - [FIXED] a bug in `MultiMixEnvironment` : a multi-mix could be created even if the underlying 
   powergrids (for each mix) where not the same.
+- [FIXED] a bug in `generate_classes` (experimental_read_from_local_dir) with alert data.
 - [ADDED] possibility to skip some step when calling `env.reset(..., options={"init ts": ...})`
 - [ADDED] possibility to limit the duration of an episode with `env.reset(..., options={"max step": ...})`
 - [ADDED] possibility to specify the "reset_options" used in `env.reset` when
