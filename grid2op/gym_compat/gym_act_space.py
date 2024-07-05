@@ -136,9 +136,9 @@ class __AuxGymActionSpace:
                 "It is now deprecated to initialize an Converter with an "
                 "action space. Please use an environment instead."
             )
-            self._converter = env
-            self._template_act = None
-            self.__is_converter = True
+            self._converter = None
+            self._template_act = env()
+            self.__is_converter = False
         elif isinstance(env, type(self)):
             self._template_act = env._template_act.copy()
             self._converter = env._converter
@@ -153,7 +153,10 @@ class __AuxGymActionSpace:
         if converter is not None and isinstance(converter, Converter):
             # a converter allows to ... convert the data so they have specific gym space
             # self.initial_act_space = converter
+            self._converter = converter
+            self._template_act = converter.init_action_space()
             dict_ = converter.get_gym_dict(type(self))
+            self.__is_converter = True
         elif converter is not None:
             raise RuntimeError(
                 'Impossible to initialize a gym action space with a converter of type "{}" '
@@ -327,7 +330,7 @@ class __AuxGymActionSpace:
         if self.__is_converter:
             # case where the action space comes from a converter, in this case the converter takes the
             # delegation to convert the action to openai gym
-            res = self.initial_act_space.convert_action_from_gym(gymlike_action)
+            res = self._converter.convert_action_from_gym(gymlike_action)
         else:
             # case where the action space is a "simple" action space
             res = self._template_act.copy()
@@ -357,7 +360,7 @@ class __AuxGymActionSpace:
 
         """
         if self.__is_converter:
-            gym_action = self.initial_act_space.convert_action_to_gym(action)
+            gym_action = self._converter.convert_action_to_gym(action)
         else:
             # in that case action should be an instance of grid2op BaseAction
             assert isinstance(

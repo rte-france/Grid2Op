@@ -332,7 +332,8 @@ class ObservationSpace(SerializableObservationSpace):
 
         change the parameter of the "simulate" environment
         """
-        self.obs_env.change_parameters(new_param)
+        if self.obs_env is not None:
+            self.obs_env.change_parameters(new_param)
         self._simulate_parameters = new_param
 
     def change_other_rewards(self, dict_reward):

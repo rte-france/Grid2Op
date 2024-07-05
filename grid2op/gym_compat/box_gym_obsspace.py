@@ -215,9 +215,11 @@ class __AuxBoxGymObsSpace:
 
         ob_sp = grid2op_observation_space
         ob_sp_cls = type(grid2op_observation_space)
-        tol_redisp = (
-            ob_sp.obs_env._tol_poly
-        )  # add to gen_p otherwise ... well it can crash
+        # add to gen_p otherwise ... well it can crash
+        if ob_sp.obs_env is not None:
+            tol_redisp = ob_sp.obs_env._tol_poly
+        else:
+            tol_redisp = 1e-2
         extra_for_losses = _compute_extra_power_for_losses(ob_sp)
         
         self._dict_properties = {
