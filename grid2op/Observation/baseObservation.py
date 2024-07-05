@@ -3421,10 +3421,13 @@ class BaseObservation(GridObjects):
         self.action_helper = action_helper
         self._ptr_kwargs_env = _ptr_kwargs_env
         if env is None:
+            # this will make a copy but the observation will still
+            # be "bound" to the original env
             res._obs_env = obs_env
             res.action_helper = action_helper
             res._ptr_kwargs_env = _ptr_kwargs_env
         else:
+            # the action will be "bound" to the new environment
             res._obs_env = env._observation_space.obs_env
             res.action_helper = env._observation_space.action_helper_env
             res._ptr_kwargs_env = env._observation_space._real_env_kwargs

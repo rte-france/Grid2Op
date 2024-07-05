@@ -81,10 +81,6 @@ class ObservationSpace(SerializableObservationSpace):
 
         Env: requires :attr:`grid2op.Environment.BaseEnv.parameters` and :attr:`grid2op.Environment.BaseEnv.backend` to be valid
         """
-
-        # lazy import to prevent circular references (Env -> Observation -> Obs Space -> _ObsEnv -> Env)
-        from grid2op.Environment._obsEnv import _ObsEnv
-
         if actionClass is None:
             from grid2op.Action import CompleteAction
             actionClass = CompleteAction
@@ -110,16 +106,8 @@ class ObservationSpace(SerializableObservationSpace):
 
         self.__can_never_use_simulate = False
         _with_obs_env = _with_obs_env and self._create_backend_obs(env, observation_bk_class, observation_bk_kwargs, _local_dir_cls)
-            
-        # self._ObsEnv_class = _ObsEnv.init_grid(
-        #     type(env.backend), force_module=_ObsEnv.__module__, force=_local_dir_cls is not None
-        # )
-        # self._ObsEnv_class._INIT_GRID_CLS = _ObsEnv  # otherwise it's lost
-        self._ObsEnv_class = _ObsEnv.init_grid(
-            type(env.backend), _local_dir_cls=_local_dir_cls
-        )
-        self._ObsEnv_class._INIT_GRID_CLS = _ObsEnv  # otherwise it's lost
         
+        self._ObsEnv_class = None
         if _with_obs_env:
             self._create_obs_env(env, observationClass)
             self.reward_helper.initialize(self.obs_env)
@@ -175,6 +163,18 @@ class ObservationSpace(SerializableObservationSpace):
             del self._real_env_kwargs["observation_bk_kwargs"]
         
     def _create_obs_env(self, env, observationClass):
+        if self._ObsEnv_class is None:
+            # lazy import to prevent circular references (Env -> Observation -> Obs Space -> _ObsEnv -> Env)
+            from grid2op.Environment._obsEnv import _ObsEnv
+            
+            # self._ObsEnv_class = _ObsEnv.init_grid(
+            #     type(env.backend), force_module=_ObsEnv.__module__, force=_local_dir_cls is not None
+            # )
+            # self._ObsEnv_class._INIT_GRID_CLS = _ObsEnv  # otherwise it's lost
+            self._ObsEnv_class = _ObsEnv.init_grid(
+                type(env.backend), _local_dir_cls=env._local_dir_cls
+            )
+            self._ObsEnv_class._INIT_GRID_CLS = _ObsEnv  # otherwise it's lost
         other_rewards = {k: v.rewardClass for k, v in env.other_rewards.items()}
         self.obs_env = self._ObsEnv_class(
             init_env_path=None,  # don't leak the path of the real grid to the observation space

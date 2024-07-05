@@ -107,7 +107,10 @@ class __AuxGymObservationSpace:
             self.initial_obs._obs_env = None
             self.initial_obs._ptr_kwargs_env = None
             
-            self._tol_poly = env.observation_space.obs_env._tol_poly
+            if env.observation_space.obs_env is not None:
+                self._tol_poly = env.observation_space.obs_env._tol_poly
+            else:
+                self._tol_poly = 1e-2
             self._env_params = env.parameters
             self._opp_attack_max_duration = env._oppSpace.attack_max_duration
         elif isinstance(env, type(self)):
