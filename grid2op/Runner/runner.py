@@ -1301,7 +1301,7 @@ class Runner(object):
             "_is_test": self._is_test,
             "_overload_name_multimix": self._overload_name_multimix,
             "other_env_kwargs": self.other_env_kwargs,
-            "n_busbar": self.n_busbar,
+            "n_busbar": self._n_busbar,
             "mp_context": self.mp_context,
             "_local_dir_cls": self._local_dir_cls,
         }
