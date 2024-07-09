@@ -231,7 +231,7 @@ jobs:
             - run:
                command: |
                    source venv_test/bin/activate
-                   python -m pip install -U pip setuptools wheel
+                   python -m pip install -U pip setuptools wheel "numpy<1.22"
             - run:
                command: |
                    source venv_test/bin/activate
