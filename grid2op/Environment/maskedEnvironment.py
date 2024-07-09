@@ -85,13 +85,13 @@ class MaskedEnvironment(Environment):
             raise EnvError(f"For MaskedEnvironment you need to provide "
                            f"either an Environment or a dict "
                            f"for grid2op_env. You provided: {type(grid2op_env)}")
+        # if self._lines_of_interest.size() != type(self).n_line:
+        #     raise EnvError("Impossible to init A masked environment when the number of lines "
+        #                     "of the mask do not match the number of lines on the grid.")
         
     def _make_lines_of_interest(self, lines_of_interest):
         # NB is called BEFORE the env has been created...
         if isinstance(lines_of_interest, np.ndarray):
-            # if lines_of_interest.size() != type(self).n_line:
-                # raise EnvError("Impossible to init A masked environment when the number of lines "
-                            #    "of the mask do not match the number of lines on the grid.")
             res = lines_of_interest.astype(dt_bool)
             if res.sum() == 0:
                 raise EnvError("You cannot use MaskedEnvironment and masking all "

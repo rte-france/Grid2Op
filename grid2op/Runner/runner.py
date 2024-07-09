@@ -484,7 +484,7 @@ class Runner(object):
             self.other_env_kwargs = other_env_kwargs
         else:
             self.other_env_kwargs = {}
-
+        print(f"DEBUG CI: {self.other_env_kwargs=}")
         if not isinstance(actionClass, type):
             raise Grid2OpException(
                 'Parameter "actionClass" used to build the Runner should be a type (a class) and not an object '
