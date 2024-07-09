@@ -12,6 +12,8 @@ jobs:
     name: Build linux ${{ matrix.python.name }} wheel
     runs-on: ubuntu-latest
     container: quay.io/pypa/manylinux2014_x86_64
+    env:
+      ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
     strategy:
       matrix:
         python:
@@ -78,10 +80,10 @@ jobs:
           ls ./dist/*.whl
 
       - name: Upload wheel
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v3
         with:
           name: grid2op-wheel-${{ matrix.config.name }}-${{ matrix.python.name }}
-          path: `pwd`/dist/*.whl
+          path: dist/*.whl
 
   macos_windows_build:
     name: Build ${{ matrix.config.name }} ${{ matrix.python.name }} wheel
