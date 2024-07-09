@@ -209,13 +209,39 @@ jobs:
             - run:
                command: |
                    source venv_test/bin/activate
-                   python -m pip install -e .
+                   python -m pip install -e . 
                    pip freeze
             - run:
                 command: |
                    source venv_test/bin/activate
                    export _GRID2OP_FORCE_TEST=1
                    python -m unittest grid2op/tests/test_basic_env_ls.py
+
+    test_chronix2grid:               
+        executor: python310  # needs to be 38: whl of lightsim were not released for 3.10 at the time
+        resource_class: small
+        steps:
+            - checkout
+            - run: 
+                command: |
+                    apt-get update
+                    apt-get install -y coinor-cbc
+            - run: python -m pip install virtualenv
+            - run: python -m virtualenv venv_test
+            - run:
+               command: |
+                   source venv_test/bin/activate
+                   python -m pip install -U pip setuptools wheel
+            - run:
+               command: |
+                   source venv_test/bin/activate
+                   python -m pip install -e .[chronix2grid] "linopy<0.3.12" "scs==3.0.0" "ecos==2.0.0" "pillow<10.4.0" "numpy<1.22"
+                   pip freeze
+            - run:
+                command: |
+                   source venv_test/bin/activate
+                   export _GRID2OP_FORCE_TEST=1
+                   python -m unittest grid2op/tests/fromChronix2grid.py
 
     install39:
         executor: python39
@@ -233,7 +259,6 @@ jobs:
                    export _GRID2OP_FORCE_TEST=1
                    source venv_test/bin/activate
                    python -m pip install -U pip setuptools wheel "numpy>=1.20,<1.21" "pandas<2.2" "scipy==1.10.1" "pillow<10.4.0" numba
-                   python -m pip install "chronix2grid>=1.1.0.post1" "gymnasium==0.26.3" "matplotlib==3.7.5" "xarray==2023.10.0" "scs==3.0.0" "ecos==2.0.0" "pillow<10.4.0"
                    python -m pip uninstall -y grid2op
             - run:
                command: |  # issue with previous more simple install, so I fix some versions
@@ -369,6 +394,8 @@ workflows:
           - test
           - legacy_lightsim_old_pp
           - legacy_lightsim
+          - test_chronix2grid
+
     install:
         jobs:
           - install38

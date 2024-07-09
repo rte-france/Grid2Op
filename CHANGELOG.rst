@@ -129,6 +129,8 @@ Next release
   all the underlying mixes (instead of having one class per mixes)
 - [IMPROVED] the `EpisodeData` have now explicitely a mode where they can be shared accross 
   processes (using `fork` at least), see `ep_data.make_serializable`
+- [IMPROVED] chronix2grid tests are now done independantly on the CI
+
 
 [1.10.2] - 2024-05-27
 -------------------------
