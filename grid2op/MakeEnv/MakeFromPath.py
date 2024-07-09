@@ -963,6 +963,7 @@ def make_from_dataset_path(
         init_env.backend = None  # to avoid to close the backend when init_env is deleted
         init_env._local_dir_cls = None
         classes_path = this_local_dir.name
+        allow_loaded_backend = True
     else:
         # legacy behaviour (<= 1.10.1 behaviour)
         classes_path = None if not experimental_read_from_local_dir else experimental_read_from_local_dir

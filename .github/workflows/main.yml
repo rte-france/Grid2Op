@@ -74,7 +74,7 @@ jobs:
           python3 -c "from grid2op.Action._backendAction import _BackendAction"
           
       - name: Upload wheel
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v1
         with:
           name: grid2op-wheel-${{ matrix.config.name }}-${{ matrix.python.name }}
           path: dist/*.whl
