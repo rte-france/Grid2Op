@@ -764,8 +764,8 @@ class Runner(object):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             res = self.envClass.init_obj_from_kwargs(
-                n_busbar=self._n_busbar,
                 other_env_kwargs=self.other_env_kwargs,
+                n_busbar=self._n_busbar,
                 init_env_path=self.init_env_path,
                 init_grid_path=self.init_grid_path,
                 chronics_handler=chronics_handler,
