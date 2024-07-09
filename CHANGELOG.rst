@@ -107,6 +107,8 @@ Next release
 - [FIXED] a bug in `MultiMixEnvironment` : a multi-mix could be created even if the underlying 
   powergrids (for each mix) where not the same.
 - [FIXED] a bug in `generate_classes` (experimental_read_from_local_dir) with alert data.
+- [FIXED] a bug in the `Runner` when using multi processing on macos and windows OS: some non default
+  parameters where not propagated in the "child" process (bug in `runner._ger_params`)
 - [ADDED] possibility to skip some step when calling `env.reset(..., options={"init ts": ...})`
 - [ADDED] possibility to limit the duration of an episode with `env.reset(..., options={"max step": ...})`
 - [ADDED] possibility to specify the "reset_options" used in `env.reset` when

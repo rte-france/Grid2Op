@@ -1295,9 +1295,15 @@ class Runner(object):
             "logger": self.logger,
             "use_compact_episode_data": self.use_compact_episode_data,
             "kwargs_observation": self._kwargs_observation,
+            "observation_bk_class": self._observation_bk_class,
+            "observation_bk_kwargs": self._observation_bk_kwargs,
             "_read_from_local_dir": self._read_from_local_dir,
             "_is_test": self._is_test,
-            "_overload_name_multimix": self._overload_name_multimix
+            "_overload_name_multimix": self._overload_name_multimix,
+            "other_env_kwargs": self.other_env_kwargs,
+            "n_busbar": self.n_busbar,
+            "mp_context": self.mp_context,
+            "_local_dir_cls": self._local_dir_cls,
         }
         return res
 
