@@ -72,12 +72,16 @@ jobs:
           python -c "import grid2op"
           python -c "from grid2op import *"
           python -c "from grid2op.Action._backendAction import _BackendAction"
-          
+      
+      - name: List wheel
+        run: 
+          ls ./dist/*.whl
+
       - name: Upload wheel
         uses: actions/upload-artifact@v1
         with:
           name: grid2op-wheel-${{ matrix.config.name }}-${{ matrix.python.name }}
-          path: dist/*.whl#sha256=*
+          path: ./dist/*.whl
 
   macos_windows_build:
     name: Build ${{ matrix.config.name }} ${{ matrix.python.name }} wheel
