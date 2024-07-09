@@ -174,7 +174,7 @@ class Environment(BaseEnv):
             # this means that the "make" call is issued from the 
             # creation of a MultiMix.
             # So I use the base name instead.
-            self.name = "".join(_overload_name_multimix[1:])
+            self.name = "".join(_overload_name_multimix[2:])
             self.multimix_mix_name = name
             self._overload_name_multimix = _overload_name_multimix
         else:

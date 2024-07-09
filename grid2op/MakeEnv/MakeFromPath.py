@@ -885,7 +885,9 @@ def make_from_dataset_path(
     if "class_in_file" in kwargs:
         classes_in_file_kwargs = bool(kwargs["class_in_file"])
         use_class_in_files = classes_in_file_kwargs
+        
     if use_class_in_files:
+        # new behaviour
         sys_path = os.path.join(os.path.split(grid_path_abs)[0], "_grid2op_classes")
         if not os.path.exists(sys_path):
             try:
@@ -903,92 +905,79 @@ def make_from_dataset_path(
             
         import tempfile
         this_local_dir = tempfile.TemporaryDirectory(dir=sys_path)
-            
-        # TODO: automatic delete the directory if needed
         
-        # TODO: check the "new" path works
-        
-        # TODO: in the BaseEnv.generate_classes make sure the classes are added to the "__init__" if the file is created
-        # TODO: make that only if backend can be copied !
-        
+        if experimental_read_from_local_dir:
+            warnings.warn("With the automatic class generation, we removed the possibility to "
+                          "set `experimental_read_from_local_dir` to True.")
+            experimental_read_from_local_dir = False
         # TODO: check the hash thingy is working in baseEnv._aux_gen_classes (currently a pdb)
-        
-        # TODO: check that previous behaviour is working correctly
-        
-        # TODO: create again the environment with the proper "read from local_dir"
         
         # TODO check that it works if the backend changes, if shunt / no_shunt if name of env changes etc.
         
         # TODO: what if it cannot write on disk => fallback to previous behaviour
+        data_feeding_fake = copy.deepcopy(data_feeding)
+        data_feeding_fake.cleanup_action_space()
         
-        # TODO: allow for a way to disable that (with env variable or config in grid2op)
-        # TODO: keep only one environment that will delete the files (with a flag in its constructor)
-        
-        # TODO: explain in doc new behaviour with regards to "class in file"
-        
-        # TODO: basic CI for this "new" mode
-        
-        # TODO: use the tempfile.TemporaryDirectory() to hold the classes, and in the (real) env copy, runner , env.get_kwargs() 
-        # or whatever
-        # reference this "tempfile.TemporaryDirectory()" which will be deleted automatically
-        # when every "pointer" to it are deleted, this sounds more reasonable
-        if not experimental_read_from_local_dir:
-            data_feeding_fake = copy.deepcopy(data_feeding)
-            data_feeding_fake.cleanup_action_space()
+        # Set graph layout if not None and not an empty dict
+        if graph_layout is not None and graph_layout:
+            type(backend).attach_layout(graph_layout)
             
-            # Set graph layout if not None and not an empty dict
-            if graph_layout is not None and graph_layout:
-                type(backend).attach_layout(graph_layout)
-                
-            init_env = Environment(init_env_path=os.path.abspath(dataset_path),
-                                   init_grid_path=grid_path_abs,
-                                   chronics_handler=data_feeding_fake,
-                                   backend=backend,
-                                   parameters=param,
-                                   name=name_env + _add_to_name,
-                                   names_chronics_to_backend=names_chronics_to_backend,
-                                   actionClass=action_class,
-                                   observationClass=observation_class,
-                                   rewardClass=reward_class,
-                                   legalActClass=gamerules_class,
-                                   voltagecontrolerClass=volagecontroler_class,
-                                   other_rewards=other_rewards,
-                                   opponent_space_type=opponent_space_type,
-                                   opponent_action_class=opponent_action_class,
-                                   opponent_class=opponent_class,
-                                   opponent_init_budget=opponent_init_budget,
-                                   opponent_attack_duration=opponent_attack_duration,
-                                   opponent_attack_cooldown=opponent_attack_cooldown,
-                                   opponent_budget_per_ts=opponent_budget_per_ts,
-                                   opponent_budget_class=opponent_budget_class,
-                                   kwargs_opponent=kwargs_opponent,
-                                   has_attention_budget=has_attention_budget,
-                                   attention_budget_cls=attention_budget_class,
-                                   kwargs_attention_budget=kwargs_attention_budget,
-                                   logger=logger,
-                                   n_busbar=n_busbar,  # TODO n_busbar_per_sub different num per substations: read from a config file maybe (if not provided by the user)
-                                   _compat_glop_version=_compat_glop_version,
-                                   _read_from_local_dir=None,  # first environment to generate the classes and save them
-                                   _local_dir_cls=None,
-                                   _overload_name_multimix=_overload_name_multimix,
-                                   kwargs_observation=kwargs_observation,
-                                   observation_bk_class=observation_backend_class,
-                                   observation_bk_kwargs=observation_backend_kwargs,
-                                   )   
-            init_env.generate_classes(local_dir_id=this_local_dir.name)
-            # fix `my_bk_act_class` and `_complete_action_class`
-            _aux_fix_backend_internal_classes(type(backend), this_local_dir)
-            init_env.backend = None  # to avoid to close the backend when init_env is deleted
-            init_env._local_dir_cls = None
-            classes_path = this_local_dir.name
-        else:
-            classes_path = sys_path
-        allow_loaded_backend = True
+        init_env = Environment(init_env_path=os.path.abspath(dataset_path),
+                                init_grid_path=grid_path_abs,
+                                chronics_handler=data_feeding_fake,
+                                backend=backend,
+                                parameters=param,
+                                name=name_env + _add_to_name,
+                                names_chronics_to_backend=names_chronics_to_backend,
+                                actionClass=action_class,
+                                observationClass=observation_class,
+                                rewardClass=reward_class,
+                                legalActClass=gamerules_class,
+                                voltagecontrolerClass=volagecontroler_class,
+                                other_rewards=other_rewards,
+                                opponent_space_type=opponent_space_type,
+                                opponent_action_class=opponent_action_class,
+                                opponent_class=opponent_class,
+                                opponent_init_budget=opponent_init_budget,
+                                opponent_attack_duration=opponent_attack_duration,
+                                opponent_attack_cooldown=opponent_attack_cooldown,
+                                opponent_budget_per_ts=opponent_budget_per_ts,
+                                opponent_budget_class=opponent_budget_class,
+                                kwargs_opponent=kwargs_opponent,
+                                has_attention_budget=has_attention_budget,
+                                attention_budget_cls=attention_budget_class,
+                                kwargs_attention_budget=kwargs_attention_budget,
+                                logger=logger,
+                                n_busbar=n_busbar,  # TODO n_busbar_per_sub different num per substations: read from a config file maybe (if not provided by the user)
+                                _compat_glop_version=_compat_glop_version,
+                                _read_from_local_dir=None,  # first environment to generate the classes and save them
+                                _local_dir_cls=None,
+                                _overload_name_multimix=_overload_name_multimix,
+                                kwargs_observation=kwargs_observation,
+                                observation_bk_class=observation_backend_class,
+                                observation_bk_kwargs=observation_backend_kwargs
+                                )   
+        init_env.generate_classes(local_dir_id=this_local_dir.name)
+        # fix `my_bk_act_class` and `_complete_action_class`
+        _aux_fix_backend_internal_classes(type(backend), this_local_dir)
+        init_env.backend = None  # to avoid to close the backend when init_env is deleted
+        init_env._local_dir_cls = None
+        classes_path = this_local_dir.name
     else:
         # legacy behaviour (<= 1.10.1 behaviour)
         classes_path = None if not experimental_read_from_local_dir else experimental_read_from_local_dir
         if experimental_read_from_local_dir:
-            sys_path = os.path.join(os.path.split(grid_path_abs)[0], "_grid2op_classes")
+            if _overload_name_multimix is not None:
+                # I am in a multimix
+                if _overload_name_multimix[0] is None:
+                    # first mix: path is correct
+                    sys_path = os.path.join(os.path.split(grid_path_abs)[0], "_grid2op_classes")
+                else:
+                    # other mixes I need to retrieve the properties of the first mix
+                    sys_path = _overload_name_multimix[0]
+            else:
+                # I am not in a multimix
+                sys_path = os.path.join(os.path.split(grid_path_abs)[0], "_grid2op_classes")
             if not os.path.exists(sys_path):
                 raise RuntimeError(
                     "Attempting to load the grid classes from the env path. Yet the directory "
@@ -1044,7 +1033,7 @@ def make_from_dataset_path(
         _overload_name_multimix=_overload_name_multimix,
         kwargs_observation=kwargs_observation,
         observation_bk_class=observation_backend_class,
-        observation_bk_kwargs=observation_backend_kwargs,
+        observation_bk_kwargs=observation_backend_kwargs
     )   
     # Update the thermal limit if any
     if thermal_limits is not None:

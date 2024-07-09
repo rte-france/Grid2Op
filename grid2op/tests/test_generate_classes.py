@@ -48,26 +48,27 @@ class TestGenerateFile(unittest.TestCase):
                 env.close()
         
     def test_can_load(self):
-        for env_nm in self.list_env()[7:]:
-            print(f"{env_nm=}")
+        _add_to_name = type(self).__name__+"test_load"
+        for env_nm in self.list_env():
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore")
-                env = grid2op.make(env_nm, test=True, _add_to_name=type(self).__name__+"_TestGenerateFile")
+                env = grid2op.make(env_nm,
+                                   test=True,
+                                   _add_to_name=_add_to_name)
             env.generate_classes()
-            
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore")
                 try:
                     env2 = grid2op.make(env_nm,
                                         test=True,
                                         experimental_read_from_local_dir=True,
-                                        _add_to_name=type(self).__name__+"_TestGenerateFile")
+                                        _add_to_name=_add_to_name)
                     env2.close()
                 except RuntimeError as exc_:
                     raise RuntimeError(f"Error for {env_nm}") from exc_
             self._aux_assert_exists_then_delete(env)
             env.close()
         
+        
 if __name__ == "__main__":
     unittest.main()
-        

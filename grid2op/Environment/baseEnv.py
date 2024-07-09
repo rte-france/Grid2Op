@@ -347,6 +347,13 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self.name = name
         self._local_dir_cls = _local_dir_cls  # suppose it's the second path to the environment, so the classes are already in the files
         self._read_from_local_dir = _read_from_local_dir
+        if self._read_from_local_dir is not None:
+            if os.path.split(self._read_from_local_dir)[1] == "_grid2op_classes":
+                # legacy behaviour (using experimental_read_from_local_dir kwargs in env.make)
+                self._do_not_erase_local_dir_cls = True
+        else:
+            self._do_not_erase_local_dir_cls = True
+            
         self._actionClass_orig = None
         self._observationClass_orig = None
         
@@ -4150,7 +4157,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         if self.__closed:
             return
-
         # create the folder
         if _guard is not None:
             raise RuntimeError("use `env.generate_classes()` with no arguments !")
