@@ -235,7 +235,7 @@ jobs:
             - run:
                command: |
                    source venv_test/bin/activate
-                   python -m pip install -e .[chronix2grid] "linopy<0.3.12" "scs==3.0.0" "ecos==2.0.0" "pillow<10.4.0" "numpy<1.22"
+                   python -m pip install -e .[chronix2grid] "linopy<0.3.12" "scs==3.0.0" "ecos==2.0.0" "pillow<10.4.0" "numpy<1.22" "xarray==2023.10.0"
                    pip freeze
             - run:
                 command: |
