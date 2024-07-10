@@ -17,6 +17,7 @@ from gymnasium.vector import AsyncVectorEnv
 
 
 import grid2op
+from grid2op._glop_platform_info import _IS_WINDOWS
 from grid2op.Runner import Runner
 from grid2op.Agent import BaseAgent
 from grid2op.Action import BaseAction
@@ -402,15 +403,19 @@ class AutoClassInFileTester(unittest.TestCase):
         are much lighter than in test_all_classes_from_file_env_runner"""
         if not self._do_test_runner():
             self.skipTest("Runner not tested")
+        if _IS_WINDOWS:
+            self.skipTest("no fork on windows")
         env = self._aux_make_env(env)
         this_agent = _ThisAgentTest(env.action_space,
                                     env._read_from_local_dir,
                                     self._aux_get_obs_cls().format(self.get_env_name()),
                                     self._aux_get_act_cls().format(self.get_env_name()),
                                     )
+        ctx = mp.get_context('fork')
         runner = Runner(**env.get_params_for_runner(),
                         agentClass=None,
-                        agentInstance=this_agent)
+                        agentInstance=this_agent,
+                        mp_context=ctx)
         res = runner.run(nb_episode=2,
                          nb_process=2,
                          max_iter=self.max_iter,
@@ -595,6 +600,8 @@ class GymEnvAutoClassTester(unittest.TestCase):
         self._aux_run_envs(act, env_gym)
         
     def test_asynch_fork(self):
+        if _IS_WINDOWS:
+            self.skipTest("no fork on windows")
         async_vect_env = AsyncVectorEnv((lambda: GymEnv(self.env), lambda: GymEnv(self.env)),
                                         context="fork")
         obs = async_vect_env.reset()
@@ -739,6 +746,8 @@ class MultiMixEnvAutoClassTester(AutoClassInFileTester):
                 env.close()
                 
     def test_all_classes_from_file_runner_2ep_par_fork(self, env: Optional[Environment]=None):
+        if _IS_WINDOWS:
+            self.skipTest("no fork on windows")
         env_orig = env
         env = self._aux_make_env(env)
         try:
