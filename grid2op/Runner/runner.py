@@ -484,7 +484,6 @@ class Runner(object):
             self.other_env_kwargs = other_env_kwargs
         else:
             self.other_env_kwargs = {}
-        print(f"DEBUG CI: {self.other_env_kwargs=}")
         if not isinstance(actionClass, type):
             raise Grid2OpException(
                 'Parameter "actionClass" used to build the Runner should be a type (a class) and not an object '
@@ -1302,7 +1301,7 @@ class Runner(object):
             "_overload_name_multimix": self._overload_name_multimix,
             "other_env_kwargs": self.other_env_kwargs,
             "n_busbar": self._n_busbar,
-            "mp_context": self.mp_context,
+            "mp_context": None,  # this is used in multi processing context, avoid to multi process a multi process stuff
             "_local_dir_cls": self._local_dir_cls,
         }
         return res
