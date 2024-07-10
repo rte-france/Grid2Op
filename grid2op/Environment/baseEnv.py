@@ -4072,7 +4072,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         sub_repo, tmp_nm = os.path.split(package_path)
         if sub_repo not in sys.path:
             sys.path.append(sub_repo)
-            
+        sub_repo_mod = None
         if tmp_nm == "_grid2op_classes":
             # legacy "experimental_read_from_local_dir"
             # issue was the module "_grid2op_classes" had the same name
@@ -4089,15 +4089,15 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 sys.path.append(env_path)
             super_supermodule = importlib.import_module(env_nm)
             tmp_nm = f"{env_nm}.{tmp_nm}"
-            sub_repo = super_supermodule
-        super_module = importlib.import_module(tmp_nm, sub_repo)
+            sub_repo_mod = super_supermodule
+        super_module = importlib.import_module(tmp_nm, package=sub_repo_mod)
         try:
-            module = importlib.import_module(f"{tmp_nm}.{nm_}", super_module)
+            module = importlib.import_module(f"{tmp_nm}.{nm_}")
         except ModuleNotFoundError as exc_:
             print(f"DEBUG CI: {sys.path}")
             print(f"DEBUG CI: {sorted(os.listdir(sub_repo))}")
             print(f"DEBUG CI: {sorted(os.listdir(os.path.join(sub_repo, tmp_nm)))}")
-            module = importlib.import_module(f"{tmp_nm}.Environment_l2rpn_case14_sandbox_file", super_module)
+            module = importlib.import_module(f"{tmp_nm}.Environment_l2rpn_case14_sandbox_file")
             raise EnvError("Impossible to load the class") from exc_
         print(f"\tsuccess for {cls_other.__name__}")
         cls_res = getattr(module, cls_other.__name__)
@@ -4202,16 +4202,12 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         # initialized the "__init__" file
         _init_txt = ""
-        mode = "w"
+        mode = "a"
         if not _is_base_env__:
             _init_txt = _init_txt
-            mode = "a"
-        else:
-            # i am apppending to the __init__ file in case of obs_env
-            mode = "a"
 
         # generate the classes
-        
+        print(f"DEBUG CI: {_is_base_env__ = }")
         # for the environment
         txt_ = self._aux_gen_classes(type(self), sys_path)
         if txt_ is not None:
