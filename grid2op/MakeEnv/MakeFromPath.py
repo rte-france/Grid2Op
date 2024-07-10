@@ -922,6 +922,8 @@ def make_from_dataset_path(
         if graph_layout is not None and graph_layout:
             type(backend).attach_layout(graph_layout)
             
+        if not os.path.exists(this_local_dir.name):
+            raise EnvError(f"Path {this_local_dir.name} has not been created by the tempfile package")
         init_env = Environment(init_env_path=os.path.abspath(dataset_path),
                                 init_grid_path=grid_path_abs,
                                 chronics_handler=data_feeding_fake,
