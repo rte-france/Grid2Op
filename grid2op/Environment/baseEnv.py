@@ -4088,6 +4088,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         print(f"DEBUG CI: {sorted(os.listdir(sub_repo))}")
         print(f"DEBUG CI: {sorted(os.listdir(os.path.join(sub_repo, tmp_nm)))}")
         module = importlib.import_module(f"{tmp_nm}.{nm_}", super_module)
+        print(f"\tsuccess for {cls_other.__name__}")
         cls_res = getattr(module, cls_other.__name__)
         return str_import, cls_res
 
