@@ -2888,7 +2888,8 @@ class GridObjects:
             # issue was the module "_grid2op_classes" had the same name
             # regardless of the environment, so grid2op was "confused"
             env_path, env_nm = os.path.split(super_module_nm)
-            sys.path.append(env_path)
+            if env_path not in sys.path:
+                sys.path.append(env_path)
             super_supermodule = importlib.import_module(env_nm)
             module_nm = f"{env_nm}.{module_nm}"
             super_module_nm = super_supermodule
