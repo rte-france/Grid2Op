@@ -4036,7 +4036,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             raise RuntimeError(f"cls_other should be a type and not an object !: {cls_other}")
         if not issubclass(cls_other, GridObjects):
             raise RuntimeError(f"cls_other should inherit from GridObjects: {cls_other}")
-        print(f"Start {cls_other.__name__}")
+        print(f"DEBUG CI Start {cls_other.__name__}")
         
         from pathlib import Path
         path_env = cls_other._PATH_GRID_CLASSES
@@ -4062,7 +4062,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                                f"Check class {cls_other.__name__}")
             str_import = None
         if not _add_class_output:
-            print(f"\tsuccess for {cls_other.__name__}")
+            print(f"\tDEBUG CIsuccess for {cls_other.__name__}")
             return str_import
         
         # NB: these imports needs to be consistent with what is done in
@@ -4072,6 +4072,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         sub_repo, tmp_nm = os.path.split(package_path)
         if sub_repo not in sys.path:
             sys.path.append(sub_repo)
+            
         sub_repo_mod = None
         if tmp_nm == "_grid2op_classes":
             # legacy "experimental_read_from_local_dir"
@@ -4088,16 +4089,16 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             if env_path not in sys.path:
                 sys.path.append(env_path)
             super_supermodule = importlib.import_module(env_nm)
-            tmp_nm = f"{env_nm}.{tmp_nm}"
-            sub_repo_mod = super_supermodule
+            tmp_nm = f".{tmp_nm}"
+            sub_repo_mod = env_nm
         super_module = importlib.import_module(tmp_nm, package=sub_repo_mod)
         try:
-            module = importlib.import_module(f"{tmp_nm}.{nm_}")
+            module = importlib.import_module(f".{nm_}", package=tmp_nm)
         except ModuleNotFoundError as exc_:
             print(f"DEBUG CI: {sys.path}")
             print(f"DEBUG CI: {sorted(os.listdir(sub_repo))}")
             print(f"DEBUG CI: {sorted(os.listdir(os.path.join(sub_repo, tmp_nm)))}")
-            module = importlib.import_module(f"{tmp_nm}.Environment_l2rpn_case14_sandbox_file")
+            cls_for_test = importlib.import_module(f"{tmp_nm}.Environment_l2rpn_case14_sandbox_file")
             raise EnvError("Impossible to load the class") from exc_
         print(f"\tsuccess for {cls_other.__name__}")
         cls_res = getattr(module, cls_other.__name__)
