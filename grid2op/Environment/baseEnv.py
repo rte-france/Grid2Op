@@ -4080,14 +4080,20 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 except FileExistsError:
                     pass
             env_path, env_nm = os.path.split(sub_repo)
-            sys.path.append(env_path)
+            if env_path not in sys.path:
+                sys.path.append(env_path)
             super_supermodule = importlib.import_module(env_nm)
             tmp_nm = f"{env_nm}.{tmp_nm}"
             sub_repo = super_supermodule
         super_module = importlib.import_module(tmp_nm, sub_repo)
-        print(f"DEBUG CI: {sorted(os.listdir(sub_repo))}")
-        print(f"DEBUG CI: {sorted(os.listdir(os.path.join(sub_repo, tmp_nm)))}")
-        module = importlib.import_module(f"{tmp_nm}.{nm_}", super_module)
+        try:
+            module = importlib.import_module(f"{tmp_nm}.{nm_}", super_module)
+        except ModuleNotFoundError as exc_:
+            print(f"DEBUG CI: {sys.path}")
+            print(f"DEBUG CI: {sorted(os.listdir(sub_repo))}")
+            print(f"DEBUG CI: {sorted(os.listdir(os.path.join(sub_repo, tmp_nm)))}")
+            module = importlib.import_module(f"{tmp_nm}.{nm_}", super_module)
+            raise EnvError("Impossible to load the class") from exc_
         print(f"\tsuccess for {cls_other.__name__}")
         cls_res = getattr(module, cls_other.__name__)
         return str_import, cls_res
