@@ -205,6 +205,5 @@ class MaskedEnvironment(Environment):
             if el == "lines_of_interest":
                 continue
             warnings.warn(f"kwargs {el} provided to make the environment will be ignored")
-        print(other_env_kwargs["lines_of_interest"])
         res = MaskedEnvironment(grid2op_env, lines_of_interest=other_env_kwargs["lines_of_interest"])
         return res

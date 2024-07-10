@@ -2959,7 +2959,12 @@ class GridObjects:
             # 2) I need to init the class from the files (and not from whetever else)
             # So i do it. And if that is the case, the files are created on the hard drive
             # AND the module is added to the path
-            assert _local_dir_cls.name == gridobj._PATH_GRID_CLASSES  # check that it matches (security / consistency check)
+            
+            # check that it matches (security / consistency check)
+            if _local_dir_cls.name != gridobj._PATH_GRID_CLASSES:
+                raise EnvError(f"Unable to create the class: mismatch between "
+                               f"_local_dir_cls ({_local_dir_cls.name}) and " 
+                               f" _PATH_GRID_CLASSES ({gridobj._PATH_GRID_CLASSES})")
             return cls._aux_init_grid_from_cls(gridobj, name_res)
         elif gridobj._PATH_GRID_CLASSES is not None:
             # If I end up it's because the environment is created with already initialized
