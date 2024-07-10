@@ -4095,6 +4095,11 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         add_sys_path = os.path.dirname(super_module.__file__)
         if not add_sys_path in sys.path:
             sys.path.append(add_sys_path)
+            
+        if f"{tmp_nm}.{nm_}" in sys.modules:
+            cls_res = getattr(sys.modules[f"{tmp_nm}.{nm_}"], cls_other.__name__)
+            return str_import, cls_res
+        
         try:
             module = importlib.import_module(f".{nm_}", package=tmp_nm)
         except ModuleNotFoundError as exc_:
@@ -4102,11 +4107,14 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             print("####           ERROR HERE           #####")
             print("##########################################")
             print(f"DEBUG CI: {super_module}")
+            print(f"DEBUG CI: {super_module.__dict__}")
             print(f"DEBUG CI: {sys.path}")
             print(f"DEBUG CI: {sorted(os.listdir(sub_repo))}")
             print(f"DEBUG CI: {sorted(os.listdir(os.path.join(sub_repo, tmp_nm)))}")
-            cls_for_test = importlib.import_module(f"{tmp_nm}.Environment_l2rpn_case14_sandbox_file")
-            raise EnvError(f"Impossible to load the class {tmp_nm}.{nm_}") from exc_
+            importlib.reload(super_module)
+            module = importlib.import_module(f".{nm_}", package=tmp_nm)
+            # cls_for_test = importlib.import_module(f"{tmp_nm}.Environment_l2rpn_case14_sandbox_file")
+            # raise EnvError(f"Impossible to load the class {tmp_nm}.{nm_}") from exc_
         print(f"\tsuccess for {cls_other.__name__}")
         cls_res = getattr(module, cls_other.__name__)
         return str_import, cls_res
