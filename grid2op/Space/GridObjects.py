@@ -2962,7 +2962,9 @@ class GridObjects:
             # AND the module is added to the path
             
             # check that it matches (security / consistency check)
-            if _local_dir_cls.name != gridobj._PATH_GRID_CLASSES:
+            if not os.path.samefile(_local_dir_cls.name ,  gridobj._PATH_GRID_CLASSES):
+                # in windows the string comparison fails because of things like "/", "\" or "\\"
+                # this is why we use "samefile"
                 raise EnvError(f"Unable to create the class: mismatch between "
                                f"_local_dir_cls ({_local_dir_cls.name}) and " 
                                f" _PATH_GRID_CLASSES ({gridobj._PATH_GRID_CLASSES})")

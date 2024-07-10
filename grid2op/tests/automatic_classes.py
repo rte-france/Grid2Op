@@ -137,9 +137,7 @@ class AutoClassInFileTester(unittest.TestCase):
             name_action_cls = self._aux_get_act_cls().format(classes_name)
             
         name_action_cls = name_action_cls.format(classes_name)
-        print("DEBUG CI making the env")
         env = self._aux_make_env(env)
-        print("DEBUG CI env made")
         names_cls = [f"ActionSpace_{classes_name}",
                      f"_BackendAction_{classes_name}",
                      f"CompleteAction_{classes_name}",

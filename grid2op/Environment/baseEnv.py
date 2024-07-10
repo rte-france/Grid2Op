@@ -4036,7 +4036,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             raise RuntimeError(f"cls_other should be a type and not an object !: {cls_other}")
         if not issubclass(cls_other, GridObjects):
             raise RuntimeError(f"cls_other should inherit from GridObjects: {cls_other}")
-        print(f"DEBUG CI Start {cls_other.__name__}")
         
         from pathlib import Path
         path_env = cls_other._PATH_GRID_CLASSES
@@ -4062,7 +4061,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                                f"Check class {cls_other.__name__}")
             str_import = None
         if not _add_class_output:
-            print(f"\tDEBUG CIsuccess for {cls_other.__name__}")
             return str_import
         
         # NB: these imports needs to be consistent with what is done in
@@ -4103,21 +4101,10 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         try:
             module = importlib.import_module(f".{nm_}", package=tmp_nm)
         except ModuleNotFoundError as exc_:
-            print("##########################################")
-            print("####           ERROR HERE           #####")
-            print("##########################################")
-            print(f"DEBUG CI: {super_module}")
-            print(f"DEBUG CI: {super_module.__dict__}")
-            print(f"DEBUG CI: {sys.path}")
-            print(f"DEBUG CI: {sorted(os.listdir(sub_repo))}")
-            print(f"DEBUG CI: {sorted(os.listdir(os.path.join(sub_repo, tmp_nm)))}")
+            # invalidate the cache and reload the package in this case
             importlib.invalidate_caches()
             importlib.reload(super_module)
-            print(f"DEBUG CI: {super_module.__dict__}")
             module = importlib.import_module(f".{nm_}", package=tmp_nm)
-            # cls_for_test = importlib.import_module(f"{tmp_nm}.Environment_l2rpn_case14_sandbox_file")
-            # raise EnvError(f"Impossible to load the class {tmp_nm}.{nm_}") from exc_
-        print(f"\tsuccess for {cls_other.__name__}")
         cls_res = getattr(module, cls_other.__name__)
         return str_import, cls_res
 
@@ -4225,7 +4212,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             _init_txt = _init_txt
 
         # generate the classes
-        print(f"DEBUG CI: {_is_base_env__ = }")
         # for the environment
         txt_ = self._aux_gen_classes(type(self), sys_path)
         if txt_ is not None:
