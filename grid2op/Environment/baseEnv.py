@@ -4036,6 +4036,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             raise RuntimeError(f"cls_other should be a type and not an object !: {cls_other}")
         if not issubclass(cls_other, GridObjects):
             raise RuntimeError(f"cls_other should inherit from GridObjects: {cls_other}")
+        print(f"Start {cls_other.__name__}")
         
         from pathlib import Path
         path_env = cls_other._PATH_GRID_CLASSES
@@ -4052,12 +4053,16 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             str_import = f"\nfrom .{cls_other.__name__}_file import {cls_other.__name__}"
         else:
             # if the file exists, I check it's the same
-            # from grid2op.MakeEnv.UpdateEnv import _aux_hash_file, _aux_update_hash_text
-            # hash_saved = _aux_hash_file(output_file)
-            # my_hash = _aux_update_hash_text(res)
-            # raise RuntimeError("You should not end up here with the current grid2op design.")
-            str_import = ""  # TODO
+            from grid2op.MakeEnv.UpdateEnv import _aux_hash_file, _aux_update_hash_text
+            hash_saved = _aux_hash_file(output_file)
+            my_hash = _aux_update_hash_text(res)
+            if hash_saved.hexdigest() != my_hash.hexdigest():
+                raise EnvError(f"It appears some classes have been modified between what was saved on the hard drive "
+                               f"and the current state of the grid. This should not have happened. "
+                               f"Check class {cls_other.__name__}")
+            str_import = None
         if not _add_class_output:
+            print(f"\tsuccess for {cls_other.__name__}")
             return str_import
         
         # NB: these imports needs to be consistent with what is done in
@@ -4092,7 +4097,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             print(f"DEBUG CI: {sys.path}")
             print(f"DEBUG CI: {sorted(os.listdir(sub_repo))}")
             print(f"DEBUG CI: {sorted(os.listdir(os.path.join(sub_repo, tmp_nm)))}")
-            module = importlib.import_module(f"{tmp_nm}.{nm_}", super_module)
+            module = importlib.import_module(f"{tmp_nm}.Environment_l2rpn_case14_sandbox_file", super_module)
             raise EnvError("Impossible to load the class") from exc_
         print(f"\tsuccess for {cls_other.__name__}")
         cls_res = getattr(module, cls_other.__name__)
@@ -4209,44 +4214,63 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         
         # for the environment
         txt_ = self._aux_gen_classes(type(self), sys_path)
-        _init_txt += txt_
+        if txt_ is not None:
+            _init_txt += txt_
         
         # for the forecast env (we do this even if it's not used)
         from grid2op.Environment._forecast_env import _ForecastEnv
         for_env_cls = _ForecastEnv.init_grid(type(self.backend), _local_dir_cls=self._local_dir_cls)
         txt_ = self._aux_gen_classes(for_env_cls, sys_path, _add_class_output=False)
-        _init_txt += txt_
+        if txt_ is not None:
+            _init_txt += txt_
         
         # for the backend
         txt_, cls_res_bk = self._aux_gen_classes(type(self.backend), sys_path, _add_class_output=True)
-        _init_txt += txt_
+        if txt_ is not None:    
+            _init_txt += txt_
         old_bk_cls = self.backend.__class__ 
         self.backend.__class__ = cls_res_bk
         txt_, cls_res_complete_act = self._aux_gen_classes(
             old_bk_cls._complete_action_class, sys_path, _add_class_output=True
         )
-        _init_txt += txt_
+        if txt_ is not None:    
+            _init_txt += txt_
         self.backend.__class__._complete_action_class = cls_res_complete_act
         txt_, cls_res_bk_act = self._aux_gen_classes(self._backend_action_class, sys_path, _add_class_output=True)
-        _init_txt += txt_
+        if txt_ is not None:    
+            _init_txt += txt_
         self._backend_action_class = cls_res_bk_act
         self.backend.__class__.my_bk_act_class = cls_res_bk_act
         
         # for the other class
-        _init_txt += self._aux_gen_classes(type(self.action_space), sys_path)
-        _init_txt += self._aux_gen_classes(self._actionClass, sys_path)
-        _init_txt += self._aux_gen_classes(self._complete_action_cls, sys_path)
-        _init_txt += self._aux_gen_classes(type(self.observation_space), sys_path)
-        _init_txt += self._aux_gen_classes(self._observationClass, sys_path)
-        _init_txt += self._aux_gen_classes(
+        txt_ = self._aux_gen_classes(type(self.action_space), sys_path)
+        if txt_ is not None:    
+            _init_txt += txt_
+        txt_ = self._aux_gen_classes(self._actionClass, sys_path)
+        if txt_ is not None:    
+            _init_txt += txt_
+        txt_ = self._aux_gen_classes(self._complete_action_cls, sys_path)
+        if txt_ is not None:    
+            _init_txt += txt_
+        txt_ = self._aux_gen_classes(type(self.observation_space), sys_path)
+        if txt_ is not None:    
+            _init_txt += txt_
+        txt_ = self._aux_gen_classes(self._observationClass, sys_path)
+        if txt_ is not None:    
+            _init_txt += txt_
+        txt_ = self._aux_gen_classes(
             self._opponent_action_space.subtype, sys_path
         )
+        if txt_ is not None:    
+            _init_txt += txt_
 
         # now do the same for the obs_env
         if _is_base_env__:
-            _init_txt += self._aux_gen_classes(
+           txt_ = self._aux_gen_classes(
                 self._voltage_controler.action_space.subtype, sys_path
             )
+            if txt_ is not None:    
+                _init_txt += txt_
 
             init_grid_tmp = self._observation_space.obs_env._init_grid_path
             self._observation_space.obs_env._init_grid_path = self._init_grid_path

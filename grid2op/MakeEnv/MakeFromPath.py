@@ -904,7 +904,7 @@ def make_from_dataset_path(
                 pass
             
         import tempfile
-        this_local_dir = tempfile.TemporaryDirectory(dir=sys_path, delete=False)
+        this_local_dir = tempfile.TemporaryDirectory(dir=sys_path)
         
         if experimental_read_from_local_dir:
             warnings.warn("With the automatic class generation, we removed the possibility to "
