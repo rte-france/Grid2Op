@@ -4111,7 +4111,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             print(f"DEBUG CI: {sys.path}")
             print(f"DEBUG CI: {sorted(os.listdir(sub_repo))}")
             print(f"DEBUG CI: {sorted(os.listdir(os.path.join(sub_repo, tmp_nm)))}")
+            importlib.invalidate_caches()
             importlib.reload(super_module)
+            print(f"DEBUG CI: {super_module.__dict__}")
             module = importlib.import_module(f".{nm_}", package=tmp_nm)
             # cls_for_test = importlib.import_module(f"{tmp_nm}.Environment_l2rpn_case14_sandbox_file")
             # raise EnvError(f"Impossible to load the class {tmp_nm}.{nm_}") from exc_
