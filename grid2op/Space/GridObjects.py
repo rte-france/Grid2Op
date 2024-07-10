@@ -2896,6 +2896,10 @@ class GridObjects:
         
         if f"{module_nm}.{name_res}_file" in sys.modules:
             cls_res = getattr(sys.modules[f"{module_nm}.{name_res}_file"], name_res)
+            # do not forget to create the cls_dict once and for all
+            if cls_res._CLS_DICT is None:
+                tmp = {}
+                cls_res._make_cls_dict_extended(cls_res, tmp, as_list=False)
             return cls_res
         
         super_module = importlib.import_module(module_nm, super_module_nm)  # env/path/_grid2op_classes/
