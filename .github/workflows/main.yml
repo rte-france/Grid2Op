@@ -191,8 +191,8 @@ jobs:
           }
         python:
           - {
-            name: cp310,
-            version: '3.10',
+            name: cp312,
+            version: '3.12',
           }  
 
     steps:
