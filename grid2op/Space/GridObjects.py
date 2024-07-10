@@ -2894,9 +2894,19 @@ class GridObjects:
             module_nm = f"{env_nm}.{module_nm}"
             super_module_nm = super_supermodule
         
+        if f"{module_nm}.{name_res}_file" in sys.modules:
+            cls_res = getattr(sys.modules[f"{module_nm}.{name_res}_file"], name_res)
+            return cls_res
+        
         super_module = importlib.import_module(module_nm, super_module_nm)  # env/path/_grid2op_classes/
         module_all_classes = importlib.import_module(f"{module_nm}", super_module)  # module specific to the tmpdir created
-        module = importlib.import_module(f"{module_nm}.{name_res}_file", module_all_classes)  # module containing the definition of the class
+        try:
+            module = importlib.import_module(f".{name_res}_file", package=module_nm)  # module containing the definition of the class
+        except ModuleNotFoundError:
+            # in case we need to build the cache again if the module is not found the first time
+            importlib.invalidate_caches()
+            importlib.reload(super_module)
+            module = importlib.import_module(f".{name_res}_file", package=module_nm)
         cls_res = getattr(module, name_res)
         # do not forget to create the cls_dict once and for all
         if cls_res._CLS_DICT is None:
