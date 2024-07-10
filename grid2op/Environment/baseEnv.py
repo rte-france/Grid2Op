@@ -4266,7 +4266,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         # now do the same for the obs_env
         if _is_base_env__:
-           txt_ = self._aux_gen_classes(
+            txt_ = self._aux_gen_classes(
                 self._voltage_controler.action_space.subtype, sys_path
             )
             if txt_ is not None:    
