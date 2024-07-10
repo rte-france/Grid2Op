@@ -4098,11 +4098,15 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         try:
             module = importlib.import_module(f".{nm_}", package=tmp_nm)
         except ModuleNotFoundError as exc_:
+            print("##########################################")
+            print("####           ERROR HERE           #####")
+            print("##########################################")
+            print(f"DEBUG CI: {super_module}")
             print(f"DEBUG CI: {sys.path}")
             print(f"DEBUG CI: {sorted(os.listdir(sub_repo))}")
             print(f"DEBUG CI: {sorted(os.listdir(os.path.join(sub_repo, tmp_nm)))}")
             cls_for_test = importlib.import_module(f"{tmp_nm}.Environment_l2rpn_case14_sandbox_file")
-            raise EnvError("Impossible to load the class") from exc_
+            raise EnvError(f"Impossible to load the class {tmp_nm}.{nm_}") from exc_
         print(f"\tsuccess for {cls_other.__name__}")
         cls_res = getattr(module, cls_other.__name__)
         return str_import, cls_res
