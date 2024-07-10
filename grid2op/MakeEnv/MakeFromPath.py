@@ -959,6 +959,8 @@ def make_from_dataset_path(
                                 observation_bk_class=observation_backend_class,
                                 observation_bk_kwargs=observation_backend_kwargs
                                 )   
+        if not os.path.exists(this_local_dir.name):
+            raise EnvError(f"Path {this_local_dir.name} has not been created by the tempfile package")
         init_env.generate_classes(local_dir_id=this_local_dir.name)
         # fix `my_bk_act_class` and `_complete_action_class`
         _aux_fix_backend_internal_classes(type(backend), this_local_dir)

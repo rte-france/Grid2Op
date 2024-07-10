@@ -172,7 +172,7 @@ jobs:
           path: dist/*.tar.gz
 
   auto_class_in_file:
-    name: Test OS ${{ matrix.config.name }} can handle automatic class generation
+    name: Test ${{ matrix.config.name }} OS can handle automatic class generation
     runs-on: ${{ matrix.config.os }}
     strategy:
       matrix:
@@ -225,7 +225,7 @@ jobs:
 
       - name: Test the automatic generation of classes in the env folder
         run: |
-          python -m unittest grid2op/tests/automatic_classes.py
+          python -m unittest grid2op/tests/automatic_classes.py -f
   
   package:
     name: Test install
