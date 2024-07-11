@@ -4086,9 +4086,11 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             env_path, env_nm = os.path.split(sub_repo)
             if env_path not in sys.path:
                 sys.path.append(env_path)
+            if not package_path in sys.path:
+                sys.path.append(package_path)
             super_supermodule = importlib.import_module(env_nm)
-            tmp_nm = f".{tmp_nm}"
-            sub_repo_mod = env_nm
+            nm_ = f"{tmp_nm}.{nm_}"
+            tmp_nm = env_nm
         super_module = importlib.import_module(tmp_nm, package=sub_repo_mod)
         add_sys_path = os.path.dirname(super_module.__file__)
         if not add_sys_path in sys.path:
@@ -4097,7 +4099,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         if f"{tmp_nm}.{nm_}" in sys.modules:
             cls_res = getattr(sys.modules[f"{tmp_nm}.{nm_}"], cls_other.__name__)
             return str_import, cls_res
-        
         try:
             module = importlib.import_module(f".{nm_}", package=tmp_nm)
         except ModuleNotFoundError as exc_:
