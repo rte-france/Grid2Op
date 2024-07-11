@@ -104,7 +104,8 @@ def _compute_extra_power_for_losses(gridobj):
     to handle the "because of the power losses gen_pmin and gen_pmax can be slightly altered"
     """
     import numpy as np
-
+    if isinstance(gridobj, dict):
+        return 0.3*np.abs(gridobj["gen_pmax"]).sum()
     return 0.3 * np.abs(gridobj.gen_pmax).sum()
 
 

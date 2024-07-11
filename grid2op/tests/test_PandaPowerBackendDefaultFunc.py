@@ -64,7 +64,7 @@ class PandaPowerBackendDefault(PandaPowerBackend):
         """
         otherwise there are some infinite recursions
         """
-        res = np.full(self.dim_topo, fill_value=np.NaN, dtype=dt_int)
+        res = np.full(self.dim_topo, fill_value=-1, dtype=dt_int)
 
         line_status = np.concatenate(
             (

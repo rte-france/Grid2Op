@@ -34,6 +34,7 @@ from grid2op.Opponent import BaseOpponent, NeverAttackBudget
 from grid2op.operator_attention import LinearAttentionBudget
 from grid2op.Space import DEFAULT_N_BUSBAR_PER_SUB
 from grid2op.typing_variables import RESET_OPTIONS_TYPING, N_BUSBAR_PER_SUB_TYPING
+from grid2op.MakeEnv.PathUtils import USE_CLASS_IN_FILE
 
 
 class Environment(BaseEnv):
@@ -117,9 +118,11 @@ class Environment(BaseEnv):
         _init_obs=None,
         _raw_backend_class=None,
         _compat_glop_version=None,
-        _read_from_local_dir=True,
+        _read_from_local_dir=None,
         _is_test=False,
         _allow_loaded_backend=False,
+        _local_dir_cls=None,  # only set at the first call to `make(...)` after should be false
+        _overload_name_multimix=None,
     ):
         BaseEnv.__init__(
             self,
@@ -153,17 +156,31 @@ class Environment(BaseEnv):
             highres_sim_counter=highres_sim_counter,
             update_obs_after_reward=_update_obs_after_reward,
             n_busbar=n_busbar,  # TODO n_busbar_per_sub different num per substations: read from a config file maybe (if not provided by the user)
+            name=name,
+            _raw_backend_class=_raw_backend_class if _raw_backend_class is not None else type(backend),
             _init_obs=_init_obs,
             _is_test=_is_test,  # is this created with "test=True" # TODO not implemented !!
+            _local_dir_cls=_local_dir_cls,
+            _read_from_local_dir=_read_from_local_dir,
         )
+        
         if name == "unknown":
             warnings.warn(
                 'It is NOT recommended to create an environment without "make" and EVEN LESS '
                 "to use an environment without a name..."
             )
-        self.name = name
-        self._read_from_local_dir = _read_from_local_dir
-        
+            
+        if _overload_name_multimix is not None:
+            # this means that the "make" call is issued from the 
+            # creation of a MultiMix.
+            # So I use the base name instead.
+            self.name = "".join(_overload_name_multimix[2:])
+            self.multimix_mix_name = name
+            self._overload_name_multimix = _overload_name_multimix
+        else:
+            self.name = name
+            self._overload_name_multimix = None
+            self.multimix_mix_name = None
         # to remember if the user specified a "max_iter" at some point
         self._max_iter = chronics_handler.max_iter  # for all episode, set in the chronics_handler or by a call to `env.set_max_iter`
         self._max_step = None  # for the current episode
@@ -178,13 +195,11 @@ class Environment(BaseEnv):
         self.metadata = None
         self.spec = None
 
-        if _raw_backend_class is None:
-            self._raw_backend_class = type(backend)
-        else:
-            self._raw_backend_class = _raw_backend_class
-
         self._compat_glop_version = _compat_glop_version
 
+        # needs to be done before "_init_backend" otherwise observationClass is not defined in the
+        # observation space (real_env_kwargs)
+        self._observationClass_orig = observationClass
         # for plotting
         self._init_backend(
             chronics_handler,
@@ -195,8 +210,6 @@ class Environment(BaseEnv):
             rewardClass,
             legalActClass,
         )
-        self._actionClass_orig = actionClass
-        self._observationClass_orig = observationClass
         
     def _init_backend(
         self,
@@ -244,8 +257,9 @@ class Environment(BaseEnv):
                 "Impossible to use the same backend twice. Please create your environment with a "
                 "new backend instance (new object)."
             )    
-            
-        need_process_backend = False        
+        self._actionClass_orig = actionClass
+        
+        need_process_backend = False    
         if not self.backend.is_loaded:
             if hasattr(self.backend, "init_pp_backend") and self.backend.init_pp_backend is not None:
                 # hack for lightsim2grid ...
@@ -258,7 +272,8 @@ class Environment(BaseEnv):
             # example
             if self._read_from_local_dir is not None:
                 # test to support pickle conveniently
-                self.backend._PATH_GRID_CLASSES = self.get_path_env()
+                # type(self.backend)._PATH_GRID_CLASSES = self.get_path_env()
+                self.backend._PATH_GRID_CLASSES = self._read_from_local_dir
             # all the above should be done in this exact order, otherwise some weird behaviour might occur
             # this is due to the class attribute
             type(self.backend).set_env_name(self.name)
@@ -289,7 +304,8 @@ class Environment(BaseEnv):
             self.load_alert_data()
             
             # to force the initialization of the backend to the proper type
-            self.backend.assert_grid_correct()
+            self.backend.assert_grid_correct(
+                _local_dir_cls=self._local_dir_cls)
             self.backend.is_loaded = True
             need_process_backend = True
 
@@ -345,24 +361,26 @@ class Environment(BaseEnv):
         # be careful here: you need to initialize from the class, and not from the object
         bk_type = type(self.backend) 
         self._rewardClass = rewardClass
-        self._actionClass = actionClass.init_grid(gridobj=bk_type)
+        self._actionClass = actionClass.init_grid(gridobj=bk_type, _local_dir_cls=self._local_dir_cls)
         self._actionClass._add_shunt_data()
         self._actionClass._update_value_set()
-        self._observationClass = observationClass.init_grid(gridobj=bk_type)
+        self._observationClass = observationClass.init_grid(gridobj=bk_type, _local_dir_cls=self._local_dir_cls)
 
-        self._complete_action_cls = CompleteAction.init_grid(gridobj=bk_type)
+        self._complete_action_cls = CompleteAction.init_grid(gridobj=bk_type, _local_dir_cls=self._local_dir_cls)
 
-        self._helper_action_class = ActionSpace.init_grid(gridobj=bk_type)
+        self._helper_action_class = ActionSpace.init_grid(gridobj=bk_type, _local_dir_cls=self._local_dir_cls)
         self._action_space = self._helper_action_class(
             gridobj=bk_type,
             actionClass=actionClass,
             legal_action=self._game_rules.legal_action,
+            _local_dir_cls=self._local_dir_cls
         )
         # action that affect the grid made by the environment.
         self._helper_action_env = self._helper_action_class(
             gridobj=bk_type,
             actionClass=CompleteAction,
             legal_action=self._game_rules.legal_action,
+            _local_dir_cls=self._local_dir_cls,
         )
 
         # handles input data
@@ -391,7 +409,7 @@ class Environment(BaseEnv):
         
         # this needs to be done after the chronics handler: rewards might need information
         # about the chronics to work properly.
-        self._helper_observation_class = ObservationSpace.init_grid(gridobj=bk_type)
+        self._helper_observation_class = ObservationSpace.init_grid(gridobj=bk_type, _local_dir_cls=self._local_dir_cls)
         # FYI: this try to copy the backend if it fails it will modify the backend
         # and the environment to force the deactivation of the
         # forecasts
@@ -403,7 +421,8 @@ class Environment(BaseEnv):
             env=self,
             kwargs_observation=self._kwargs_observation,
             observation_bk_class=self._observation_bk_class,
-            observation_bk_kwargs=self._observation_bk_kwargs
+            observation_bk_kwargs=self._observation_bk_kwargs,
+            _local_dir_cls=self._local_dir_cls
         )
 
         # test to make sure the backend is consistent with the chronics generator
@@ -426,6 +445,7 @@ class Environment(BaseEnv):
             gridobj=bk_type,
             controler_backend=self.backend,
             actionSpace_cls=self._helper_action_class,
+            _local_dir_cls=self._local_dir_cls
         )
 
         # create the opponent
@@ -444,7 +464,17 @@ class Environment(BaseEnv):
         self._reset_redispatching()
         self._reward_to_obs = {}
         do_nothing = self._helper_action_env({})
+        
+        # needs to be done at the end, but before the first "step" is called
+        self._observation_space.set_real_env_kwargs(self)
+
+        # see issue https://github.com/rte-france/Grid2Op/issues/617
+        # thermal limits are set AFTER this initial step
+        _no_overflow_disconnection = self._no_overflow_disconnection
+        self._no_overflow_disconnection = True
         *_, fail_to_start, info = self.step(do_nothing)
+        self._no_overflow_disconnection = _no_overflow_disconnection
+        
         if fail_to_start:
             raise Grid2OpException(
                 "Impossible to initialize the powergrid, the powerflow diverge at iteration 0. "
@@ -485,7 +515,7 @@ class Environment(BaseEnv):
 
         # reset everything to be consistent
         self._reset_vectors_and_timings()
-
+        
     def max_episode_duration(self):
         """
         Return the maximum duration (in number of steps) of the current episode.
@@ -908,9 +938,9 @@ class Environment(BaseEnv):
 
         """
         self.backend.reset(
-            self._init_grid_path
+            self._init_grid_path,
         )  # the real powergrid of the environment
-        self.backend.assert_grid_correct()
+        # self.backend.assert_grid_correct()
 
         if self._thermal_limit_a is not None:
             self.backend.set_thermal_limit(self._thermal_limit_a.astype(dt_float))
@@ -1385,19 +1415,15 @@ class Environment(BaseEnv):
         return rgb_array
 
     def _custom_deepcopy_for_copy(self, new_obj):
-        super()._custom_deepcopy_for_copy(new_obj)
-
-        new_obj.name = self.name
-        new_obj._read_from_local_dir = self._read_from_local_dir
         new_obj.metadata = copy.deepcopy(self.metadata)
         new_obj.spec = copy.deepcopy(self.spec)
 
-        new_obj._raw_backend_class = self._raw_backend_class
         new_obj._compat_glop_version = self._compat_glop_version
-        new_obj._actionClass_orig = self._actionClass_orig
-        new_obj._observationClass_orig = self._observationClass_orig
         new_obj._max_iter = self._max_iter
         new_obj._max_step = self._max_step
+        new_obj._overload_name_multimix = self._overload_name_multimix
+        new_obj.multimix_mix_name = self.multimix_mix_name
+        super()._custom_deepcopy_for_copy(new_obj)
 
     def copy(self) -> "Environment":
         """
@@ -2091,6 +2117,7 @@ class Environment(BaseEnv):
         res["envClass"] = Environment  # TODO !
         res["gridStateclass"] = self.chronics_handler.chronicsClass
         res["backendClass"] = self._raw_backend_class
+        res["_overload_name_multimix"] = self._overload_name_multimix
         if hasattr(self.backend, "_my_kwargs"):
             res["backend_kwargs"] = self.backend._my_kwargs
         else:
@@ -2130,6 +2157,7 @@ class Environment(BaseEnv):
         res["kwargs_attention_budget"] = copy.deepcopy(self._kwargs_attention_budget)
         res["has_attention_budget"] = self._has_attention_budget
         res["_read_from_local_dir"] = self._read_from_local_dir
+        res["_local_dir_cls"] = self._local_dir_cls  # should be transfered to the runner so that folder is not deleted while runner exists
         res["logger"] = self.logger
         res["kwargs_observation"] = copy.deepcopy(self._kwargs_observation)
         res["observation_bk_class"] = self._observation_bk_class
@@ -2173,7 +2201,10 @@ class Environment(BaseEnv):
                              observation_bk_kwargs,
                              _raw_backend_class,
                              _read_from_local_dir,
-                             n_busbar=DEFAULT_N_BUSBAR_PER_SUB):        
+                             _local_dir_cls,
+                             _overload_name_multimix,
+                             n_busbar=DEFAULT_N_BUSBAR_PER_SUB
+                             ):        
         res = cls(init_env_path=init_env_path,
                   init_grid_path=init_grid_path,
                   chronics_handler=chronics_handler,
@@ -2206,7 +2237,9 @@ class Environment(BaseEnv):
                   observation_bk_kwargs=observation_bk_kwargs,
                   n_busbar=int(n_busbar),
                   _raw_backend_class=_raw_backend_class,
-                  _read_from_local_dir=_read_from_local_dir)
+                  _read_from_local_dir=_read_from_local_dir,
+                  _local_dir_cls=_local_dir_cls,
+                  _overload_name_multimix=_overload_name_multimix)
         return res
     
     def generate_data(self, nb_year=1, nb_core=1, seed=None, **kwargs):
@@ -2282,3 +2315,20 @@ class Environment(BaseEnv):
             env=self, seed=seed, nb_scenario=nb_year, nb_core=nb_core,
             **kwargs
         )
+
+    def _add_classes_in_files(self, sys_path, bk_type, are_classes_in_files):            
+        if are_classes_in_files:
+            # then generate the proper classes
+            _PATH_GRID_CLASSES = bk_type._PATH_GRID_CLASSES
+            try:
+                bk_type._PATH_GRID_CLASSES = None
+                my_type_tmp = type(self).init_grid(gridobj=bk_type, _local_dir_cls=None)
+                txt_, cls_res_me = self._aux_gen_classes(my_type_tmp,
+                                                         sys_path,
+                                                         _add_class_output=True)
+                # then add the class to the init file
+                with open(os.path.join(sys_path, "__init__.py"), "a", encoding="utf-8") as f:
+                    f.write(txt_)
+            finally:
+                # make sure to put back the correct _PATH_GRID_CLASSES
+                bk_type._PATH_GRID_CLASSES = _PATH_GRID_CLASSES

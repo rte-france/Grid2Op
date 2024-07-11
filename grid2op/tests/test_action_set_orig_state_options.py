@@ -380,10 +380,9 @@ class TestSetInitRunner(unittest.TestCase):
                                            {"set_line_status": [(1, 1)], "method": "ignore"}],
                               episode_id=[0, 1],
                               max_iter=self.max_iter,
-                              add_detailed_output=True,
+                              add_detailed_output=True,  # TODO HERE HERE 
                               nb_process=nb_process
                               )
-        
         # check for ep 0
         ep_data = res[0][-1]
         init_obs = ep_data.observations[0]
@@ -404,7 +403,7 @@ class TestSetInitRunner(unittest.TestCase):
                                            {"set_line_status": [(1, 1)], "method": "ignore"}),
                               episode_id=[0, 1],
                               max_iter=self.max_iter,
-                              add_detailed_output=True,
+                              add_detailed_output=True, 
                               nb_process=nb_process
                               )
         # check for ep 0

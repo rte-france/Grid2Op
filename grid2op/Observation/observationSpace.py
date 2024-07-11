@@ -72,6 +72,7 @@ class ObservationSpace(SerializableObservationSpace):
         observation_bk_kwargs=None,
         logger=None,
         _with_obs_env=True,  # pass
+        _local_dir_cls=None,
     ):
         """
         INTERNAL
@@ -80,22 +81,14 @@ class ObservationSpace(SerializableObservationSpace):
 
         Env: requires :attr:`grid2op.Environment.BaseEnv.parameters` and :attr:`grid2op.Environment.BaseEnv.backend` to be valid
         """
-
-        # lazy import to prevent circular references (Env -> Observation -> Obs Space -> _ObsEnv -> Env)
-        from grid2op.Environment._obsEnv import _ObsEnv
-
         if actionClass is None:
             from grid2op.Action import CompleteAction
             actionClass = CompleteAction
             
-        if logger is None:
-            self.logger = logging.getLogger(__name__)
-            self.logger.disabled = True
-        else:
-            self.logger: logging.Logger = logger.getChild("grid2op_ObsSpace")
         self._init_observationClass = observationClass
         SerializableObservationSpace.__init__(
-            self, gridobj, observationClass=observationClass
+            self, gridobj, observationClass=observationClass, _local_dir_cls=_local_dir_cls,
+            logger=logger,
         )
         self.with_forecast = with_forecast
         self._simulate_parameters = copy.deepcopy(env.parameters)
@@ -112,14 +105,9 @@ class ObservationSpace(SerializableObservationSpace):
         self.reward_helper = RewardHelper(reward_func=self._reward_func, logger=self.logger)
 
         self.__can_never_use_simulate = False
-        # TODO here: have another backend class maybe
-        _with_obs_env = _with_obs_env and self._create_backend_obs(env, observation_bk_class, observation_bk_kwargs)
-            
-        self._ObsEnv_class = _ObsEnv.init_grid(
-            type(env.backend), force_module=_ObsEnv.__module__
-        )
-        self._ObsEnv_class._INIT_GRID_CLS = _ObsEnv  # otherwise it's lost
-        setattr(sys.modules[_ObsEnv.__module__], self._ObsEnv_class.__name__, self._ObsEnv_class)
+        _with_obs_env = _with_obs_env and self._create_backend_obs(env, observation_bk_class, observation_bk_kwargs, _local_dir_cls)
+        
+        self._ObsEnv_class = None
         if _with_obs_env:
             self._create_obs_env(env, observationClass)
             self.reward_helper.initialize(self.obs_env)
@@ -175,6 +163,18 @@ class ObservationSpace(SerializableObservationSpace):
             del self._real_env_kwargs["observation_bk_kwargs"]
         
     def _create_obs_env(self, env, observationClass):
+        if self._ObsEnv_class is None:
+            # lazy import to prevent circular references (Env -> Observation -> Obs Space -> _ObsEnv -> Env)
+            from grid2op.Environment._obsEnv import _ObsEnv
+            
+            # self._ObsEnv_class = _ObsEnv.init_grid(
+            #     type(env.backend), force_module=_ObsEnv.__module__, force=_local_dir_cls is not None
+            # )
+            # self._ObsEnv_class._INIT_GRID_CLS = _ObsEnv  # otherwise it's lost
+            self._ObsEnv_class = _ObsEnv.init_grid(
+                type(env.backend), _local_dir_cls=env._local_dir_cls
+            )
+            self._ObsEnv_class._INIT_GRID_CLS = _ObsEnv  # otherwise it's lost
         other_rewards = {k: v.rewardClass for k, v in env.other_rewards.items()}
         self.obs_env = self._ObsEnv_class(
             init_env_path=None,  # don't leak the path of the real grid to the observation space
@@ -200,14 +200,16 @@ class ObservationSpace(SerializableObservationSpace):
             highres_sim_counter=env.highres_sim_counter,
             _complete_action_cls=env._complete_action_cls,
             _ptr_orig_obs_space=self,
+            _local_dir_cls=env._local_dir_cls,
+            _read_from_local_dir=env._read_from_local_dir,
         )
         for k, v in self.obs_env.other_rewards.items():
             v.initialize(self.obs_env)
     
-    def _aux_create_backend(self, env, observation_bk_class, observation_bk_kwargs, path_grid_for):
+    def _aux_create_backend(self, env, observation_bk_class, observation_bk_kwargs, path_grid_for, _local_dir_cls):
         if observation_bk_kwargs is None:
             observation_bk_kwargs = env.backend._my_kwargs
-        observation_bk_class_used = observation_bk_class.init_grid(type(env.backend))
+        observation_bk_class_used = observation_bk_class.init_grid(type(env.backend), _local_dir_cls=_local_dir_cls)
         self._backend_obs = observation_bk_class_used(**observation_bk_kwargs)   
         self._backend_obs.set_env_name(env.name)
         self._backend_obs.load_grid(path_grid_for)
@@ -216,7 +218,7 @@ class ObservationSpace(SerializableObservationSpace):
         self._backend_obs.assert_grid_correct_after_powerflow()
         self._backend_obs.set_thermal_limit(env.get_thermal_limit())
             
-    def _create_backend_obs(self, env, observation_bk_class, observation_bk_kwargs):
+    def _create_backend_obs(self, env, observation_bk_class, observation_bk_kwargs, _local_dir_cls):
         _with_obs_env = True
         path_sim_bk = os.path.join(env.get_path_env(), "grid_forecast.json")
         if observation_bk_class is not None or observation_bk_kwargs is not None:   
@@ -232,12 +234,12 @@ class ObservationSpace(SerializableObservationSpace):
                 path_grid_for = path_sim_bk
             else:
                 path_grid_for = os.path.join(env.get_path_env(), "grid.json")
-            self._aux_create_backend(env, observation_bk_class, observation_bk_kwargs, path_grid_for)
+            self._aux_create_backend(env, observation_bk_class, observation_bk_kwargs, path_grid_for, _local_dir_cls)
         elif os.path.exists(path_sim_bk) and os.path.isfile(path_sim_bk):
             # backend used for simulate will use the same class with same args as the env
             # backend, but with a different grid
             observation_bk_class = env._raw_backend_class
-            self._aux_create_backend(env, observation_bk_class, observation_bk_kwargs, path_sim_bk)
+            self._aux_create_backend(env, observation_bk_class, observation_bk_kwargs, path_sim_bk, _local_dir_cls)
         elif env.backend._can_be_copied:
             # case where I can copy the backend for the 'simulate' and I don't need to build 
             # it (uses same class and same grid)
@@ -263,10 +265,11 @@ class ObservationSpace(SerializableObservationSpace):
             self._backend_obs.close()
             self._backend_obs = None
         self.with_forecast = False
-        env.deactivate_forecast()
-        env.backend._can_be_copied = False
-        self.logger.warn("Forecasts have been deactivated because "
-                         "the backend cannot be copied.")
+        if env is not None:
+            env.deactivate_forecast()
+            env.backend._can_be_copied = False
+        self.logger.warning("Forecasts have been deactivated because "
+                            "the backend cannot be copied.")
     
     def reactivate_forecast(self, env):
         if self.__can_never_use_simulate:
@@ -279,8 +282,8 @@ class ObservationSpace(SerializableObservationSpace):
             if self._backend_obs is not None:
                 self._backend_obs.close()
                 self._backend_obs = None
-            self._create_backend_obs(env, self._observation_bk_class, self._observation_bk_kwargs)
-            if self.obs_env is not None :
+            self._create_backend_obs(env, self._observation_bk_class, self._observation_bk_kwargs, env._local_dir_cls)
+            if self.obs_env is not None:
                 self.obs_env.close()
                 self.obs_env = None
             self._create_obs_env(env, self._init_observationClass)
@@ -329,7 +332,8 @@ class ObservationSpace(SerializableObservationSpace):
 
         change the parameter of the "simulate" environment
         """
-        self.obs_env.change_parameters(new_param)
+        if self.obs_env is not None:
+            self.obs_env.change_parameters(new_param)
         self._simulate_parameters = new_param
 
     def change_other_rewards(self, dict_reward):
@@ -453,7 +457,7 @@ class ObservationSpace(SerializableObservationSpace):
             self.obs_env.reset()
         self._env_param = copy.deepcopy(real_env.parameters)
 
-    def _custom_deepcopy_for_copy(self, new_obj):
+    def _custom_deepcopy_for_copy(self, new_obj, env=None):
         """implements a faster "res = copy.deepcopy(self)" to use
         in "self.copy"
         Do not use it anywhere else...
@@ -489,13 +493,17 @@ class ObservationSpace(SerializableObservationSpace):
         new_obj._ptr_kwargs_observation = self._ptr_kwargs_observation
         
         # real env kwargs, these is a "pointer" anyway
-        new_obj._real_env_kwargs = self._real_env_kwargs
+        if env is not None:
+            from grid2op.Environment import Environment
+            new_obj._real_env_kwargs = Environment.get_kwargs(env, False, False)
+        else:
+            new_obj._real_env_kwargs = self._real_env_kwargs
         new_obj._observation_bk_class = self._observation_bk_class
         new_obj._observation_bk_kwargs = self._observation_bk_kwargs
         
         new_obj._ObsEnv_class = self._ObsEnv_class
 
-    def copy(self, copy_backend=False):
+    def copy(self, copy_backend=False, env=None):
         """
         INTERNAL
 
@@ -516,18 +524,23 @@ class ObservationSpace(SerializableObservationSpace):
         # create an empty "me"
         my_cls = type(self)
         res = my_cls.__new__(my_cls)
-        self._custom_deepcopy_for_copy(res)
+        self._custom_deepcopy_for_copy(res, env)
 
         if not copy_backend:
             res._backend_obs = backend
             res._empty_obs = obs_.copy()
             res.obs_env = obs_env
         else:
-            res.obs_env = obs_env.copy()
-            res.obs_env._ptr_orig_obs_space = res
-            res._backend_obs = res.obs_env.backend
-            res._empty_obs = obs_.copy()
-            res._empty_obs._obs_env = res.obs_env
+            # backend needs to be copied
+            if obs_env is not None:
+                # I also need to copy the obs env
+                res.obs_env = obs_env.copy(env=env, new_obs_space=res)
+                res._backend_obs = res.obs_env.backend
+                res._empty_obs = obs_.copy()
+                res._empty_obs._obs_env = res.obs_env
+            else:
+                # no obs env: I do nothing
+                res.obs_env = None
 
         # assign back the results
         self._backend_obs = backend

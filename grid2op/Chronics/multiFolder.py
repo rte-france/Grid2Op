@@ -394,6 +394,17 @@ class Multifolder(GridValue):
         self._order = np.array(self._order)
         return self.subpaths[self._order]
 
+    def _get_nex_data(self, this_path):
+        res = self.gridvalueClass(
+            time_interval=self.time_interval,
+            sep=self.sep,
+            path=this_path,
+            max_iter=self.max_iter,
+            chunk_size=self.chunk_size,
+            **self._kwargs
+        )
+        return res
+        
     def initialize(
         self,
         order_backend_loads,
@@ -419,14 +430,7 @@ class Multifolder(GridValue):
 
         id_scenario = self._order[self._prev_cache_id]
         this_path = self.subpaths[id_scenario]
-        self.data = self.gridvalueClass(
-            time_interval=self.time_interval,
-            sep=self.sep,
-            path=this_path,
-            max_iter=self.max_iter,
-            chunk_size=self.chunk_size,
-            **self._kwargs
-        )
+        self.data = self._get_nex_data(this_path)
         if self.seed is not None:
             max_int = np.iinfo(dt_int).max
             seed_chronics = self.space_prng.randint(max_int)
@@ -788,4 +792,6 @@ class Multifolder(GridValue):
 
     def cleanup_action_space(self):
         super().cleanup_action_space()
+        if self.data is None:
+            return
         self.data.cleanup_action_space()

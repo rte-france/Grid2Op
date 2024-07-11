@@ -57,8 +57,7 @@ def _aux_one_process_parrallel(
     for i, ep_id in enumerate(episode_this_process):
         # `ep_id`: grid2op id of the episode i want to play
         # `i`: my id of the episode played (0, 1, ... episode_this_process)
-        env, agent = runner._new_env(parameters=parameters
-        )
+        env, agent = runner._new_env(parameters=parameters)
         try:
             env_seed = None
             if env_seeds is not None:
@@ -338,6 +337,7 @@ def _aux_run_one_episode(
         episode.set_episode_times(env, time_act, beg_, end_)
 
     episode.to_disk()
+    episode.make_serializable()
     name_chron = env.chronics_handler.get_name()
     return (name_chron, cum_reward,
             int(time_step),

@@ -125,6 +125,189 @@ For information, as of writing (march 2021):
 - macOS with python <= 3.7 will behave like any python version on linux
 - windows and macOS with python >=3.8 will behave differently than linux but similarly to one another
 
+Some common runner options:
+-------------------------------
+
+Specify an agent instance and not a class 
+*******************************************
+
+By default, if you specify an agent class (*eg* `AgentCLS`), then the runner will initialize it with:
+
+.. code-block:: python
+
+    agent = AgentCLS(env.action_space)
+
+But you might want to use agent initialized in a more complex way. To that end, you can customize the 
+agent instance you want to use (and not only its class) with the following code:
+
+.. code-block:: python
+
+    import grid2op
+    from grid2op.Agent import RandomAgent # for example...
+    from grid2op.Runner import Runner
+
+    env = grid2op.make("l2rpn_case14_sandbox")
+    
+    agent_instance = RandomAgent(env.action_space)
+    runner = Runner(**env.get_params_for_runner(), agentClass=None, agentInstance=agent_instance)
+    res = runner.run(nb_episode=nn_episode)
+
+Customize the scenarios
+**************************
+
+You can customize the seeds, the scenarios ID you want, the number of initial steps to skip, the 
+maximum duration of an episode etc. For more information, please refer to the :func:`Runner.run`
+for more information. But basically, you can do:
+
+.. code-block:: python
+
+    import grid2op
+    from grid2op.Agent import RandomAgent # for example...
+    from grid2op.Runner import Runner
+
+    env = grid2op.make("l2rpn_case14_sandbox")
+    
+    agent_instance = RandomAgent(env.action_space)
+    runner = Runner(**env.get_params_for_runner(), agentClass=None, agentInstance=agent_instance)
+    res = runner.run(nb_episode=nn_episode,
+
+                     # nb process to use
+                     nb_process=1,  
+                     
+                     # path where the outcome will be saved
+                     path_save=None,  
+                     
+                     # max number of steps in an environment
+                     max_iter=None, 
+                     
+                     # progress bar to use
+                     pbar=False,   
+                     
+                     # seeds to use for the environment
+                     env_seeds=None,  
+                     
+                     # seeds to use for the agent
+                     agent_seeds=None,  
+                     
+                     # id the time serie to use
+                     episode_id=None,  
+                     
+                     # whether to add the outcome (EpisodeData) as a result of this function
+                     add_detailed_output=False,  
+
+                     # whether to keep track of the number of call to "high resolution simulator" 
+                     # (eg obs.simulate or obs.get_forecasted_env)
+                     add_nb_highres_sim=False,  
+
+                     # which initial state you want the grid to be in
+                     init_states=None,  
+
+                     # options passed  in `env.reset(..., options=XXX)`
+                     reset_options=None, 
+                     )
+
+
+Retrieve what has happened
+****************************
+
+You can also easily retrieve the :class:`grid2op.Episode.EpisodeData` representing your runs with:
+
+.. code-block:: python
+
+    import grid2op
+    from grid2op.Agent import RandomAgent # for example...
+    from grid2op.Runner import Runner
+
+    env = grid2op.make("l2rpn_case14_sandbox")
+    
+    agent_instance = RandomAgent(env.action_space)
+    runner = Runner(**env.get_params_for_runner(), agentClass=None, agentInstance=agent_instance)
+    res = runner.run(nb_episode=2,
+                        add_detailed_output=True)
+    for *_, ep_data in res:
+        # ep_data are the EpisodeData you can use to do whatever
+        ...
+
+Save the results
+*****************
+
+You can save the results in a standardized format with:
+
+.. code-block:: python
+
+    import grid2op
+    from grid2op.Agent import RandomAgent # for example...
+    from grid2op.Runner import Runner
+
+    env = grid2op.make("l2rpn_case14_sandbox")
+    
+    agent_instance = RandomAgent(env.action_space)
+    runner = Runner(**env.get_params_for_runner(),
+                    agentClass=None,
+                    agentInstance=agent_instance)
+    res = runner.run(nb_episode=2,
+                        save_path="A/PATH/SOMEWHERE")  # eg "/home/user/you/grid2op_results/this_run"
+
+Multi processing
+***********************
+
+You can also easily (on some platform) easily make the evaluation faster by using the "multi processing" python
+package with:
+
+.. code-block:: python
+
+    import grid2op
+    from grid2op.Agent import RandomAgent # for example...
+    from grid2op.Runner import Runner
+
+    env = grid2op.make("l2rpn_case14_sandbox")
+    
+    agent_instance = RandomAgent(env.action_space)
+    runner = Runner(**env.get_params_for_runner(),
+                    agentClass=None,
+                    agentInstance=agent_instance)
+    res = runner.run(nb_episode=2,
+                        nb_process=2)
+
+Customize the multi processing
+********************************
+
+And, as of grid2op 1.10.3 you can know customize the multi processing context you want
+to use to evaluate your agent, like this:
+
+.. code-block:: python
+
+    import multiprocessing as mp
+    import grid2op
+    from grid2op.Agent import RandomAgent # for example...
+    from grid2op.Runner import Runner
+
+    env = grid2op.make("l2rpn_case14_sandbox")
+    
+    agent_instance = RandomAgent(env.action_space)
+    
+    ctx = mp.get_context('spawn')  # or "fork" or "forkserver"
+    runner = Runner(**env.get_params_for_runner(),
+                    agentClass=None,
+                    agentInstance=agent_instance,
+                    mp_context=ctx)
+    res = runner.run(nb_episode=2,
+                        nb_process=2)
+                        
+If you set this, the multiprocessing `Pool` used to evaluate your agents will be made with: 
+
+.. code-block:: python
+
+    with mp_context.Pool(nb_process) as p:
+        ....
+        
+Otherwise the default "Pool" is used:
+
+.. code-block:: python
+
+    with Pool(nb_process) as p:
+        ....
+
 
 Detailed Documentation by class
 -------------------------------

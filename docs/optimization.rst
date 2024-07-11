@@ -19,3 +19,5 @@ Basically an "optimizer" agent looks like (from a very high level):
 3) update the "formulation" using the observation received
 4) run a solver to solve the "problem" 
 5) convert back the "decisions" (output) of the solver into a "grid2op" action
+
+.. include:: final.rst

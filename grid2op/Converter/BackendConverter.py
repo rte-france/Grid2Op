@@ -429,7 +429,7 @@ class BackendConverter(Backend):
         self._topo_tg2sr[source_pos[sr2tg]] = target_pos
         self._topo_sr2tg[target_pos] = source_pos[sr2tg]
 
-    def assert_grid_correct(self):
+    def assert_grid_correct(self, _local_dir_cls=None) -> None:
         # this is done before a call to this function, by the environment
         tg_cls = type(self.target_backend)
         sr_cls = type(self.source_backend)
@@ -480,13 +480,13 @@ class BackendConverter(Backend):
             )
 
         # init the target backend (the one that does the computation and that is initialized)
-        self.target_backend.assert_grid_correct()
+        self.target_backend.assert_grid_correct(_local_dir_cls=_local_dir_cls)
 
         # initialize the other one, because, well the grid should be seen from both backend
         self.source_backend._init_class_attr(obj=self)
-        self.source_backend.assert_grid_correct()
+        self.source_backend.assert_grid_correct(_local_dir_cls=_local_dir_cls)
         # and this should be called after all the rest
-        super().assert_grid_correct()
+        super().assert_grid_correct(_local_dir_cls=_local_dir_cls)
 
         # everything went well, so i can properly terminate my initialization
         self._init_myself()

@@ -54,7 +54,7 @@ class SerializableActionSpace(SerializableSpace):
                          '"which is not the type of action handled by this action space "'
                          '("{}")')
     
-    def __init__(self, gridobj, actionClass=BaseAction, _init_grid=True):
+    def __init__(self, gridobj, actionClass=BaseAction, _init_grid=True, _local_dir_cls=None):
         """
         INTERNAL USE ONLY
 
@@ -74,7 +74,10 @@ class SerializableActionSpace(SerializableSpace):
 
         """
         SerializableSpace.__init__(
-            self, gridobj=gridobj, subtype=actionClass, _init_grid=_init_grid
+            self, gridobj=gridobj,
+            subtype=actionClass,
+            _init_grid=_init_grid,
+            _local_dir_cls=_local_dir_cls
         )
         self.actionClass = self.subtype
         self._template_act = self.actionClass()
