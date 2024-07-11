@@ -2903,7 +2903,7 @@ class GridObjects:
             return cls_res
         
         super_module = importlib.import_module(module_nm, super_module_nm)  # env/path/_grid2op_classes/
-        module_all_classes = importlib.import_module(f"{module_nm}", super_module)  # module specific to the tmpdir created
+        module_all_classes = importlib.import_module(f"{module_nm}")  # module specific to the tmpdir created
         try:
             module = importlib.import_module(f".{name_res}_file", package=module_nm)  # module containing the definition of the class
         except ModuleNotFoundError:

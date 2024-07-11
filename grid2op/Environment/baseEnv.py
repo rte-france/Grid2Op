@@ -4209,8 +4209,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         # initialized the "__init__" file
         _init_txt = ""
         mode = "a"
-        if not _is_base_env__:
-            _init_txt = _init_txt
 
         # generate the classes
         # for the environment
