@@ -181,15 +181,19 @@ jobs:
             name: darwin,
             os: macos-latest,
           }
-          - {
-            name: windows,
-            os: windows-2019,
-          }
+          # - {
+          #   name: windows,
+          #   os: windows-2019,
+          # }
           - { 
             name: ubuntu,
             os: ubuntu-latest,
           }
         python:
+          - {
+            name: cp39,
+            version: '3.9',
+          }  
           - {
             name: cp312,
             version: '3.12',

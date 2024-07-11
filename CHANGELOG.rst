@@ -41,6 +41,7 @@ Work kind of in progress
 Next release
 ---------------------------------
 - numpy 2 compat (need pandapower for that)
+- automatic read from local dir also on windows !
 - TODO doc for the "new" feature of automatic "experimental_read_from_local_dir"
 - TODO bug on maintenance starting at midnight (they are not correctly handled in the observation)
   => cf script test_issue_616
