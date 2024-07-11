@@ -18,7 +18,7 @@ USE_CLASS_IN_FILE = False  # set to True for new behaviour (will be set to True 
 
 KEY_DATA_PATH = "data_path"
 KEY_CLASS_IN_FILE = "class_in_file"
-
+KEY_CLASS_IN_FILE_ENV_VAR = f"grid2op_{KEY_CLASS_IN_FILE}"
 
 def str_to_bool(string: str) -> bool:
     """convert a "string" to a boolean, with the convention:
@@ -46,13 +46,12 @@ if os.path.exists(DEFAULT_PATH_CONFIG):
         
     if KEY_CLASS_IN_FILE in dict_:
         USE_CLASS_IN_FILE = bool(dict_[KEY_CLASS_IN_FILE])
-        if KEY_CLASS_IN_FILE in os.environ:
+        if KEY_CLASS_IN_FILE_ENV_VAR in os.environ:
             try:
-                USE_CLASS_IN_FILE = str_to_bool(os.environ[KEY_CLASS_IN_FILE])
+                USE_CLASS_IN_FILE = str_to_bool(os.environ[KEY_CLASS_IN_FILE_ENV_VAR])
             except ValueError as exc:
-                raise RuntimeError(f"Impossible to read the behaviour from `{KEY_CLASS_IN_FILE}` environment variable") from exc
-            
-    USE_CLASS_IN_FILE = False  # deactivated until further notice
+                raise RuntimeError(f"Impossible to read the behaviour from `{KEY_CLASS_IN_FILE_ENV_VAR}` environment variable") from exc
+
 
 def _create_path_folder(data_path):
     if not os.path.exists(data_path):
@@ -65,3 +64,10 @@ def _create_path_folder(data_path):
                 'and set the "data_path" to point to a path where you can store data.'
                 "".format(data_path, DEFAULT_PATH_CONFIG)
             )
+
+
+def _aux_fix_backend_internal_classes(backend_cls, this_local_dir):
+    # fix `my_bk_act_class` and `_complete_action_class`
+    backend_cls._add_internal_classes(this_local_dir)
+    tmp = {}
+    backend_cls._make_cls_dict_extended(backend_cls, tmp, as_list=False)

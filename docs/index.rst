@@ -75,6 +75,7 @@ Environments
    create_an_environment
    dive_into_time_series
    data_pipeline
+   troubleshoot
 
 Usage examples
 ---------------------

@@ -504,37 +504,7 @@ This is because grid2op will (to save computation time) generate some classes (t
 fly, once the environment is loaded. And unfortunately, pickle module is not always able to process these
 (meta) data.
 
-Try to first create (automatically!) the files containing the description of the classes 
-used by your environment (for example):
-
-.. code-block:: python
-
-    from grid2op import make
-    from grid2op.Reward import RedispReward
-    from lightsim2grid import LightSimBackend
-
-    env_name = 'l2rpn_wcci_2022'
-    backend_class = LightSimBackend
-    env = make(env_name, reward_class=RedispReward, backend=backend_class())
-    env.generate_classes()
-
-.. note::
-    This piece of code is to do once (each time you change the backend or the env name)
-
-And then proceed as usual by loading the grid2op environment
-with the key-word `experimental_read_from_local_dir`
-
-.. code-block:: python
-
-    from grid2op import make
-    from grid2op.Reward import RedispReward
-    from lightsim2grid import LightSimBackend
-
-    env_name = 'l2rpn_wcci_2022'
-    backend_class = LightSimBackend
-    env = make(env_name, reward_class=RedispReward, backend=backend_class(),
-               experimental_read_from_local_dir=True)
-    # do whatever
+You can solve this issue by look at :ref:`troubleshoot_pickle` section of the documentation.
 
 Observation XXX outside given space YYY
 ****************************************

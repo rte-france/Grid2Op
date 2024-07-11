@@ -235,5 +235,7 @@ class ChronicsHandler(RandomObject):
         """INTERNAL, used to forget the "old" action_space when the
         chronics_handler is copied for example.
         """
+        if  self._real_data is None:
+            return
         self._real_data.cleanup_action_space()
         

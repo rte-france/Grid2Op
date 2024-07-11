@@ -40,20 +40,31 @@ Work kind of in progress
 
 Next release
 ---------------------------------
+- numpy 2 compat (need pandapower for that)
+- automatic read from local dir also on windows !
+- TODO doc for the "new" feature of automatic "experimental_read_from_local_dir"
 - TODO bug on maintenance starting at midnight (they are not correctly handled in the observation)
   => cf script test_issue_616
+- TODO put the Grid2opEnvWrapper directly in grid2op as GymEnv
+- TODO faster gym_compat (especially for DiscreteActSpace and BoxGymObsSpace)
 - TODO Notebook for tf_agents
 - TODO Notebook for acme
 - TODO Notebook using "keras rl" (see https://keras.io/examples/rl/ppo_cartpole/)
-- TODO put the Grid2opEnvWrapper directly in grid2op as GymEnv
 - TODO example for MCTS https://github.com/bwfbowen/muax et https://github.com/google-deepmind/mctx
 - TODO jax everything that can be: create a simple env based on jax for topology manipulation, without
   redispatching or rules
 - TODO backend in jax, maybe ?
 - TODO done and truncated properly handled in gym_compat module (when game over
   before the end it's probably truncated and not done) 
+- TODO when reset, have an attribute "reset_infos" with some infos about the
+  way reset was called.
+- TODO ForecastEnv in MaskedEnv ! (and obs.simulate there too !)
+- TODO finish the test in automatic_classes
+- TODO in multi-mix increase the reset options with the mix the user wants
+- TODO L2RPN scores as reward (sum loads after the game over and have it in the final reward)
+- TODO on CI: test only gym, only gymnasium and keep current test for both gym and gymnasium
 
-[1.10.3] - 2024-xx-yy
+[1.10.3] - 2024-07-yy
 -------------------------
 - TODO Automatic "experimental_read_from_local_dir"
 
@@ -66,8 +77,20 @@ Next release
   use it (will likely have no effect). Prefer using `env.set_max_iter` instead.
 - [BREAKING] now the `runner.run()` method only accept kwargs argument 
   (because  it should always have been like this)
+- [BREAKING] to improve pickle support and multi processing capabilities, the attribute
+  `gym_env.observation_space._init_env` and `gym_env.observation_space.initial_obs_space`
+  have been deleted (for the `Dict` space only, for the other spaces like the `Box` they
+  were not present in the first place)
+- [BREAKING] in the `GymEnv` class now by default the underlying grid2op environment has no
+  forecast anymore in an attempt to make this wrapper faster AND more easily pickle-able. You can
+  retrieve the old behaviour by passing `gym_env = GymEnv(grid2op_env, with_forecast=True)`
 - [FIXED] a bug in the `MultiFolder` and `MultifolderWithCache` leading to the wrong 
   computation of `max_iter` on some corner cases
+- [FIXED] the function `cleanup_action_space()` did not work correctly when the "chronics_hander"
+  was not initialized for some classes
+- [FIXED] the `_observationClass` attribute of the "observation env" (used for simulate and forecasted env)
+  is now an Observation and not an Action.
+- [FIXED] a bug when deep copying an "observation environment" (it changes its class)
 - [FIXED] issue on `seed` and `MultifolderWithCache` which caused 
   https://github.com/rte-france/Grid2Op/issues/616 
 - [FIXED] another issue with the seeding of `MultifolderWithCache`: the seed was not used
@@ -81,18 +104,36 @@ Next release
   even before the "time series" are applied (and before the user defined thermal limits were set) 
   which could lead to disconnected powerlines even before the initial step (t=0, when time 
   series are loaded)
+- [FIXED] an issue with the "max_iter" for `FromNPY` time series generator
+- [FIXED] a bug in `MultiMixEnvironment` : a multi-mix could be created even if the underlying 
+  powergrids (for each mix) where not the same.
+- [FIXED] a bug in `generate_classes` (experimental_read_from_local_dir) with alert data.
+- [FIXED] a bug in the `Runner` when using multi processing on macos and windows OS: some non default
+  parameters where not propagated in the "child" process (bug in `runner._ger_params`)
 - [ADDED] possibility to skip some step when calling `env.reset(..., options={"init ts": ...})`
 - [ADDED] possibility to limit the duration of an episode with `env.reset(..., options={"max step": ...})`
 - [ADDED] possibility to specify the "reset_options" used in `env.reset` when
   using the runner with `runner.run(..., reset_options=xxx)`
-- [ADDED] the time series now are able to regenerate their "random" part 
+- [ADDED] the argument `mp_context` when building the runner to help pass a multiprocessing context in the
+  grid2op `Runner` 
+- [ADDED] the time series are now able to regenerate their "random" part 
   even when "cached" thanks to the addition of the `regenerate_with_new_seed` of the 
   `GridValue` class (in public API)
 - [ADDED] `MultifolderWithCache` now supports `FromHandlers` time series generator
+- [IMPROVED] more consistency in the way the classes are initialized at the creation of an environment
+- [IMPROVED] more consistency when an environment is copied (some attributes of the copied env were 
+  deep copied incorrectly)
+- [IMPROVED] Doc about the runner
 - [IMPROVED] the documentation on the `time series` folder.
 - [IMPROVED] now the "maintenance from json" (*eg* the `JSONMaintenanceHandler` or the 
   `GridStateFromFileWithForecastsWithMaintenance`) can be customized with the day 
   of the week where the maintenance happens (key `maintenance_day_of_week`)
+- [IMPROVED] in case of "`MultiMixEnvironment`" there is now only class generated for 
+  all the underlying mixes (instead of having one class per mixes)
+- [IMPROVED] the `EpisodeData` have now explicitely a mode where they can be shared accross 
+  processes (using `fork` at least), see `ep_data.make_serializable`
+- [IMPROVED] chronix2grid tests are now done independantly on the CI
+
 
 [1.10.2] - 2024-05-27
 -------------------------
@@ -885,7 +926,7 @@ Next release
   `Issue#185 <https://github.com/rte-france/Grid2Op/issues/185>`_ )
 - [IMPROVED] the seed of openAI gym for composed action space (see issue `https://github.com/openai/gym/issues/2166`):
   in waiting for an official fix, grid2op will use the solution proposed there
-  https://github.com/openai/gym/issues/2166#issuecomment-803984619 )
+  https://github.com/openai/gym/issues/2166#issuecomment-803984619
 
 [1.5.1] - 2021-04-15
 -----------------------

@@ -17,3 +17,5 @@ Some examples are given in "l2rpn-baselines":
 
 - `PPO with RLLIB <https://l2rpn-baselines.readthedocs.io/en/bd-dev/ppo_rllib.html>`_
 - `PPO with stable-baselines3 <hhttps://l2rpn-baselines.readthedocs.io/en/bd-dev/ppo_stable_baselines.html>`_
+
+.. include:: final.rst

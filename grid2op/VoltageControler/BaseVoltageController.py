@@ -23,7 +23,7 @@ class BaseVoltageController(RandomObject, ABC):
     If the voltages are not on the chronics (missing files), it will not change the voltage setpoints at all.
     """
 
-    def __init__(self, gridobj, controler_backend, actionSpace_cls):
+    def __init__(self, gridobj, controler_backend, actionSpace_cls, _local_dir_cls=None):
         """
 
         Parameters
@@ -39,7 +39,10 @@ class BaseVoltageController(RandomObject, ABC):
         legal_act = AlwaysLegal()
         self._actionSpace_cls = actionSpace_cls
         self.action_space = actionSpace_cls(
-            gridobj=gridobj, actionClass=VoltageOnlyAction, legal_action=legal_act
+            gridobj=gridobj,
+            actionClass=VoltageOnlyAction,
+            legal_action=legal_act,
+            _local_dir_cls=_local_dir_cls
         )
 
     def _custom_deepcopy_for_copy(self, new_obj):
