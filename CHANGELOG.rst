@@ -64,10 +64,8 @@ Next release
 - TODO L2RPN scores as reward (sum loads after the game over and have it in the final reward)
 - TODO on CI: test only gym, only gymnasium and keep current test for both gym and gymnasium
 
-[1.10.3] - 2024-07-yy
+[1.10.3] - 2024-07-12
 -------------------------
-- TODO Automatic "experimental_read_from_local_dir"
-
 - [BREAKING] `env.chronics_hander.set_max_iter(xxx)` is now a private function. Use 
   `env.set_max_iter(xxx)` or even better `env.reset(options={"max step": xxx})`. 
   Indeed, `env.chronics_hander.set_max_iter()` will likely have
