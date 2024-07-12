@@ -64,6 +64,10 @@ Next release
 - TODO L2RPN scores as reward (sum loads after the game over and have it in the final reward)
 - TODO on CI: test only gym, only gymnasium and keep current test for both gym and gymnasium
 
+[1.10.4] - 2024-xx-yy
+-------------------------
+
+
 [1.10.3] - 2024-07-12
 -------------------------
 - [BREAKING] `env.chronics_hander.set_max_iter(xxx)` is now a private function. Use 
