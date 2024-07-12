@@ -19,13 +19,15 @@ to manipulate.
 """
 import warnings
 import copy
+import os
 import numpy as np
+import sys
 from packaging import version
 from typing import Dict, Union, Literal, Any, List, Optional, ClassVar, Tuple
     
 import grid2op
 from grid2op.dtypes import dt_int, dt_float, dt_bool
-from grid2op.typing_variables import CLS_AS_DICT_TYPING
+from grid2op.typing_variables import CLS_AS_DICT_TYPING, N_BUSBAR_PER_SUB_TYPING
 from grid2op.Exceptions import *
 from grid2op.Space.space_utils import extract_from_dict, save_to_dict
 
@@ -635,7 +637,8 @@ class GridObjects:
         pass
 
     @classmethod
-    def set_n_busbar_per_sub(cls, n_busbar_per_sub: int) -> None:
+    def set_n_busbar_per_sub(cls, n_busbar_per_sub: N_BUSBAR_PER_SUB_TYPING) -> None:
+        # TODO n_busbar_per_sub different num per substations
         cls.n_busbar_per_sub = n_busbar_per_sub
         
     @classmethod
@@ -1364,7 +1367,7 @@ class GridObjects:
             self._init_class_attr(_topo_vect_only=True)
         cls = type(self)
         cls._compute_pos_big_topo_cls()
-
+        
     @classmethod
     def _compute_pos_big_topo_cls(cls):
         """
@@ -1395,8 +1398,9 @@ class GridObjects:
         ):
             # no storage on the grid, so i deactivate them
             cls.set_no_storage()
-        cls._compute_sub_elements()
-        cls._compute_sub_pos()
+        cls._compute_sub_elements()  # fill the dim_topo and sub_info attributes
+        cls._compute_sub_pos()  # fill the _to_sub_pos attributes
+        cls._fill_names()  # fill the name_xxx attributes
 
         cls.load_pos_topo_vect = cls._aux_pos_big_topo(
             cls.load_to_subid, cls.load_to_sub_pos
@@ -1609,19 +1613,22 @@ class GridObjects:
             cls._reset_cls_dict()
             
         if cls.shunts_data_available and cls.name_shunt is None:
-            cls.name_shunt = [
-                "shunt_{}_{}".format(bus_id, sh_id)
-                for sh_id, bus_id in enumerate(cls.shunt_to_subid)
-            ]
-            cls.name_shunt = np.array(cls.name_shunt)
-            warnings.warn(
-                "name_shunt is None so default storage unit names have been assigned to your grid. "
-                "(FYI: storage names are used to make the correspondence between the chronics and "
-                "the backend)"
-                "This might result in impossibility to load data."
-                '\n\tIf "env.make" properly worked, you can safely ignore this warning.'
-            )
-            cls._reset_cls_dict()
+            if cls.shunt_to_subid is not None:
+                # used for legacy lightsim2grid
+                # shunt names were defined after...
+                cls.name_shunt = [
+                    "shunt_{}_{}".format(bus_id, sh_id)
+                    for sh_id, bus_id in enumerate(cls.shunt_to_subid)
+                ]
+                cls.name_shunt = np.array(cls.name_shunt)
+                warnings.warn(
+                    "name_shunt is None so default shunt names have been assigned to your grid. "
+                    "(FYI: shunt names are used to make the correspondence between the chronics and "
+                    "the backend)"
+                    "This might result in impossibility to load data."
+                    '\n\tIf "env.make" properly worked, you can safely ignore this warning.'
+                )
+                cls._reset_cls_dict()
 
     @classmethod
     def _check_names(cls):
@@ -2019,10 +2026,21 @@ class GridObjects:
         # TODO refactor this method with the `_check***` methods.
         # TODO refactor the `_check***` to use the same "base functions" that would be coded only once.
 
-        if cls.n_busbar_per_sub != int(cls.n_busbar_per_sub):
-            raise EnvError(f"`n_busbar_per_sub` should be convertible to an integer, found {cls.n_busbar_per_sub}")
-        cls.n_busbar_per_sub = int(cls.n_busbar_per_sub)
-        if cls.n_busbar_per_sub < 1:
+        # TODO n_busbar_per_sub different num per substations
+        if isinstance(cls.n_busbar_per_sub, (int, dt_int, np.int32, np.int64)):
+            cls.n_busbar_per_sub = dt_int(cls.n_busbar_per_sub)
+                                   # np.full(cls.n_sub,
+                                   #         fill_value=cls.n_busbar_per_sub,
+                                   #         dtype=dt_int)
+        else:
+            # cls.n_busbar_per_sub = np.array(cls.n_busbar_per_sub)
+            # cls.n_busbar_per_sub = cls.n_busbar_per_sub.astype(dt_int)
+            raise EnvError("Grid2op cannot handle a different number of busbar per substations at the moment.")
+        
+        # if cls.n_busbar_per_sub != int(cls.n_busbar_per_sub):
+            # raise EnvError(f"`n_busbar_per_sub` should be convertible to an integer, found {cls.n_busbar_per_sub}")
+        # cls.n_busbar_per_sub = int(cls.n_busbar_per_sub)
+        if (cls.n_busbar_per_sub < 1).any():
             raise EnvError(f"`n_busbar_per_sub` should be >= 1 found {cls.n_busbar_per_sub}")
             
         if cls.n_gen <= 0:
@@ -2334,14 +2352,14 @@ class GridObjects:
             
             # the "alarm" feature is supported
             assert isinstance(
-                cls.alarms_area_names, list
-            ), "cls.alarms_area_names should be a list"
+                cls.alarms_area_names, (list, tuple)
+            ), "cls.alarms_area_names should be a list or a tuple"
             assert isinstance(
                 cls.alarms_lines_area, dict
             ), "cls.alarms_lines_area should be a dict"
             assert isinstance(
-                cls.alarms_area_lines, list
-            ), "cls.alarms_area_lines should be a dict"
+                cls.alarms_area_lines, (list, tuple)
+            ), "cls.alarms_area_lines should be a list or a tuple"
             assert (
                 len(cls.alarms_area_names) == cls.dim_alarms
             ), "len(cls.alarms_area_names) != cls.dim_alarms"
@@ -2860,7 +2878,48 @@ class GridObjects:
         cls.env_name = name
 
     @classmethod
-    def init_grid(cls, gridobj, force=False, extra_name=None, force_module=None):
+    def _aux_init_grid_from_cls(cls, gridobj, name_res):
+        import importlib
+        # NB: these imports needs to be consistent with what is done in
+        # base_env.generate_classes()
+        super_module_nm, module_nm = os.path.split(gridobj._PATH_GRID_CLASSES)
+        if module_nm == "_grid2op_classes":
+            # legacy "experimental_read_from_local_dir"
+            # issue was the module "_grid2op_classes" had the same name
+            # regardless of the environment, so grid2op was "confused"
+            env_path, env_nm = os.path.split(super_module_nm)
+            if env_path not in sys.path:
+                sys.path.append(env_path)
+            super_supermodule = importlib.import_module(env_nm)
+            module_nm = f"{env_nm}.{module_nm}"
+            super_module_nm = super_supermodule
+        
+        if f"{module_nm}.{name_res}_file" in sys.modules:
+            cls_res = getattr(sys.modules[f"{module_nm}.{name_res}_file"], name_res)
+            # do not forget to create the cls_dict once and for all
+            if cls_res._CLS_DICT is None:
+                tmp = {}
+                cls_res._make_cls_dict_extended(cls_res, tmp, as_list=False)
+            return cls_res
+        
+        super_module = importlib.import_module(module_nm, super_module_nm)  # env/path/_grid2op_classes/
+        module_all_classes = importlib.import_module(f"{module_nm}")  # module specific to the tmpdir created
+        try:
+            module = importlib.import_module(f".{name_res}_file", package=module_nm)  # module containing the definition of the class
+        except ModuleNotFoundError:
+            # in case we need to build the cache again if the module is not found the first time
+            importlib.invalidate_caches()
+            importlib.reload(super_module)
+            module = importlib.import_module(f".{name_res}_file", package=module_nm)
+        cls_res = getattr(module, name_res)
+        # do not forget to create the cls_dict once and for all
+        if cls_res._CLS_DICT is None:
+            tmp = {}
+            cls_res._make_cls_dict_extended(cls_res, tmp, as_list=False)
+        return cls_res
+    
+    @classmethod
+    def init_grid(cls, gridobj, force=False, extra_name=None, force_module=None, _local_dir_cls=None):
         """
         INTERNAL
 
@@ -2900,20 +2959,45 @@ class GridObjects:
             # with shunt and without shunt, then
             # there might be issues
             name_res += "_noshunt"
-            
+        
+        # TODO n_busbar_per_sub different num per substations: if it's a vector, use some kind of hash of it
+        # for the name of the class !
         if gridobj.n_busbar_per_sub != DEFAULT_N_BUSBAR_PER_SUB:
             # to be able to load same environment with
             # different `n_busbar_per_sub`
             name_res += f"_{gridobj.n_busbar_per_sub}"
+                
+        if _local_dir_cls is not None and gridobj._PATH_GRID_CLASSES is not None:
+            # new in grid2op 1.10.3:
+            # if I end up here it's because (done in base_env.generate_classes()):
+            # 1) the first initial env has already been created
+            # 2) I need to init the class from the files (and not from whetever else)
+            # So i do it. And if that is the case, the files are created on the hard drive
+            # AND the module is added to the path
+            
+            # check that it matches (security / consistency check)
+            if not os.path.samefile(_local_dir_cls.name ,  gridobj._PATH_GRID_CLASSES):
+                # in windows the string comparison fails because of things like "/", "\" or "\\"
+                # this is why we use "samefile"
+                raise EnvError(f"Unable to create the class: mismatch between "
+                               f"_local_dir_cls ({_local_dir_cls.name}) and " 
+                               f" _PATH_GRID_CLASSES ({gridobj._PATH_GRID_CLASSES})")
+            return cls._aux_init_grid_from_cls(gridobj, name_res)
+        elif gridobj._PATH_GRID_CLASSES is not None:
+            # If I end up it's because the environment is created with already initialized
+            # classes.
+            return cls._aux_init_grid_from_cls(gridobj, name_res)
         
+        # legacy behaviour: build the class "on the fly"
+        # of new (>= 1.10.3 for the intial creation of the environment)
         if name_res in globals():
-            if not force:
+            if not force and _local_dir_cls is None:
                 # no need to recreate the class, it already exists
                 return globals()[name_res]
             else:
                 # i recreate the variable
                 del globals()[name_res]
-
+            
         cls_attr_as_dict = {}
         GridObjects._make_cls_dict_extended(gridobj, cls_attr_as_dict, as_list=False)
         res_cls = type(name_res, (cls,), cls_attr_as_dict)
@@ -4089,10 +4173,16 @@ class GridObjects:
             cls.glop_version = cls.BEFORE_COMPAT_VERSION
 
         if "_PATH_GRID_CLASSES" in dict_:
-            cls._PATH_GRID_CLASSES = str(dict_["_PATH_GRID_CLASSES"])
+            if dict_["_PATH_GRID_CLASSES"] is not None:
+                cls._PATH_GRID_CLASSES = str(dict_["_PATH_GRID_CLASSES"])
+            else:
+                cls._PATH_GRID_CLASSES = None  
         elif "_PATH_ENV" in dict_:
             # legacy mode in grid2op <= 1.10.1 this was saved in "PATH_ENV"
-            cls._PATH_GRID_CLASSES = str(dict_["_PATH_ENV"])
+            if dict_["_PATH_ENV"] is not None:
+                cls._PATH_GRID_CLASSES = str(dict_["_PATH_ENV"])
+            else:
+                cls._PATH_GRID_CLASSES = None
         else:
             cls._PATH_GRID_CLASSES = None
         
@@ -4849,11 +4939,11 @@ class {cls.__name__}({cls._INIT_GRID_CLS.__name__}):
 
     # name of the objects
     env_name = "{cls.env_name}"
-    name_load = np.array([{name_load_str}])
-    name_gen = np.array([{name_gen_str}])
-    name_line = np.array([{name_line_str}])
-    name_sub = np.array([{name_sub_str}])
-    name_storage = np.array([{name_storage_str}])
+    name_load = np.array([{name_load_str}], dtype=str)
+    name_gen = np.array([{name_gen_str}], dtype=str)
+    name_line = np.array([{name_line_str}], dtype=str)
+    name_sub = np.array([{name_sub_str}], dtype=str)
+    name_storage = np.array([{name_storage_str}], dtype=str)
 
     n_busbar_per_sub = {cls.n_busbar_per_sub}
     n_gen = {cls.n_gen}
@@ -4917,7 +5007,7 @@ class {cls.__name__}({cls._INIT_GRID_CLS.__name__}):
     gen_renewable = {gen_renewable_str}
 
     # storage unit static data
-    storage_type = np.array([{storage_type_str}])
+    storage_type = np.array([{storage_type_str}], dtype=str)
     storage_Emax = {storage_Emax_str}
     storage_Emin = {storage_Emin_str}
     storage_max_p_prod = {storage_max_p_prod_str}
@@ -4947,7 +5037,7 @@ class {cls.__name__}({cls._INIT_GRID_CLS.__name__}):
     alarms_area_lines = {alarms_area_lines_str}
 
     # alert feature
-    dim_alert = {cls.dim_alerts}
+    dim_alerts = {cls.dim_alerts}
     alertable_line_names = {alertable_line_names_str}
     alertable_line_ids = {alertable_line_ids_str}
 

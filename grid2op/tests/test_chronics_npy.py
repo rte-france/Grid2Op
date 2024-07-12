@@ -29,7 +29,9 @@ class TestNPYChronics(unittest.TestCase):
         self.env_name = "l2rpn_case14_sandbox"
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            self.env_ref = grid2op.make(self.env_name, test=True, _add_to_name=type(self).__name__)
+            self.env_ref = grid2op.make(self.env_name,
+                                        test=True,
+                                        _add_to_name=type(self).__name__)
 
         self.load_p = 1.0 * self.env_ref.chronics_handler.real_data.data.load_p
         self.load_q = 1.0 * self.env_ref.chronics_handler.real_data.data.load_q
@@ -105,7 +107,7 @@ class TestNPYChronics(unittest.TestCase):
             ), f"error at iteration {ts}"
             obs, *_ = env.step(env.action_space())
             assert np.all(obs_ref.gen_p == obs.gen_p), f"error at iteration {ts}"
-        assert obs.max_step == END
+        assert obs.max_step == END - LAG, f"{obs.max_step} vs {END - LAG}"
         with self.assertRaises(Grid2OpException):
             env.step(
                 env.action_space()

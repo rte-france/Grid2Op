@@ -222,6 +222,7 @@ class FromNPY(GridValue):
             )
         
         self._init_state = init_state
+        self._max_iter = min(self._i_end - self._i_start, load_p.shape[0])
 
     def initialize(
         self,
@@ -252,6 +253,7 @@ class FromNPY(GridValue):
 
         self.curr_iter = 0
         self.current_index = self._i_start - 1
+        self._max_iter = self._i_end - self._i_start
 
     def _get_long_hash(self, hash_: hashlib.blake2b = None):
         # get the "long hash" from blake2b
@@ -420,6 +422,7 @@ class FromNPY(GridValue):
             # update the forecast
             self._forecasts.next_chronics()
         self.check_validity(backend=None)
+        self._max_iter = self._i_end - self._i_start
 
     def done(self):
         """
@@ -648,6 +651,7 @@ class FromNPY(GridValue):
             self.__new_istart = int(new_i_start)
         else:
             self.__new_istart = None
+            
 
     def change_i_end(self, new_i_end: Union[int, None]):
         """

@@ -6,6 +6,9 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
+import logging
+import copy
+
 from grid2op.Space import SerializableSpace
 from grid2op.Observation.completeObservation import CompleteObservation
 
@@ -27,7 +30,7 @@ class SerializableObservationSpace(SerializableSpace):
 
     """
 
-    def __init__(self, gridobj, observationClass=CompleteObservation, _init_grid=True):
+    def __init__(self, gridobj, observationClass=CompleteObservation, logger=None, _init_grid=True, _local_dir_cls=None):
         """
 
         Parameters
@@ -40,16 +43,26 @@ class SerializableObservationSpace(SerializableSpace):
 
         """
         SerializableSpace.__init__(
-            self, gridobj=gridobj, subtype=observationClass, _init_grid=_init_grid
+            self, gridobj=gridobj,
+            subtype=observationClass,
+            _init_grid=_init_grid,
+            _local_dir_cls=_local_dir_cls
         )
         self.observationClass = self.subtype
         self._empty_obs = self._template_obj
+        
+        if logger is None:
+            self.logger = logging.getLogger(__name__)
+            self.logger.disabled = True
+        else:
+            self.logger: logging.Logger = logger.getChild("grid2op_ObsSpace")
 
     def _custom_deepcopy_for_copy(self, new_obj):
         super()._custom_deepcopy_for_copy(new_obj)
         # SerializableObservationSpace
         new_obj.observationClass = self.observationClass  # const
         new_obj._empty_obs = self._template_obj  # const
+        new_obj.logger = copy.deepcopy(self.logger)
 
     @staticmethod
     def from_dict(dict_):

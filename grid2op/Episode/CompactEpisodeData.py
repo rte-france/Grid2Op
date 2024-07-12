@@ -300,3 +300,17 @@ class CompactEpisodeData():
     
     def __len__(self):
         return self.game_over_timestep
+    
+    def make_serializable(self):
+        """
+        INTERNAL
+
+         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+            Used by he runner to serialize properly an episode
+
+        Called in the _aux_run_one_episode (one of the Runner auxilliary function) to make 
+        sure the EpisodeData can be sent back to the main process withtout issue (otherwise
+        there is a complain about the _ObsEnv)
+        """
+        from grid2op.Episode.EpisodeData import EpisodeData
+        EpisodeData._aux_make_obs_space_serializable(self)

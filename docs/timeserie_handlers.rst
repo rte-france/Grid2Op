@@ -344,3 +344,5 @@ Detailed Documentation by class
 .. automodule:: grid2op.Chronics.handlers
     :members:
     :autosummary:
+
+.. include:: final.rst

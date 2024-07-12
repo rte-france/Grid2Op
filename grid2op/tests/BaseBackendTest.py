@@ -2190,11 +2190,13 @@ class BaseTestResetEqualsLoadGrid(MakeBackend):
 
     def test_reset_equals_reset(self):
         self.skip_if_needed()
-        # Reset backend1 with reset
-        self.env1.reset()
-        # Reset backend2 with reset
-        self.env2.reset()
-        self._compare_backends()
+        with warnings.catch_warnings():
+            warnings.filterwarnings("error")
+            # Reset backend1 with reset
+            self.env1.reset()
+            # Reset backend2 with reset
+            self.env2.reset()
+            self._compare_backends()
 
     def _compare_backends(self):
         # Compare

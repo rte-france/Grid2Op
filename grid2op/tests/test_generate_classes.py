@@ -20,11 +20,12 @@ import pdb
 class TestGenerateFile(unittest.TestCase):
     def _aux_assert_exists_then_delete(self, env):
         if isinstance(env, MultiMixEnvironment):
-            for mix in env:
-                self._aux_assert_exists_then_delete(mix)
+            # for mix in env:
+                # self._aux_assert_exists_then_delete(mix)
+            self._aux_assert_exists_then_delete(env.mix_envs[0])
         elif isinstance(env, Environment):
             path = Path(env.get_path_env()) / "_grid2op_classes"
-            assert path.exists()
+            assert path.exists(), f"path {path} does not exists"
             shutil.rmtree(path, ignore_errors=True)
         else:
             raise RuntimeError("Unknown env type")
@@ -37,33 +38,37 @@ class TestGenerateFile(unittest.TestCase):
     
     def test_can_generate(self):
         for env_nm in self.list_env():
-            with warnings.catch_warnings():
-                warnings.filterwarnings("ignore")
-                env = grid2op.make(env_nm, test=True, _add_to_name=type(self).__name__+"test_generate")
-            env.generate_classes()
-            self._aux_assert_exists_then_delete(env)
-            env.close()
+            try:
+                with warnings.catch_warnings():
+                    warnings.filterwarnings("ignore")
+                    env = grid2op.make(env_nm, test=True, _add_to_name=type(self).__name__+"test_generate")
+                env.generate_classes()
+            finally:
+                self._aux_assert_exists_then_delete(env)
+                env.close()
         
     def test_can_load(self):
+        _add_to_name = type(self).__name__+"test_load"
         for env_nm in self.list_env():
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore")
-                env = grid2op.make(env_nm, test=True, _add_to_name=type(self).__name__+"_TestGenerateFile")
+                env = grid2op.make(env_nm,
+                                   test=True,
+                                   _add_to_name=_add_to_name)
             env.generate_classes()
-            
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore")
                 try:
                     env2 = grid2op.make(env_nm,
                                         test=True,
                                         experimental_read_from_local_dir=True,
-                                        _add_to_name=type(self).__name__)
+                                        _add_to_name=_add_to_name)
                     env2.close()
                 except RuntimeError as exc_:
                     raise RuntimeError(f"Error for {env_nm}") from exc_
             self._aux_assert_exists_then_delete(env)
             env.close()
         
+        
 if __name__ == "__main__":
     unittest.main()
-        

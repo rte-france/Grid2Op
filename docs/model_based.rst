@@ -378,3 +378,5 @@ And for the `ExampleAgent2`:
                     res = strat[0]  # action is the first one of the best strategy
                     highest_score = ts_survived
             return res
+
+.. include:: final.rst

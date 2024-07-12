@@ -20,13 +20,17 @@ from grid2op.gym_compat import (
     ScalerAttrConverter,
 )
 
+_NAME_FOR_THIS_TEST = __name__ + "for_mp_test"
+
 
 with warnings.catch_warnings():
     # this needs to be imported in the main module for multiprocessing to work "approximately"
     warnings.filterwarnings("ignore")
-    _ = grid2op.make("l2rpn_case14_sandbox", test=True, _add_to_name=__name__+"for_mp_test")
-
-
+    _ = grid2op.make("l2rpn_case14_sandbox",
+                     test=True,
+                     _add_to_name=_NAME_FOR_THIS_TEST)
+    
+    
 class TestMultiProc(unittest.TestCase):
     @staticmethod
     def f(env_gym):
@@ -41,7 +45,9 @@ class TestMultiProc(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env = grid2op.make(
-                "l2rpn_case14_sandbox", test=True, _add_to_name=__name__+"for_mp_test"
+                "l2rpn_case14_sandbox",
+                test=True,
+                _add_to_name=_NAME_FOR_THIS_TEST
             )
         env_gym = GymEnv(env)
 
@@ -71,15 +77,15 @@ class TestMultiProc(unittest.TestCase):
             ["rho", "gen_p", "load_p", "topo_vect", "actual_dispatch"]
         )
         ob_space = ob_space.reencode_space(
-            "actual_dispatch", ScalerAttrConverter(substract=0.0, divide=env.gen_pmax)
+            "actual_dispatch", ScalerAttrConverter(substract=0.0, divide=1. * type(env).gen_pmax)
         )
         ob_space = ob_space.reencode_space(
-            "gen_p", ScalerAttrConverter(substract=0.0, divide=env.gen_pmax)
+            "gen_p", ScalerAttrConverter(substract=0.0, divide=1. * type(env).gen_pmax)
         )
         ob_space = ob_space.reencode_space(
             "load_p",
             ScalerAttrConverter(
-                substract=obs_gym["load_p"], divide=0.5 * obs_gym["load_p"]
+                substract=1. * obs_gym["load_p"], divide=0.5 * obs_gym["load_p"]
             ),
         )
         env_gym.observation_space = ob_space
@@ -95,4 +101,11 @@ class TestMultiProc(unittest.TestCase):
 
 
 if __name__ == "__main__":
+    with warnings.catch_warnings():
+        # this needs to be imported in the main module for multiprocessing to work "approximately"
+        warnings.filterwarnings("ignore")
+        _ = grid2op.make("l2rpn_case14_sandbox",
+                         test=True,
+                         _add_to_name=__name__+"for_mp_test")
+
     unittest.main()

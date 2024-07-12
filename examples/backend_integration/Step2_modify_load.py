@@ -69,7 +69,7 @@ class CustomBackend_Step2(CustomBackend_Step1):
 if __name__ == "__main__":
     import grid2op
     import os
-    from Step0_make_env import make_env_for_backend
+    from Step0_make_env import make_env_for_backend, create_action
     
     path_grid2op = grid2op.__file__
     path_data_test = os.path.join(os.path.split(path_grid2op)[0], "data")
@@ -105,8 +105,7 @@ if __name__ == "__main__":
     # have the proper size)
     
     # this is technical to grid2op (done internally)
-    bk_act = env._backend_action_class()
-    bk_act += action
+    bk_act = create_action(env, backend, action)
     #############
     
     # this is what the backend receive:

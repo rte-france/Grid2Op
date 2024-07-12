@@ -13,6 +13,7 @@ import unittest
 import pdb
 import packaging
 from packaging import version
+import inspect
 
 from grid2op.tests.helper_path_test import *
 
@@ -518,6 +519,7 @@ class TestRunner(HelperTests, unittest.TestCase):
             "1.9.8",
             "1.10.0",
             "1.10.1",
+            "1.10.2",
         ]
         curr_version = "test_version"
         assert (
@@ -636,6 +638,28 @@ class TestRunner(HelperTests, unittest.TestCase):
         assert ep_data.ambiguous[1]
         assert not ep_data.ambiguous[2]
         assert not ep_data.ambiguous[3]
+        
+    def test_get_params(self):
+        """test the runner._get_params() function (used in multiprocessing context)
+        can indeed make a runner with all its arguments modified (proper 'copy' of the runner)
+        """
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = grid2op.make("l2rpn_case14_sandbox", test=True, chronics_class=ChangeNothing,
+                               _add_to_name=type(self).__name__)   
+                     
+            runner = Runner(**env.get_params_for_runner(), agentClass=AgentTestLegalAmbiguous)
+        made_params = runner._get_params()
+        ok_params =  inspect.signature(Runner.__init__).parameters
+        for k in made_params.keys():
+            assert k in ok_params, f"params {k} is returned in runner._get_params() but cannot be used to make a runner"
+            
+        for k in ok_params.keys():
+            if k == "self":
+                continue
+            assert k in made_params, f"params {k} is used to make a runner but is not returned in runner._get_params()"
+        
+        
 
 
 if __name__ == "__main__":

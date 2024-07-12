@@ -297,11 +297,10 @@ class TestMultiMixEnvironment(unittest.TestCase):
 
     def test_bracket_access_by_name(self):
         mme = MultiMixEnvironment(PATH_DATA_MULTIMIX, _test=True)
-
         mix1_env = mme["case14_001"]
-        assert mix1_env.name == "case14_001"
+        assert mix1_env.multimix_mix_name == "case14_001"
         mix2_env = mme["case14_002"]
-        assert mix2_env.name == "case14_002"
+        assert mix2_env.multimix_mix_name == "case14_002"
         with self.assertRaises(KeyError):
             unknown_env = mme["unknown_raise"]
 
@@ -312,7 +311,7 @@ class TestMultiMixEnvironment(unittest.TestCase):
             mix = mme[k]
             assert mix is not None
             assert isinstance(mix, BaseEnv)
-            assert mix.name == k
+            assert mix.multimix_mix_name == k
 
     def test_values_access(self):
         mme = MultiMixEnvironment(PATH_DATA_MULTIMIX, _test=True)
@@ -320,7 +319,7 @@ class TestMultiMixEnvironment(unittest.TestCase):
         for v in mme.values():
             assert v is not None
             assert isinstance(v, BaseEnv)
-            assert v == mme[v.name]
+            assert v == mme[v.multimix_mix_name]
 
     def test_values_unique(self):
         mme = MultiMixEnvironment(PATH_DATA_MULTIMIX, _test=True)

@@ -19,7 +19,11 @@ class ControlVoltageFromFile(BaseVoltageController):
     If the voltages are not on the chronics (missing files), it will not change the voltage setpoint at all.
     """
 
-    def __init__(self, gridobj, controler_backend, actionSpace_cls):
+    def __init__(self,
+                 gridobj,
+                 controler_backend,
+                 actionSpace_cls,
+                 _local_dir_cls=None):
         """
 
         Parameters
@@ -36,6 +40,7 @@ class ControlVoltageFromFile(BaseVoltageController):
             gridobj=gridobj,
             controler_backend=controler_backend,
             actionSpace_cls=actionSpace_cls,
+            _local_dir_cls=_local_dir_cls
         )
 
     def fix_voltage(self, observation, agent_action, env_action, prod_v_chronics):

@@ -212,3 +212,7 @@ class NoisyForecastHandler(PerfectForecastHandler):
                     res *= self._env_loss_ratio(inj_dict_env)
                 # TODO ramps, pmin, pmax !
         return res.astype(dt_float) if res is not None else None
+
+    def regenerate_with_new_seed(self):
+        # there is nothing to do for this handler as things are generated "on the fly"
+        pass

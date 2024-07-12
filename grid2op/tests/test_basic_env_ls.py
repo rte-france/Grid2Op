@@ -132,8 +132,8 @@ class TestBasicEnvironmentRunner(unittest.TestCase):
         res_in, *_ = runner_in.run(nb_episode=1, max_iter=self.max_iter, env_seeds=[0], episode_id=[0], add_detailed_output=True)
         res_in2, *_ = runner_in.run(nb_episode=1, max_iter=self.max_iter, env_seeds=[0], episode_id=[0])
         # check correct results are obtained when agregated
-        assert res_in[3] == 10
-        assert res_in2[3] == 10
+        assert res_in[3] == self.max_iter, f"{res_in[3]} vs {self.max_iter}"
+        assert res_in2[3] == self.max_iter, f"{res_in[3]} vs {self.max_iter}"
         assert np.allclose(res_in[2], 645.4992065)
         assert np.allclose(res_in2[2], 645.4992065)
         
