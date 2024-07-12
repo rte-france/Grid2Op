@@ -63,6 +63,8 @@ Next release
 - TODO in multi-mix increase the reset options with the mix the user wants
 - TODO L2RPN scores as reward (sum loads after the game over and have it in the final reward)
 - TODO on CI: test only gym, only gymnasium and keep current test for both gym and gymnasium
+- TODO work on the reward class (see https://github.com/rte-france/Grid2Op/issues/584)
+
 
 [1.10.4] - 2024-xx-yy
 -------------------------
