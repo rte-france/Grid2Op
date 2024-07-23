@@ -3795,7 +3795,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 "Impossible to make a step with a non initialized backend. Have you called "
                 '"env.reset()" after the last game over ?'
             )
-        # I did something after calling "env.seed()" which is
+        # Did something after calling "env.seed()" which is
         # somehow "env.step()" or "env.reset()"
         self._has_just_been_seeded =  False  
         
@@ -3814,12 +3814,12 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._is_alert_used_in_reward = False
         except_ = []
         detailed_info = []
-        init_disp = 1.0 * action._redispatch  # dispatching action
+        init_disp = 1.0 * action._redispatch  # Dispatching action
         init_alert = None
         if cls.dim_alerts > 0:
             init_alert = copy.deepcopy(action._raise_alert)
             
-        action_storage_power = 1.0 * action._storage_power  # battery information
+        action_storage_power = 1.0 * action._storage_power  # Battery information
         attack_duration = 0
         lines_attacked, subs_attacked = None, None
         conv_ = None
@@ -3829,25 +3829,23 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         beg_step = time.perf_counter()
         self._last_obs : Optional[BaseObservation] = None
-        self._forecasts = None  # force reading the forecast from the time series
+        self._forecasts = None  # Force to read the forecast from the time series
         try:
             beg_ = time.perf_counter()
 
             ambiguous, except_tmp = action.is_ambiguous()
             if ambiguous:
-                # action is replace by do nothing
+                # Action is replaced by DoNothing
                 action = self._action_space({})
-                init_disp = 1.0 * action._redispatch  # dispatching action
-                action_storage_power = (
-                    1.0 * action._storage_power
-                )  # battery information
+                init_disp = 1.0 * action._redispatch # Dispatching action
+                action_storage_power = (1.0 * action._storage_power)  # Battery information
                 is_ambiguous = True
                     
                 if cls.dim_alerts > 0:
-                    # keep the alert even if the rest is ambiguous (if alert is non ambiguous)
+                    # Keep the alert even if the rest is ambiguous (if alert is non-ambiguous)
                     is_ambiguous_alert = isinstance(except_tmp, AmbiguousActionRaiseAlert)
                     if is_ambiguous_alert:
-                        # reset the alert
+                        # Reset the alert
                         init_alert = np.zeros(cls.dim_alerts, dtype=dt_bool)
                     else:
                         action.raise_alert = init_alert
@@ -3855,31 +3853,27 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
             is_legal, reason = self._game_rules(action=action, env=self)
             if not is_legal:
-                # action is replace by do nothing
+                # Action is replaced by do nothing
                 action = self._action_space({})
-                init_disp = 1.0 * action._redispatch  # dispatching action
-                action_storage_power = (
-                    1.0 * action._storage_power
-                )  # battery information
+                init_disp = 1.0 * action._redispatch # Dispatching action
+                action_storage_power = (1.0 * action._storage_power)  # Battery information
                 except_.append(reason)
                 if cls.dim_alerts > 0:
-                    # keep the alert even if the rest is illegal
+                    # Keep the alert even if the rest is illegal
                     action.raise_alert = init_alert
                 is_illegal = True
 
             if self._has_attention_budget:
                 if cls.assistant_warning_type == "zonal":
-                    # this feature is implemented, so i do it
-                    reason_alarm_illegal = self._attention_budget.register_action(
-                        self, action, is_illegal, is_ambiguous
-                    )
+                    # This feature is implemented, so do it
+                    reason_alarm_illegal = self._attention_budget.register_action(self,
+                                                action, is_illegal, is_ambiguous)
                     self._is_alarm_illegal = reason_alarm_illegal is not None
 
             # Get the modification of generator active setpoint from the environment
             self._env_modification, prod_v_chronics = self._update_actions()
-            self._env_modification._single_act = (
-                False  # because it absorbs all redispatching actions
-            )
+            # False: Because it absorbs all redispatching actions
+            self._env_modification._single_act = (False)
             new_p = self._get_new_prod_setpoint(action)
             new_load_p = self._get_new_load_setpoint(action)
             new_p_th = 1.0 * new_p
@@ -3887,21 +3881,22 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             
             # Storage unit
             if cls.n_storage > 0:
-                # Limiting of charge/discharge of storage units is done in `_aux_apply_redisp`
-                # This only ensures the Emin / Emax of storage for all the actions
+                # Ensures the Emin / Emax of storage for all the actions
+                # Note: Limiting of charge/discharge of storage units is done in `_aux_apply_redisp`
                 self._compute_storage(action_storage_power)
 
             # Curtailment
-            # Note: No attempt is made here to "limit" it for feasability
+            # Note: No attempt is made here to "limit" curtailment for feasability
             self._gen_before_curtailment[self.gen_renewable] = new_p[self.gen_renewable]
             gen_curtailed = self._aux_handle_curtailment_without_limit(action, new_p)
 
-            # Redispatch (also includes Flexibility)
+            # Redispatch + Flexibility
             beg__redisp = time.perf_counter()
-            if cls.redispatching_unit_commitment_available or cls.n_storage > 0.0:
-                # this computes the "optimal" redispatching
-                # and it is also in this function that the limiting of the curtailment / storage actions
-                # is perform to make the state "feasible"
+            if cls.redispatching_unit_commitment_available or cls.flexible_load_available or cls.n_storage > 0.0 :
+                # This computes the "optimal" redispatching of generators and flexibility adjustment
+                # of loads
+                # Note: It is in this function that the limiting of the curtailment / storage actions
+                # is performed to make the state "feasible"
                 res_disp = self._aux_apply_redisp(action, new_p, new_p_th, new_load_p, new_load_p_th, gen_curtailed, except_)
                 action, is_illegal_redisp, is_illegal_reco, is_done = res_disp
             self._time_redisp += time.perf_counter() - beg__redisp
@@ -3909,15 +3904,13 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             if not is_done:
                 self._aux_update_backend_action(action, action_storage_power, init_disp)
 
-                # now get the new generator voltage setpoint
+                # Now get the new generator voltage setpoint
                 voltage_control_act = self._voltage_control(action, prod_v_chronics)
                 self._backend_action += voltage_control_act
 
-                # handle the opponent here
+                # Handle the opponent here
                 tick = time.perf_counter()
-                lines_attacked, subs_attacked, attack_duration = self._aux_handle_attack(
-                    action
-                )
+                lines_attacked, subs_attacked, attack_duration = self._aux_handle_attack(action)
                 tock = time.perf_counter()
                 self._time_opponent += tock - tick
                 self._time_create_bk_act += tock - beg_
@@ -3927,12 +3920,12 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                     has_error = True
                     except_.append(exc_)
                     is_done = True
-                    # TODO in this case: cancel the topological action of the agent
+                    # TODO: Cancel the topological action of the agent
                     # and continue instead of "game over"
                 self._time_apply_act += time.perf_counter() - beg_
 
-                # now it's time to run the powerflow properly
-                # and to update the time dependant properties
+                # Run the PowerFlow
+                # + Update the time-dependent properties
                 if not is_done:
                     self._update_alert_properties(action, lines_attacked, subs_attacked)
                     detailed_info, has_error = self._aux_run_pf_after_state_properly_set(
@@ -3941,7 +3934,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             else:
                 has_error = True
         except StopIteration:
-            # episode is over
+            # Episode is over
             is_done = True
             
         self._backend_action.reset()
@@ -3976,13 +3969,13 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self.current_reward, other_reward = self._get_reward(
             action,
             has_error,
-            self.done,  # is_done
+            self.done, # 'is_done'
             is_illegal or is_illegal_redisp or is_illegal_reco,
             is_ambiguous,
         )
         self.infos["rewards"] = other_reward
         if has_error and self.current_obs is not None:
-            # forward to the observation if an alarm is used or not
+            # Forward to the observation if an alarm is used or not
             if hasattr(self._reward_helper.template_reward, "has_alarm_component"):
                 self._is_alarm_used_in_reward = (
                     self._reward_helper.template_reward.is_alarm_used
@@ -3992,14 +3985,14 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                     self._reward_helper.template_reward.is_alert_used
                 )
             self.current_obs = self.get_obs(_update_state=False, _do_copy=False)
-            # update the observation so when it's plotted everything is "shutdown"
+            # Update the observation so when it's plotted everything is "shutdown"
             self.current_obs.set_game_over(self)
             
         if self._update_obs_after_reward and self.current_obs is not None:
             # transfer some information computed in the reward into the obs (if any)
             self.current_obs.update_after_reward(self)
             
-        # TODO documentation on all the possible way to be illegal now
+        # TODO: Documentation on all the possible way to be illegal now
         if self.done:
             self.__is_init = False
         return self.current_obs, self.current_reward, self.done, self.infos
