@@ -150,6 +150,21 @@ class GeneratorTurnedOffTooSoon(InvalidRedispatching):
 
     pass
 
+class LoadTurnedOnTooSoon(InvalidRedispatching):
+    """
+    This is a more precise exception than :class:`AmbiguousAction` indicating that a load has been turned on
+    before load_min_up_time time steps.
+    """
+
+    pass
+
+
+class LoadTurnedOffTooSoon(InvalidRedispatching):
+    """
+    This is a more precise exception than :class:`AmbiguousAction` indicating that a load has been turned off
+    before load_min_down_time time steps.
+    """
+    pass
 
 class NotEnoughGenerators(InvalidRedispatching):
     """

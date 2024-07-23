@@ -35,6 +35,8 @@ from grid2op.Exceptions import (Grid2OpException,
                                 InvalidFlexibility,
                                 GeneratorTurnedOffTooSoon,
                                 GeneratorTurnedOnTooSoon,
+                                LoadTurnedOffTooSoon,
+                                LoadTurnedOnTooSoon,
                                 AmbiguousActionRaiseAlert,
                                 ImpossibleTopology)
 from grid2op.Parameters import Parameters
@@ -44,6 +46,7 @@ from grid2op.Action import DontAct, BaseAction, ActionSpace
 from grid2op.operator_attention import LinearAttentionBudget
 from grid2op.Action._backendAction import _BackendAction
 from grid2op.Chronics import ChronicsHandler
+from grid2op.Exceptions import Grid2OpException
 from grid2op.Rules import AlwaysLegal, BaseRules, AlwaysLegal
 from grid2op.typing_variables import STEP_INFO_TYPING, RESET_OPTIONS_TYPING
 
@@ -1981,7 +1984,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._already_modified_load[flex_act_orig != 0] = True
         return self._already_modified_load
 
-    def _prepare_redisp(self, action:BaseAction, new_p:np.ndarray):
+    def _prepare_redisp(self, action:BaseAction, new_gen_p:np.ndarray, new_load_p:np.ndarray):
         # trying with an optimization method
         except_ = None
         info_ = []
@@ -2043,93 +2046,38 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             self._target_dispatch -= redisp_act_orig
             return valid, except_, info_
 
-        # i can't redispatch turned off generators [turned off generators need to be turned on before redispatching]
-        if (redisp_act_orig[np.abs(new_p) <= 1e-7]).any() and self._forbid_dispatch_off:
-            # action is invalid, a generator has been redispatched, but it's turned off
-            except_ = InvalidRedispatching(
-                "Impossible to dispatch a turned off generator"
-            )
+        # Can't redispatch turned off generators [turned off generators need to be turned on before redispatching]
+        if (redisp_act_orig[np.abs(new_gen_p) <= 1e-7]).any() and self._forbid_dispatch_off:
+            # Action is invalid, a generator has been redispatched, but it's turned off
+            except_ = InvalidRedispatching("Impossible to dispatch a turned off generator")
             self._target_dispatch -= redisp_act_orig
             return valid, except_, info_
-
+        if (flex_act_orig[np.abs(new_load_p) <= 1e-7]).any() and self._forbid_flex_off:
+            # Action is invalid, a flexible load has been adjusted, but it's turned off
+            except_ = InvalidFlexibility("Impossible to dispatch a turned off flexible load")
+            self._target_flex -= flex_act_orig
+            return valid, except_, info_
+        
         if self._forbid_dispatch_off is True:
             redisp_act_orig_cut = 1.0 * redisp_act_orig
-            redisp_act_orig_cut[np.abs(new_p) <= 1e-7] = 0.0
+            redisp_act_orig_cut[np.abs(new_gen_p) <= 1e-7] = 0.0
             if (redisp_act_orig_cut != redisp_act_orig).any():
-                info_.append(
-                    {
-                        "INFO: redispatching cut because generator will be turned_off": (
-                            redisp_act_orig_cut != redisp_act_orig
-                        ).nonzero()[0]
-                    }
-                )
-        return valid, except_, info_
-    
-    def _prepare_flex(self, action, new_p, already_modified_load):
-        # Trying with an optimization method
-        except_ = None
-        info_ = []
-        valid = True
-
-        # Get the Flexibility action (if any)
-        flex_act_orig = 1.0 * action._flexibility
-
-        if (
-            np.all(np.abs(flex_act_orig) <= 1e-7)
-            and np.all(np.abs(self._target_flex) <= 1e-7)
-            and np.all(np.abs(self._actual_flex) <= 1e-7)
-        ):
-            return valid, except_, info_
-        # Check that everything is consistent with size of loads:
-        if (self._target_flex > self.load_size).any():
-            # action is invalid, the target redispatching would be above size for at least one load
-            cond_invalid = self._target_flex > self.load_size
-            except_ = InvalidFlexibility(
-                "You cannot ask for flexibility higher than the size of the load [it would be always "
-                "invalid because, even if the load is 0, this flexibility would set it "
-                "to a number higher than its maximum size, which is impossible]. Invalid flexibility for "
-                "loads(s): "
-                "{}".format((cond_invalid).nonzero()[0])
-            )
-            self._target_flex -= flex_act_orig
-            return valid, except_, info_
-        if (self._target_flex < - self.load_size).any():
-            # action is invalid, the target redispatching would be below pmin for at least a generator
-            cond_invalid = self._target_flex < - self.load_size
-            except_ = InvalidFlexibility(
-                "You cannot ask for flexibility lower than -self.load_size  [it would be always "
-                "invalid because, even if the setpoint is 0, this dispatch would set it "
-                "to a number below its size, which is impossible]. Invalid flexibility for "
-                "loads(s): "
-                "{}".format((cond_invalid).nonzero()[0])
-            )
-            self._target_flex -= flex_act_orig
-            return valid, except_, info_
-
-        # Can't apply flexiblity to turned off loads [turned off loads need to be turned on before flexibility]
-        if (flex_act_orig[np.abs(new_p) <= 1e-7]).any() and self._forbid_flex_off:
-            # action is invalid, a load has been flexibily adjusted, but it's turned off
-            except_ = InvalidFlexibility(
-                "Impossible to dispatch a turned off Load"
-            )
-            self._target_flex -= flex_act_orig
-            return valid, except_, info_
-
+                info_.append({
+                    "INFO: Redispathing of generator canceled because it is off":
+                    (redisp_act_orig_cut != redisp_act_orig).nonzero()[0]
+                })
         if self._forbid_flex_off is True:
             flex_act_orig_cut = 1.0 * flex_act_orig
-            flex_act_orig_cut[np.abs(new_p) <= 1e-7] = 0.0
+            flex_act_orig_cut[np.abs(new_load_p) <= 1e-7] = 0.0
             if (flex_act_orig_cut != flex_act_orig).any():
-                info_.append(
-                    {
-                        "INFO: Flexibility cut because load will be turned_off": (
-                            flex_act_orig_cut != flex_act_orig
-                        ).nonzero()[0]
-                    }
-                )
+                info_.append({
+                    "INFO: Use of Flexibility in load cancelled because it is off":
+                    (flex_act_orig_cut != flex_act_orig).nonzero()[0]
+                })
         return valid, except_, info_
 
     def _make_redisp(self, already_modified_gen:np.ndarray, new_gen_p:np.ndarray,
-                     already_modified_load:np.ndarray, new_load_p:np.ndarray):
+                     already_modified_load:np.ndarray, new_load_p:np.ndarray) -> Tuple[bool, Grid2OpException]:
         """
         Compute the Redispatching vector. Taking into account:
         1. Storage Units
@@ -2928,77 +2876,111 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             res.update({"injection": {"prod_v": prod_v_chronics}})
         return res
 
-    def _handle_updown_times(self, gen_up_before, redisp_act):
+    def _handle_updown_times(self, gen_up_before:np.array, redisp_act:np.array,
+                             load_up_before:np.array, flex_act:np.array) -> Grid2OpException:
         """
         INTERNAL
 
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
-        Handles the up and down tims for the generators.
+        Handles the up and down times for the generators and loads.
         """
-        # get the generators that are not connected after the action
+        # Get the generators that are not connected after the action
         except_ = None
 
-        # computes which generator will be turned on after the action
+        # Compute which generators will be turned ON after the action
         gen_up_after = 1.0 * self._gen_activeprod_t
         if "prod_p" in self._env_modification._dict_inj:
-            tmp = self._env_modification._dict_inj["prod_p"]
-            indx_ok = np.isfinite(tmp)
+            indx_ok = np.isfinite(self._env_modification._dict_inj["prod_p"])
             gen_up_after[indx_ok] = self._env_modification._dict_inj["prod_p"][indx_ok]
         gen_up_after += redisp_act
+        # Mask of which generators are turned ON
         gen_up_after = gen_up_after > 0.0
 
-        # update min down time, min up time etc.
+        # Compute which flexible loads will be turned ON after the action
+        load_up_after = 1.0 * self._load_activeprod_t
+        if "load_p" in self._env_modification._dict_inj:
+            indx_ok = np.isfinite(self._env_modification._dict_inj["load_p"])
+            load_up_after[indx_ok] = self._env_modification._dict_inj["load_p"][indx_ok]
+        load_up_after += flex_act
+        # Mask of which loads are turned ON
+        load_up_after = load_up_after > 0.0
+
+        # Update min downtime & min uptime (generators)
         gen_disconnected_this = gen_up_before & (~gen_up_after)
         gen_connected_this_timestep = (~gen_up_before) & (gen_up_after)
         gen_still_connected = gen_up_before & gen_up_after
         gen_still_disconnected = (~gen_up_before) & (~gen_up_after)
 
-        if ((
-                self._gen_downtime[gen_connected_this_timestep]
-                < self.gen_min_downtime[gen_connected_this_timestep]
-            ).any()
-            and not self._ignore_min_up_down_times
-        ):
-            # i reconnected a generator before the minimum time allowed
+        if ((self._gen_downtime[gen_connected_this_timestep]
+             < self.gen_min_downtime[gen_connected_this_timestep]).any()
+             and not self._ignore_min_up_down_times):
+            # Reconnected a generator before the minimum time allowed
             id_gen = (
                 self._gen_downtime[gen_connected_this_timestep]
                 < self.gen_min_downtime[gen_connected_this_timestep]
             )
             id_gen = (id_gen).nonzero()[0]
             id_gen = (gen_connected_this_timestep[id_gen]).nonzero()[0]
-            except_ = GeneratorTurnedOnTooSoon(
-                "Some generator has been connected too early ({})".format(id_gen)
-            )
+            except_ = GeneratorTurnedOnTooSoon(f"Some generator has been connected too early ({id_gen})")
             return except_
         else:
             self._gen_downtime[gen_connected_this_timestep] = -1
             self._gen_uptime[gen_connected_this_timestep] = 1
 
-        if (
-            (
-                self._gen_uptime[gen_disconnected_this]
-                < self.gen_min_uptime[gen_disconnected_this]
-            ).any()
-            and not self._ignore_min_up_down_times
-        ):
-            # i disconnected a generator before the minimum time allowed
+        if ((self._gen_uptime[gen_disconnected_this]
+             < self.gen_min_uptime[gen_disconnected_this]).any()
+             and not self._ignore_min_up_down_times):
+            # Disconnected a generator before the minimum time allowed
             id_gen = (
                 self._gen_uptime[gen_disconnected_this]
                 < self.gen_min_uptime[gen_disconnected_this]
             )
             id_gen = (id_gen).nonzero()[0]
             id_gen = (gen_connected_this_timestep[id_gen]).nonzero()[0]
-            except_ = GeneratorTurnedOffTooSoon(
-                "Some generator has been disconnected too early ({})".format(id_gen)
-            )
+            except_ = GeneratorTurnedOffTooSoon(f"Some generator has been disconnected too early ({id_gen})")
             return except_
         else:
             self._gen_downtime[gen_connected_this_timestep] = 0
             self._gen_uptime[gen_connected_this_timestep] = 1
-
         self._gen_uptime[gen_still_connected] += 1
         self._gen_downtime[gen_still_disconnected] += 1
+
+        # Update min downtime & min uptime (loads)
+        load_disconnected_this = load_up_before & (~load_up_after)
+        load_connected_this_timestep = (~load_up_before) & (load_up_after)
+        load_still_connected = load_up_before & load_up_after
+        load_still_disconnected = (~load_up_before) & (~load_up_after)
+
+        if ((self._load_downtime[load_connected_this_timestep]
+             < self.load_min_downtime[load_connected_this_timestep]).any()
+             and not self._ignore_min_up_down_times):
+            # Reconnected a load before the minimum time allowed
+            id_load = (self._load_downtime[load_connected_this_timestep]
+                       < self.load_min_downtime[load_connected_this_timestep])
+            id_load = (id_load).nonzero()[0]
+            id_load = (load_connected_this_timestep[id_load]).nonzero()[0]
+            except_ = LoadTurnedOnTooSoon(f"A load has been connected too early ({id_load})")
+            return except_
+        else:
+            self._load_downtime[load_connected_this_timestep] = -1
+            self._load_uptime[load_connected_this_timestep] = 1
+
+        if ((self._load_uptime[load_disconnected_this]
+             < self.load_min_uptime[load_disconnected_this]).any()
+             and not self._ignore_min_up_down_times):
+            # Disconnected a load before the minimum time allowed
+            id_load = (self._load_uptime[load_disconnected_this] 
+                       < self.load_min_uptime[load_disconnected_this])
+            id_load = (id_load).nonzero()[0]
+            id_load = (load_connected_this_timestep[id_load]).nonzero()[0]
+            except_ = LoadTurnedOffTooSoon(f"Some load has been disconnected too early ({id_load})")
+            return except_
+        else:
+            self._load_downtime[load_connected_this_timestep] = 0
+            self._load_uptime[load_connected_this_timestep] = 1
+        self._load_uptime[load_still_connected] += 1
+        self._load_downtime[load_still_disconnected] += 1
         return except_
 
     def get_obs(self, _update_state=True, _do_copy=True):
@@ -3255,17 +3237,17 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             ind_curtailed_in_act
         ]
 
-    def _aux_compute_new_p_curtailment(self, new_p, curtailment_vect):
-        """modifies the new_p argument !!!!"""
-        gen_curtailed = (
-            np.abs(curtailment_vect - 1.) >= 1e-7
-        )  # curtailed either right now, or in a previous action
+    def _aux_compute_new_p_curtailment(self, new_gen_p:np.array, curtailment_vect:np.array) -> np.array:
+        """Modifies the new_p argument in-place!!!!"""
+        # Get generators that are either being curtailed right now, or were
+        # curtailed in a previous action
+        gen_curtailed = (np.abs(curtailment_vect - 1.) >= 1e-7)  
         max_action = self.gen_pmax[gen_curtailed] * curtailment_vect[gen_curtailed]
-        new_p[gen_curtailed] = np.minimum(max_action, new_p[gen_curtailed])
-        return gen_curtailed
+        new_gen_p[gen_curtailed] = np.minimum(max_action, new_gen_p[gen_curtailed])
+        return new_gen_p
 
     def _aux_handle_curtailment_without_limit(self, action, new_p):
-        """modifies the new_p argument !!!! (but not the action)"""
+        """Modifies the new_p argument in-place!!!! (action not affected)"""
         if self.redispatching_unit_commitment_available and (
             action._modif_curtailment or (np.abs(self._limit_curtailment - 1.) >= 1e-7).any()
         ):
@@ -3292,39 +3274,36 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         return gen_curtailed
 
-    def _aux_readjust_curtailment_after_limiting(
-        self, total_curtailment, new_p_th, new_p
-    ):
+    def _aux_readjust_curtailment_after_limiting(self, total_curtailment:float, new_gen_p_th:np.array,
+                                                 new_gen_p:np.array):
         self._sum_curtailment_mw += total_curtailment
         self._sum_curtailment_mw_prev += total_curtailment
         if total_curtailment > self._tol_poly:
-            # in this case, the curtailment is too strong, I need to make it less strong
-            curtailed = new_p_th - new_p
+            # Curtailment is too strong, make it less strong
+            curtailed = new_gen_p_th - new_gen_p
         else:
-            # in this case, the curtailment is too low, this can happen, for example when there is a
+            # Curtailment is too low, this can happen, for example when there is a
             # "strong" curtailment but afterwards you ask to set everything to 1. (so no curtailment)
-            # I cannot reuse the previous case (too_much > self._tol_poly) because the
+            # Cannot reuse the previous case ('too_much' > self._tol_poly) because the
             # curtailment is already computed there...
-            new_p_with_previous_curtailment = 1.0 * new_p_th
-            self._aux_compute_new_p_curtailment(
-                new_p_with_previous_curtailment, self._limit_curtailment_prev
-            )
-            curtailed = new_p_th - new_p_with_previous_curtailment
+            new_p_with_previous_curtailment = self._aux_compute_new_p_curtailment(1.0 * new_gen_p_th,
+                                                self._limit_curtailment_prev)
+            curtailed = new_gen_p_th - new_p_with_previous_curtailment
 
         curt_sum = curtailed.sum()
         if abs(curt_sum) > self._tol_poly:
             curtailed[~self.gen_renewable] = 0.0
             curtailed *= total_curtailment / curt_sum
-            new_p[self.gen_renewable] += curtailed[self.gen_renewable]
+            new_gen_p[self.gen_renewable] += curtailed[self.gen_renewable]
 
     def _aux_readjust_storage_after_limiting(self, total_storage):
         new_act_storage = 1.0 * self._storage_power
         sum_this_step = new_act_storage.sum()
         if abs(total_storage) < abs(sum_this_step):
-            # i can modify the current action
+            # Can modify the current action
             modif_storage = new_act_storage * total_storage / sum_this_step
         else:
-            # i need to retrieve what I did in a previous action
+            # Need to retrieve what I did in a previous action
             # because the current action is not enough (the previous actions
             # cause a problem right now)
             new_act_storage = 1.0 * self._storage_power_prev
@@ -3335,19 +3314,19 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 # TODO: this is not cover by any test :-(
                 # it happens when you do an action too strong, then a do nothing,
                 # then you decrease the limit to rapidly 
-                # (game over would jappen after at least one do nothing)
+                # (game over would happen after at least one do nothing)
                 
                 # In this case I reset it completely or do I ? I don't really
                 # know what to do !
                 modif_storage = new_act_storage  # or self._storage_power ???
 
-        # handle self._storage_power and self._storage_current_charge
+        # Handle self._storage_power and self._storage_current_charge
         coeff_p_to_E = (
             self.delta_time_seconds / 3600.0
-        )  # TODO optim this is const for all time steps
+        )  # TODO: optim this, right now it is const for all time steps
         self._storage_power -= modif_storage
 
-        # now compute the state of charge of the storage units (with efficiencies)
+        # Cmpute the State of Charge (SoC) of the storage units (with efficiencies)
         is_discharging = self._storage_power < 0.0
         is_charging = self._storage_power > 0.0
         modif_storage[is_discharging] /= type(self).storage_discharging_efficiency[
@@ -3358,80 +3337,84 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         ]
 
         self._storage_current_charge -= coeff_p_to_E * modif_storage
-        # inform the grid that the storage is reduced
+        # Inform the grid that the storage is reduced
         self._amount_storage -= total_storage
         self._amount_storage_prev -= total_storage
 
     def _aux_limit_curtail_storage_if_needed(self, new_gen_p:np.ndarray, new_gen_p_th:np.ndarray,
+                                             new_load_p:np.ndarray, new_load_p_th:np.ndarray,
                                              gen_curtailed:np.ndarray):
         gen_redisp = self.gen_redispatchable
+        load_flex = self.load_flexible
 
+        # Expected increase in generation (after redispatch)
         normal_gen_increase = new_gen_p - (self._gen_activeprod_t_redisp - \
-                          self._actual_dispatch)
+                                           self._actual_dispatch)
         normal_gen_increase = normal_gen_increase[gen_redisp]
-        p_min_down = (
-            self.gen_pmin[gen_redisp] - self._gen_activeprod_t_redisp[gen_redisp]
-        )
-        avail_down = np.maximum(p_min_down, -self.gen_max_ramp_down[gen_redisp])
-        p_max_up = self.gen_pmax[gen_redisp] - self._gen_activeprod_t_redisp[gen_redisp]
-        avail_up = np.minimum(p_max_up, self.gen_max_ramp_up[gen_redisp])
 
-        sum_move = (
-            normal_gen_increase.sum() + self._amount_storage - self._sum_curtailment_mw
-        )
+        # Expected increase in consumption (after flexibility)
+        normal_load_increase = new_load_p - (self._load_activeprod_t_flex - \
+                                             self._actual_flex)
+        normal_load_increase = normal_load_increase[load_flex]
+
+        # Available decrease ("down") and increase ("up") of generation from current timestep 
+        p_min_gen_down = (self.gen_pmin[gen_redisp] - self._gen_activeprod_t_redisp[gen_redisp])
+        avail_gen_down = np.maximum(p_min_gen_down, -self.gen_max_ramp_down[gen_redisp])
+
+        p_max_gen_up = self.gen_pmax[gen_redisp] - self._gen_activeprod_t_redisp[gen_redisp]
+        avail_gen_up = np.minimum(p_max_gen_up, self.gen_max_ramp_up[gen_redisp])
+
+        # Available decrease ("down") and increase ("up") of fleixble loads from current timestep 
+        p_min_load_down = (0 - self._load_activeprod_t_flex[load_flex])
+        avail_load_down = np.maximum(p_min_load_down, -self.load_max_ramp_down[load_flex])
+
+        p_max_load_up = self.load_size[load_flex] - self._load_activeprod_t_flex[load_flex]
+        avail_load_up = np.minimum(p_max_load_up, self.load_max_ramp_up[load_flex])
+        
+        # Net change in generation (note: flexibility acts same as redispatch, hence the '+')
+        sum_move = (normal_gen_increase.sum() + normal_load_increase.sum() + \
+                    self._amount_storage - self._sum_curtailment_mw)
         total_storage_curtail = self._amount_storage - self._sum_curtailment_mw
-        update_env_act = False
 
+        update_env_act = False
         if abs(total_storage_curtail) >= self._tol_poly:
-            # if there is an impact on the curtailment / storage (otherwise I cannot fix anything)
+            # If there is an impact on the curtailment / storage (otherwise cannot fix anything)
             too_much = 0.0
-            if sum_move > avail_up.sum():
-                # I need to limit curtailment (not enough ramps up available)
-                too_much = dt_float(sum_move - avail_up.sum() + self._tol_poly)
+            if sum_move > (avail_gen_up.sum() + avail_load_up.sum()):
+                # Need to limit curtailment (not enough ramps up available)
+                too_much = dt_float(sum_move - avail_gen_up.sum() - avail_load_up.sum() + self._tol_poly)
                 self._limited_before = too_much
-            elif sum_move < avail_down.sum():
-                # I need to limit storage unit (not enough ramps down available)
-                too_much = dt_float(sum_move - avail_down.sum() - self._tol_poly)
+            elif sum_move < (avail_gen_down.sum() + avail_load_down.sum()):
+                # Need to limit storage unit (not enough ramps down available)
+                too_much = dt_float(sum_move - avail_gen_down.sum() - avail_load_down.sum() - self._tol_poly)
                 self._limited_before = too_much
             elif np.abs(self._limited_before) >= self._tol_poly:
-                # adjust the "mess" I did before by not curtailing enough
+                # Adjust the "mess" made before by not curtailing enough
                 # max_action = self.gen_pmax[gen_curtailed] * self._limit_curtailment[gen_curtailed]
                 update_env_act = True
-                too_much = min(avail_up.sum() - self._tol_poly, self._limited_before)
+                too_much = min(avail_gen_up.sum() + avail_load_up.sum() - self._tol_poly, self._limited_before)
                 self._limited_before -= too_much
                 too_much = self._limited_before
 
             if abs(too_much) > self._tol_poly:
-                total_curtailment = (
-                    -self._sum_curtailment_mw / total_storage_curtail * too_much
-                )
-                total_storage = (
-                    self._amount_storage / total_storage_curtail * too_much
-                )  # TODO !!!
+                total_curtailment = (-self._sum_curtailment_mw / total_storage_curtail * too_much)
+                total_storage = (self._amount_storage / total_storage_curtail * too_much) # TODO
                 update_env_act = True
-                # TODO "log" the total_curtailment and total_storage somewhere (in the info part of the step function)
+                # TODO: "log" the total_curtailment and total_storage somewhere (in the info part of the step function)
 
                 if np.sign(total_curtailment) != np.sign(total_storage):
-                    # curtailment goes up, storage down, i only "limit" the one that
-                    # has the same sign as too much
-                    total_curtailment = (
-                        too_much
-                        if np.sign(total_curtailment) == np.sign(too_much)
-                        else 0.0
-                    )
-                    total_storage = (
-                        too_much if np.sign(total_storage) == np.sign(too_much) else 0.0
-                    )
-                    # NB i can directly assign all the "curtailment" to the maximum because in this case, too_much will
-                    # necessarily be > than total_curtail (or total_storage) because the other
-                    # one is of opposite sign
+                    # Curtailment goes up, storage down, only "limit" the one that
+                    # has the same sign as 'too_much'
+                    total_curtailment = too_much if np.sign(total_curtailment) == np.sign(too_much) else 0.0
+                    total_storage = too_much if np.sign(total_storage) == np.sign(too_much) else 0.0
 
-                # fix curtailment
-                self._aux_readjust_curtailment_after_limiting(
-                    total_curtailment, new_gen_p_th, new_gen_p
-                )
+                    # Note: Can directly assign all the "curtailment" to the maximum because in this case, 'too_much' will
+                    # necessarily be > than 'total_curtail' (or 'total_storage') because the other one is of opposite sign
 
-                # fix storage
+                # Fix Curtailment
+                self._aux_readjust_curtailment_after_limiting(total_curtailment, new_gen_p_th, new_gen_p)
+
+                # Fix storage
                 self._aux_readjust_storage_after_limiting(total_storage)
 
             if update_env_act:
@@ -3439,19 +3422,17 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
     def _aux_handle_act_inj(self, action: BaseAction):
         for inj_key in ["load_p", "prod_p", "load_q"]:
-            # modification of the injections in the action, this erases the actions in the environment
+            # Modification of the injections in the action, this erases the actions in the environment
             if inj_key in action._dict_inj:
                 if inj_key in self._env_modification._dict_inj:
                     this_p_load = 1.0 * self._env_modification._dict_inj[inj_key]
                     act_modif = action._dict_inj[inj_key]
-                    this_p_load[np.isfinite(act_modif)] = act_modif[
-                        np.isfinite(act_modif)
-                    ]
+                    # Overwrite load profile (chronics) from environment with injections specified in Action
+                    # Note: Propsoed injection must be finite for it to be considered
+                    this_p_load[np.isfinite(act_modif)] = act_modif[np.isfinite(act_modif)]
                     self._env_modification._dict_inj[inj_key][:] = this_p_load
                 else:
-                    self._env_modification._dict_inj[inj_key] = (
-                        1.0 * action._dict_inj[inj_key]
-                    )
+                    self._env_modification._dict_inj[inj_key] = (1.0 * action._dict_inj[inj_key])
                     self._env_modification._modif_inj = True
 
     def _aux_handle_attack(self, action: BaseAction):
@@ -3479,7 +3460,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         return lines_attacked, subs_attacked, attack_duration
 
     def _aux_apply_redisp(self, action:BaseAction, new_gen_p:np.ndarray, new_gen_p_th:np.ndarray,
-                          new_load_p:np.ndarray, gen_curtailed:np.ndarray, except_):
+                          new_load_p:np.ndarray, new_load_p_th:np.ndarray, gen_curtailed:np.ndarray, except_):
         is_illegal_redisp = False
         is_done = False
         is_illegal_reco = False
@@ -3491,7 +3472,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         # compute the redispatching and the new productions active setpoint
         already_modified_gen = self._get_already_modified_gen(action)
         already_modified_load = self._get_already_modified_load(action)
-        valid_disp, except_tmp, _ = self._prepare_redisp(action, new_gen_p)
+        # Checks that Redispatch / Flexibility in action is Valid
+        valid_disp, except_tmp, _ = self._prepare_redisp(action, new_gen_p, new_load_p)
 
         if except_tmp is not None:
             orig_action = action
@@ -3502,7 +3484,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             except_.append(except_tmp)
 
             if type(self).n_storage > 0:
-                # TODO curtailment: cancel it here too !
+                # TODO: Cancel curtailment here too !
                 self._storage_current_charge[:] = self._storage_previous_charge
                 self._amount_storage -= self._amount_storage_prev
 
@@ -3510,45 +3492,45 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 # this is why it should not be taken into account in self._amount_storage
                 # and NOT absorbed by the generators either
                 self._withdraw_storage_losses()
-                # end storage
 
-        # fix redispatching for curtailment storage
-        if (
-            self.redispatching_unit_commitment_available
-            and self._parameters.LIMIT_INFEASIBLE_CURTAILMENT_STORAGE_ACTION
-        ):
-            # limit the curtailment / storage in case of infeasible redispatching
-            # TODO: Include flexibility in this
-            self._aux_limit_curtail_storage_if_needed(new_gen_p, new_gen_p_th, gen_curtailed)
+        # Fix redispatching for curtailment storage
+        if (self.redispatching_unit_commitment_available
+            and self._parameters.LIMIT_INFEASIBLE_CURTAILMENT_STORAGE_ACTION):
+            # Limit the curtailment / storage in case of infeasible redispatching + flexibility
+            self._aux_limit_curtail_storage_if_needed(new_gen_p, new_gen_p_th,
+                                                      new_load_p, new_load_p_th, gen_curtailed)
 
         self._storage_power_prev[:] = self._storage_power
-        # case where the action modifies load (TODO maybe make a different env for that...)
+        # Case where the action directly injects power at a load 
+        # Note: Not the same as flexibility (change in load for certain price), since this can
+        # affect any load and can represent other actions. 
+        # TODO: maybe make a different env for that
         self._aux_handle_act_inj(action)
+
         valid_disp, except_tmp = self._make_redisp(already_modified_gen, new_gen_p,
                                                    already_modified_load, new_load_p)
 
         if not valid_disp or except_tmp is not None:
-            # game over case (divergence of the scipy routine to compute redispatching)
+            # GAMEOVER case
+            # Reason: Divergence of the Scipy (optimization) routine to compute redispatching and flexibility
             res_action = self._action_space({})
             if type(self).dim_alerts:
                 res_action.raise_alert = action.raise_alert
             is_illegal_redisp = True
             except_.append(except_tmp)
             is_done = True
-            except_.append(
-                InvalidRedispatching(
-                    "Game over due to infeasible redispatching state. "
-                    'The routine used to compute the "next state" has diverged. '
-                    "This means that there is no way to compute a physically valid generator state "
-                    "(one that meets all pmin / pmax - ramp min / ramp max with the information "
-                    "provided. As one of the physical constraints would be violated, this means that "
-                    "a generator would be damaged in real life. This is a game over."
-                )
-            )
+            except_.append(InvalidRedispatching(
+                "Game over due to infeasible redispatching / flexibility state. "
+                'The routine used to compute the "next state" has diverged. '
+                "This means that there is no way to compute a physically valid generator/flexible load "
+                "state (one that meets all pmin / pmax - ramp min / ramp max with the information "
+                "provided. As one of the physical constraints would be violated, this means that "
+                "a generator would be damaged in real life. This is a game over."))
             return res_action, is_illegal_redisp, is_illegal_reco, is_done
 
-        # check the validity of min downtime and max uptime
-        except_tmp = self._handle_updown_times(gen_up_before, self._actual_dispatch)
+        # Check the validity of min downtime and max uptime (for loads and generators)
+        except_tmp = self._handle_updown_times(gen_up_before, self._actual_dispatch,
+                                               load_up_before, self._actual_flex)
         if except_tmp is not None:
             is_illegal_reco = True
             res_action = self._action_space({})
@@ -3558,64 +3540,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         else:
             res_action = action
         return res_action, is_illegal_redisp, is_illegal_reco, is_done
-    
-    def _aux_apply_flex(self, action, new_load_p, new_load_p_th, gen_curtailed, except_):
-        is_illegal_flex = False
-        is_done = False
-        is_illegal_reco = False
-
-        # Remember loads that were "up" before the action
-        load_up_before = self._load_activeprod_t > 0.0
-
-        # compute the redispatching and the new productions active setpoint
-        already_modified_load = self._get_already_modified_load(action)
-        valid_flex, except_tmp, _ = self._prepare_flex(
-            action, new_load_p, already_modified_load
-        )
-
-        if except_tmp is not None:
-            orig_action = action
-            action = self._action_space({})
-            if type(self).dim_alerts:
-                action.raise_alert = orig_action.raise_alert
-            is_illegal_flex = True
-            except_.append(except_tmp)
-
-        # case where the action modifies load (TODO maybe make a different env for that...)
-        self._aux_handle_act_inj(action)
-        valid_flex, except_tmp = self._make_flex(already_modified_load, new_load_p)
-
-        if not valid_flex or except_tmp is not None:
-            # game over case (divergence of the scipy routine to compute redispatching)
-            res_action = self._action_space({})
-            if type(self).dim_alerts:
-                res_action.raise_alert = action.raise_alert
-            is_illegal_flex = True
-            except_.append(except_tmp)
-            is_done = True
-            except_.append(
-                InvalidFlexibility(
-                    "Game over due to infeasible flexibility state. "
-                    'The routine used to compute the "next state" has diverged. '
-                    "This means that there is no way to compute a physically valid load state "
-                    "(one that meets all size - ramp min / ramp max with the information "
-                    "provided. As one of the physical constraints would be violated, this means that "
-                    "a load would be damaged in real life. This is a game over."
-                )
-            )
-            return res_action, is_illegal_flex, is_illegal_reco, is_done
-
-        # check the validity of min downtime and max uptime
-        except_tmp = self._handle_updown_times(load_up_before, self._actual_flex)
-        if except_tmp is not None:
-            is_illegal_reco = True
-            res_action = self._action_space({})
-            if type(self).dim_alerts:
-                res_action.raise_alert = action.raise_alert
-            except_.append(except_tmp)
-        else:
-            res_action = action
-        return res_action, is_illegal_flex, is_illegal_reco, is_done
 
     def _aux_update_backend_action(self,
                                    action: BaseAction,
@@ -3951,7 +3875,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                     )
                     self._is_alarm_illegal = reason_alarm_illegal is not None
 
-            # get the modification of generator active setpoint from the environment
+            # Get the modification of generator active setpoint from the environment
             self._env_modification, prod_v_chronics = self._update_actions()
             self._env_modification._single_act = (
                 False  # because it absorbs all redispatching actions
@@ -3959,15 +3883,16 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             new_p = self._get_new_prod_setpoint(action)
             new_load_p = self._get_new_load_setpoint(action)
             new_p_th = 1.0 * new_p
-
-            # storage unit
+            new_load_p_th = 1.0 * new_load_p
+            
+            # Storage unit
             if cls.n_storage > 0:
-                # limiting the storage units is done in `_aux_apply_redisp`
-                # this only ensure the Emin / Emax and all the actions
+                # Limiting of charge/discharge of storage units is done in `_aux_apply_redisp`
+                # This only ensures the Emin / Emax of storage for all the actions
                 self._compute_storage(action_storage_power)
 
-            # curtailment (does not attempt to "limit" the curtailment to make sure
-            # it is feasible)
+            # Curtailment
+            # Note: No attempt is made here to "limit" it for feasability
             self._gen_before_curtailment[self.gen_renewable] = new_p[self.gen_renewable]
             gen_curtailed = self._aux_handle_curtailment_without_limit(action, new_p)
 
@@ -3977,9 +3902,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 # this computes the "optimal" redispatching
                 # and it is also in this function that the limiting of the curtailment / storage actions
                 # is perform to make the state "feasible"
-                res_disp = self._aux_apply_redisp(action, new_p, new_p_th, new_load_p, gen_curtailed, except_)
+                res_disp = self._aux_apply_redisp(action, new_p, new_p_th, new_load_p, new_load_p_th, gen_curtailed, except_)
                 action, is_illegal_redisp, is_illegal_reco, is_done = res_disp
-                
             self._time_redisp += time.perf_counter() - beg__redisp
 
             if not is_done:

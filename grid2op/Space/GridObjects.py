@@ -4327,7 +4327,7 @@ class GridObjects:
             if dict_["_PATH_GRID_CLASSES"] is not None:
                 cls._PATH_GRID_CLASSES = str(dict_["_PATH_GRID_CLASSES"])
             else:
-                cls._PATH_GRID_CLASSES = None  
+                cls._PATH_GRID_CLASSES = None
         elif "_PATH_ENV" in dict_:
             # legacy mode in grid2op <= 1.10.1 this was saved in "PATH_ENV"
             if dict_["_PATH_ENV"] is not None:
@@ -4377,7 +4377,6 @@ class GridObjects:
         cls.line_ex_to_subid = extract_from_dict(
             dict_, "line_ex_to_subid", lambda x: np.array(x).astype(dt_int)
         )
-
         cls.load_to_sub_pos = extract_from_dict(
             dict_, "load_to_sub_pos", lambda x: np.array(x).astype(dt_int)
         )
@@ -4390,7 +4389,6 @@ class GridObjects:
         cls.line_ex_to_sub_pos = extract_from_dict(
             dict_, "line_ex_to_sub_pos", lambda x: np.array(x).astype(dt_int)
         )
-
         cls.load_pos_topo_vect = extract_from_dict(
             dict_, "load_pos_topo_vect", lambda x: np.array(x).astype(dt_int)
         )
@@ -4447,32 +4445,21 @@ class GridObjects:
                     ),
                 )
         
-        if dict_["load_flexible"] is None:
-            cls.flexible_load_available = False
-        else:
-            cls.flexible_load_available = True
-            type_attr_flex_load = [
-                dt_float,
-                dt_float,
-                dt_bool,
-                dt_float,
-                dt_float,
-                dt_int,
-                dt_int,
-                dt_float,
-            ]
-            for nm_attr, type_attr in zip(cls._li_attr_flex_load, type_attr_flex_load):
-                setattr(
-                    cls,
-                    nm_attr,
-                    extract_from_dict(
-                        dict_, nm_attr, lambda x: np.array(x).astype(type_attr)
-                    ),
-                )
-        
-
+        type_attr_flex_load = [dt_float, dt_bool, dt_float,
+                               dt_float, dt_int, dt_int, dt_float]
+        cls.flexible_load_available = False
+        if "load_flexible" in dict_:
+            if dict_["load_flexible"] is not None:
+                cls.flexible_load_available = True
+        if cls.flexible_load_available is False:
+            # Enables backwards compatibility with Flexibility (introduced 1.10.4)
+            prim_neutral_lookup = {bool:False, float:0.0, int:0, str:""}
+            for attr_name, attr_type in zip(cls._li_attr_flex_load, cls._type_attr_flex_load):
+                dict_[attr_name] = [prim_neutral_lookup[attr_type]]*cls.n_load
+        for nm_attr, type_attr in zip(cls._li_attr_flex_load, type_attr_flex_load):
+            setattr(cls, nm_attr, extract_from_dict(dict_, nm_attr,
+                    lambda x: np.array(x).astype(type_attr)))
         cls.grid_layout = extract_from_dict(dict_, "grid_layout", lambda x: x)
-
         cls.name_shunt = extract_from_dict(dict_, "name_shunt", lambda x: x)
         if cls.name_shunt is not None:
             cls.shunts_data_available = True
@@ -4555,8 +4542,8 @@ class GridObjects:
             cls.alarms_lines_area = copy.deepcopy(dict_["alarms_lines_area"])
             cls.alarms_area_lines = copy.deepcopy(dict_["alarms_area_lines"])
 
-        # alert information 
-        if "dim_alerts" in dict_: 
+        # alert information
+        if "dim_alerts" in dict_:
             # NB by default the constructor do as if there were no alert so that's great !
             cls.dim_alerts = dict_["dim_alerts"]
             if cls.dim_alerts > 0:
