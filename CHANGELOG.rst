@@ -170,7 +170,7 @@ Next release
   By default it is NOT ignored, it is taken into account 
   (for the environment that supports this feature)
 - [FIXED] a small issue that could lead to having 
-  "redispatching_unit_commitment_availble" flag set even if the redispatching
+  "redispatching_unit_commitment_available" flag set even if the redispatching
   data was not loaded correctly
 - [FIXED] EducPandaPowerBackend now properly sends numpy array in the class attributes
   (instead of pandas series)

@@ -140,10 +140,10 @@ class RedispReward(BaseReward):
         return res_cls
 
     def initialize(self, env):
-        if not env.redispatching_unit_commitment_availble:
+        if not env.redispatching_unit_commitment_available:
             raise Grid2OpException(
                 "Impossible to use the RedispReward reward with an environment without generators "
-                "cost. Please make sure env.redispatching_unit_commitment_availble is available."
+                "cost. Please make sure env.redispatching_unit_commitment_available is available."
             )
         cls_ = type(self)
 

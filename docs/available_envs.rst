@@ -485,7 +485,7 @@ It can of course contain other information, among them:
   description of this file]
   This contains all the information related to "ramps", "pmin / pmax", etc. This file is optional (grid2op can
   perfectly run without it). However, if absent, then the classes
-  :attr:`grid2op.Space.GridObjects.redispatching_unit_commitment_availble` will be set to ``False`` thus preventing
+  :attr:`grid2op.Space.GridObjects.redispatching_unit_commitment_available` will be set to ``False`` thus preventing
   the use of some feature that requires it (for example *redispatching* or *curtailment*)
 - "**storage_units_charac.csv**" (file): [see :func:`grid2op.Backend.Backend.load_storage_data` for a description
   of this file]

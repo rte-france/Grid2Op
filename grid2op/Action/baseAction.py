@@ -2634,7 +2634,7 @@ class BaseAction(GridObjects):
           - For redispatching and flexibility, Ambiguous actions can come from:
 
             - Some redispatching/flexibility action is active, yet
-              :attr:`grid2op.Space.GridObjects.redispatching_unit_commitment_availble` is set to ``False``
+              :attr:`grid2op.Space.GridObjects.redispatching_unit_commitment_available` is set to ``False``
             - the length of the redispatching vector :attr:`BaseAction._redispatching` is not compatible with the number
               of generators.
             - some redispatching/flexibility are above the maximum ramp up :attr:`grid2op.Space.GridObjects.gen_max_ramp_up` /
@@ -5960,7 +5960,7 @@ class BaseAction(GridObjects):
         if not self.redispatching_unit_commitment_available:
             raise IllegalAction(
                 "Impossible to perform curtailment as it is not possible to compute redispatching. "
-                'Your backend do not support "redispatching_unit_commitment_availble"'
+                'Your backend do not support "redispatching_unit_commitment_available"'
             )
 
         orig_ = self.curtail

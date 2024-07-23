@@ -64,7 +64,7 @@ def _get_action_grid_class():
         [3, 21, 10, 15, 22, 16, 23, 32, 37, 26, 47, 50, 54, 35, 38, 44, 57, 45, 51, 55]
     )
 
-    GridObjects.redispatching_unit_commitment_availble = True
+    GridObjects.redispatching_unit_commitment_available = True
     GridObjects.gen_type = np.array(["thermal"] * 3 + ["wind"] * 2)
     GridObjects.gen_pmin = np.array([0.0] * 5)
     GridObjects.gen_pmax = np.array([100.0] * 5)
