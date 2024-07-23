@@ -4445,20 +4445,21 @@ class GridObjects:
                     ),
                 )
         
-        type_attr_flex_load = [dt_float, dt_bool, dt_float,
-                               dt_float, dt_int, dt_int, dt_float]
         cls.flexible_load_available = False
-        if "load_flexible" in dict_:
-            if dict_["load_flexible"] is not None:
-                cls.flexible_load_available = True
-        if cls.flexible_load_available is False:
-            # Enables backwards compatibility with Flexibility (introduced 1.10.4)
-            prim_neutral_lookup = {bool:False, float:0.0, int:0, str:""}
-            for attr_name, attr_type in zip(cls._li_attr_flex_load, cls._type_attr_flex_load):
-                dict_[attr_name] = [prim_neutral_lookup[attr_type]]*cls.n_load
-        for nm_attr, type_attr in zip(cls._li_attr_flex_load, type_attr_flex_load):
-            setattr(cls, nm_attr, extract_from_dict(dict_, nm_attr,
-                    lambda x: np.array(x).astype(type_attr)))
+        if dict_["load_flexible"] is not None:
+            cls.flexible_load_available = True
+            type_attr_flex_load = [dt_float, dt_bool, dt_float,
+                                  dt_float, dt_int, dt_int, dt_float]
+            for nm_attr, type_attr in zip(cls._li_attr_flex_load, type_attr_flex_load):
+                setattr(cls, nm_attr, extract_from_dict(dict_, nm_attr,
+                        lambda x: np.array(x).astype(type_attr)))
+        else:
+            cls.flexible_load_available = False
+        # Enables backwards compatibility with Flexibility (introduced 1.10.4)
+        # prim_neutral_lookup = {bool:False, float:0.0, int:0, str:""}
+        # for attr_name, attr_type in zip(cls._li_attr_flex_load, cls._type_attr_flex_load):
+        #     dict_[attr_name] = [prim_neutral_lookup[attr_type]]*cls.n_load
+            
         cls.grid_layout = extract_from_dict(dict_, "grid_layout", lambda x: x)
         cls.name_shunt = extract_from_dict(dict_, "name_shunt", lambda x: x)
         if cls.name_shunt is not None:

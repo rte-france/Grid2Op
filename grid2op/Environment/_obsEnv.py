@@ -433,6 +433,22 @@ class _ObsEnv(BaseEnv):
             indx_ok = np.isfinite(tmp)
             new_p[indx_ok] = tmp[indx_ok]
         return new_p
+    
+    def _get_new_load_setpoint(self, action):
+        new_p = 1.0 * self._backend_action_set.prod_p.values
+        if "load_p" in action._dict_inj:
+            tmp = action._dict_inj["load_p"]
+            indx_ok = np.isfinite(tmp)
+            new_p[indx_ok] = tmp[indx_ok]
+
+        # modification of the environment always override the modification of the agents (if any)
+        # TODO have a flag there if this is the case.
+        if "load_p" in self._env_modification._dict_inj:
+            # modification of the production setpoint value
+            tmp = self._env_modification._dict_inj["load_p"]
+            indx_ok = np.isfinite(tmp)
+            new_p[indx_ok] = tmp[indx_ok]
+        return new_p
 
     def reset(self):
         if self.__unusable:

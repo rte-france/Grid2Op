@@ -4230,8 +4230,8 @@ class BaseObservation(GridObjects):
             "_gen_activeprod_t": 1.0 * env._gen_activeprod_t,
             "_gen_activeprod_t_redisp": 1.0 * env._gen_activeprod_t_redisp,
             "_already_modified_gen": copy.deepcopy(env._already_modified_gen),
-            "_load_activeprod_t": 1.0 * env._load_activeprod_t,
-            "_load_activeprod_t_flex": 1.0 * env._load_activeprod_t_flex,
+            "_load_demand_t": 1.0 * env._load_demand_t,
+            "_load_demand_t_flex": 1.0 * env._load_demand_t_flex,
             "_already_modified_load": copy.deepcopy(env._already_modified_load),
         }
         self._env_internal_params["_line_status_env"]  *= 2  # false -> 0 true -> 2
