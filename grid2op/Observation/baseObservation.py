@@ -212,6 +212,19 @@ class BaseObservation(GridObjects):
         information about all generators there, even the one that are not
         dispatchable.
 
+    target_flex: :class:`numpy.ndarray`, dtype:float
+        For **each** load, it gives the target flexibility, asked by the agent. This is the sum of all
+        fleixiblity asked by the agent for during all the episode. For each load it is a number between:
+        - size and 0. Note that there is information about all generators there, even the one that are not
+        flexible.
+
+    actual_flex: :class:`numpy.ndarray`, dtype:float
+        For **each** load, it gives the flexibility currently implemented by the environment.
+        Indeed, the environment tries to implement at best the :attr:`BaseObservation.target_flex`, but sometimes,
+        due to physical limitation (size, ramp min and ramp max) it cannot. In this case, only the best possible
+        fleixiblity is implemented at the current time step, and this is what this vector stores. Note that there is
+        information about all generators there, even the one that are notflexible.
+
     storage_charge: :class:`numpy.ndarray`, dtype:float
         The actual 'state of charge' of each storage unit, expressed in MWh.
 
@@ -457,6 +470,8 @@ class BaseObservation(GridObjects):
         "duration_next_maintenance",
         "target_dispatch",
         "actual_dispatch",
+        "target_flex",
+        "actual_flex",
         "_shunt_p",
         "_shunt_q",
         "_shunt_v",
@@ -563,6 +578,10 @@ class BaseObservation(GridObjects):
         self.target_dispatch = np.empty(shape=cls.n_gen, dtype=dt_float)
         self.actual_dispatch = np.empty(shape=cls.n_gen, dtype=dt_float)
 
+        # flexibility
+        self.target_flex = np.empty(shape=cls.n_load, dtype=dt_float)
+        self.actual_flex = np.empty(shape=cls.n_load, dtype=dt_float)
+
         # storage unit
         self.storage_charge = np.empty(shape=cls.n_storage, dtype=dt_float)  # in MWh
         self.storage_power_target = np.empty(
@@ -664,6 +683,8 @@ class BaseObservation(GridObjects):
             "storage_charge",
             "actual_dispatch",
             "target_dispatch",
+            "actual_flex",
+            "target_flex",
             "duration_next_maintenance",
             "time_next_maintenance",
             "time_before_cooldown_sub",
@@ -780,9 +801,9 @@ class BaseObservation(GridObjects):
         storage_id=None,
         substation_id=None,
     ) -> Dict[Literal["p", "q", "v", "theta", "bus", "sub_id", "actual_dispatch", "target_dispatch",
-                      "maintenance", "cooldown_time", "storage_power", "storage_charge", 
-                      "storage_power_target", "storage_theta", 
-                      "topo_vect", "nb_bus", "origin", "extremity"],
+                      "actual_flex", "target_flex", "maintenance", "cooldown_time", "storage_power",
+                      "storage_charge", "storage_power_target", "storage_theta", "topo_vect",
+                      "nb_bus", "origin", "extremity"],
               Union[int, float, Dict[Literal["p", "q", "v", "a", "sub_id", "bus", "theta"], Union[int, float]]]
               ]:
         """
@@ -828,6 +849,9 @@ class BaseObservation(GridObjects):
                 - "theta" (optional) the voltage angle (in degree) of the bus to which the load is connected
                 - "bus" on which bus the load is connected in the substation
                 - "sub_id" the id of the substation to which the load is connected
+                - "actual_flex" the actual flexibility implemented for this load
+                - "target_flex" the target flexibility (cumulation of all previously asked flexibility by the agent)
+                  for this load
 
             - if a generator is inspected, then the keys are:
 
@@ -953,6 +977,8 @@ class BaseObservation(GridObjects):
                 "sub_id": cls.gen_to_subid[gen_id],
                 "target_dispatch": self.target_dispatch[gen_id],
                 "actual_dispatch": self.target_dispatch[gen_id],
+                "target_flex": self.target_flex[gen_id],
+                "actual_flex": self.actual_flex[gen_id],
                 "curtailment": self.curtailment[gen_id],
                 "curtailment_limit": self.curtailment_limit[gen_id],
                 "curtailment_limit_effective": self.curtailment_limit_effective[gen_id],
@@ -1276,6 +1302,10 @@ class BaseObservation(GridObjects):
         self.target_dispatch[:] = np.NaN
         self.actual_dispatch[:] = np.NaN
 
+        # flexibility
+        self.target_flex[:] = np.NaN
+        self.actual_flex[:] = np.NaN
+        
         # storage units
         self.storage_charge[:] = np.NaN
         self.storage_power_target[:] = np.NaN
@@ -1376,6 +1406,10 @@ class BaseObservation(GridObjects):
         # redispatching
         self.target_dispatch[:] = 0.0
         self.actual_dispatch[:] = 0.0
+
+        # flexibility
+        self.target_flex[:] = 0.0
+        self.actual_flex[:] = 0.0
 
         # storage
         self.storage_charge[:] = 0.0
@@ -1801,6 +1835,7 @@ class BaseObservation(GridObjects):
             # This action will:
             #   - NOT change anything to the injections
             #   - NOT perform any redispatching action
+            #   - NOT perform any flexibility action
             #   - NOT force any line status
             #   - NOT switch any line status
             #   - NOT switch anything in the topology
@@ -2699,10 +2734,12 @@ class BaseObservation(GridObjects):
         return bus_ids
         
     def _aux_add_loads(self, graph, cls, first_id):
+        nodes_prop = [("target_flex", self.target_flex),
+                      ("actual_flex", self.actual_flex)]
         edges_prop=[
             ("p", self.load_p),
             ("q", self.load_q),
-            ("v", self.load_v)
+            ("v", self.load_v),
         ]
         if self.support_theta:
             edges_prop.append(("theta", self.load_theta))
@@ -2713,7 +2750,7 @@ class BaseObservation(GridObjects):
                                                   cls.n_load,
                                                   self.load_bus,
                                                   cls.load_to_subid,
-                                                  nodes_prop=None,
+                                                  nodes_prop=nodes_prop,
                                                   edges_prop=edges_prop)
         return load_ids
     
@@ -3717,6 +3754,15 @@ class BaseObservation(GridObjects):
                 "actual_dispatch"
             ] = self.actual_dispatch
 
+            # flexibility
+            self._dictionnarized["flexibility"] = {}
+            self._dictionnarized["flexibility"][
+                "target_flex"
+            ] = self.target_flex
+            self._dictionnarized["flexibility"][
+                "actual_flex"
+            ] = self.actual_flex
+
             # storage
             self._dictionnarized["storage_charge"] = 1.0 * self.storage_charge
             self._dictionnarized["storage_power_target"] = (
@@ -4007,6 +4053,14 @@ class BaseObservation(GridObjects):
                     "generators for example) so we will not even try to mimic this here."
                 )
 
+        if "flexibility" in cls_act.authorized_keys:
+            flex = act.flexibility
+            if (np.abs(flex) >= 1e-7).any() and issue_warn:
+                warnings.warn(
+                    "You did flexibility on this action. Flexibility is heavily transformed "
+                    "by the environment so we will not even try to mimic this here."
+                )
+        
         if "set_storage" in cls_act.authorized_keys:
             storage_p = act.storage_p
             if (np.abs(storage_p) >= 1e-7).any() and issue_warn:
@@ -4119,7 +4173,7 @@ class BaseObservation(GridObjects):
         self.rho[:] = backend.get_relative_flow().astype(dt_float)
 
         # margin up and down
-        if cls.redispatching_unit_commitment_availble:
+        if cls.redispatching_unit_commitment_available:
             self.gen_margin_up[:] = np.minimum(
                 cls.gen_pmax - self.gen_p, self.gen_max_ramp_up
             )
@@ -4176,6 +4230,9 @@ class BaseObservation(GridObjects):
             "_gen_activeprod_t": 1.0 * env._gen_activeprod_t,
             "_gen_activeprod_t_redisp": 1.0 * env._gen_activeprod_t_redisp,
             "_already_modified_gen": copy.deepcopy(env._already_modified_gen),
+            "_load_activeprod_t": 1.0 * env._load_activeprod_t,
+            "_load_activeprod_t_flex": 1.0 * env._load_activeprod_t_flex,
+            "_already_modified_load": copy.deepcopy(env._already_modified_load),
         }
         self._env_internal_params["_line_status_env"]  *= 2  # false -> 0 true -> 2
         self._env_internal_params["_line_status_env"] -= 1  # false -> -1; true -> 1
@@ -4227,9 +4284,13 @@ class BaseObservation(GridObjects):
         self.target_dispatch[:] = env._target_dispatch
         self.actual_dispatch[:] = env._actual_dispatch
 
+        # flexibility
+        self.target_flex[:] = env._target_flex
+        self.actual_flex[:] = env._actual_flex
+
         self._thermal_limit[:] = env.get_thermal_limit()
 
-        if self.redispatching_unit_commitment_availble:
+        if self.redispatching_unit_commitment_available:
             self.gen_p_before_curtail[:] = env._gen_before_curtailment
             self.curtailment[:] = (
                 self.gen_p_before_curtail - self.gen_p
@@ -4253,6 +4314,7 @@ class BaseObservation(GridObjects):
             self.gen_p_before_curtail[:] = self.gen_p
             self.curtailment_limit[:] = 1.0
             self.curtailment_limit_effective[:] = 1.0
+        
 
         self.delta_time = dt_float(1.0 * env.delta_time_seconds / 60.0)
         
@@ -4802,13 +4864,14 @@ class BaseObservation(GridObjects):
     ) -> Dict[Literal["powerline",
                       "substation",
                       "redispatching",
+                      "flexibility",
                       "storage",
                       "curtailment"],
               List["grid2op.Action.BaseAction"]]:
         """
         Allows to retrieve the list of actions that needs to be performed
         to get back the grid in the "reference" state (all elements connected
-        to busbar 1, no redispatching, no curtailment)
+        to busbar 1, no redispatching, no flexibility, no curtailment)
         
         
         .. versionadded:: 1.10.0

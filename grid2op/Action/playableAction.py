@@ -25,6 +25,7 @@ class PlayableAction(BaseAction):
         "set_bus",
         "change_bus",
         "redispatch",
+        "flexibility",
         "set_storage",
         "curtail",
         "raise_alarm",
@@ -37,6 +38,7 @@ class PlayableAction(BaseAction):
         "_set_topo_vect",
         "_change_bus_vect",
         "_redispatch",
+        "_flexibility",
         "_storage_power",
         "_curtail",
         "_raise_alarm",
@@ -54,6 +56,7 @@ class PlayableAction(BaseAction):
             "set_bus": self._digest_setbus,
             "change_bus": self._digest_change_bus,
             "redispatch": self._digest_redispatching,
+            "flexibility": self._digest_flexibility,
             "set_storage": self._digest_storage,
             "curtail": self._digest_curtailment,
             "raise_alarm": self._digest_alarm,
@@ -87,6 +90,9 @@ class PlayableAction(BaseAction):
         redispatch: :class:`numpy.ndarray`, dtype:float
             The array is :attr:`BaseAction._redispatch`
 
+        flexibility: :class:`numpy.ndarray`, dtype:float
+            The array is :attr:`BaseAction._flexibility`
+
         curtail: :class:`numpy.ndarray`, dtype:float
             The array is :attr:`BaseAction._curtail`
 
@@ -104,6 +110,7 @@ class PlayableAction(BaseAction):
             self._set_topo_vect,
             self._change_bus_vect,
             self._redispatch,
+            self._flexibility,
             self._storage_power,
             {},
         )

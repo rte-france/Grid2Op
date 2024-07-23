@@ -32,6 +32,7 @@ from grid2op.Space import GridObjects, RandomObject
 from grid2op.Exceptions import (Grid2OpException,
                                 EnvError,
                                 InvalidRedispatching,
+                                InvalidFlexibility,
                                 GeneratorTurnedOffTooSoon,
                                 GeneratorTurnedOnTooSoon,
                                 AmbiguousActionRaiseAlert,
@@ -46,7 +47,7 @@ from grid2op.Chronics import ChronicsHandler
 from grid2op.Rules import AlwaysLegal, BaseRules, AlwaysLegal
 from grid2op.typing_variables import STEP_INFO_TYPING, RESET_OPTIONS_TYPING
 
-# TODO put in a separate class the redispatching function
+# TODO: Put redispatching / flexibility functions in a seperate class
 
 DETAILED_REDISP_ERR_MSG = (
     "\nThis is an attempt to explain why the dispatch did not succeed and caused a game over.\n"
@@ -333,6 +334,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         observation_bk_kwargs=None,  # type of backend for the observation space
         highres_sim_counter=None,
         update_obs_after_reward=False,
+        support_shedding=False,
         n_busbar=2,
         _is_test: bool = False,  # TODO not implemented !!
         _init_obs: Optional[BaseObservation] =None,
@@ -358,7 +360,10 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._observationClass_orig = None
         
         self._raw_backend_class = _raw_backend_class
-            
+        
+        # Flag to decide whether Redispatching allows load / generator disconnection
+        self._support_shedding = support_shedding
+
         self._n_busbar = n_busbar  # env attribute not class attribute !
         if other_rewards is None:
             other_rewards = {}
@@ -403,6 +408,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._time_create_bk_act: float = dt_float(0)
         self._time_opponent: float = dt_float(0)
         self._time_redisp: float = dt_float(0)
+        self._time_flex:float = dt_float(0)
         self._time_step: float = dt_float(0)
 
         # data relative to interpolation
@@ -425,6 +431,10 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._ignore_min_up_down_times: bool = self._parameters.IGNORE_MIN_UP_DOWN_TIME
         self._forbid_dispatch_off: bool = (
             not self._parameters.ALLOW_DISPATCH_GEN_SWITCH_OFF
+        )
+
+        self._forbid_flex_off: bool = (
+            not self._parameters.ALLOW_FLEX_LOAD_SWITCH_OFF
         )
 
         # type of power flow to play
@@ -464,6 +474,14 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._gen_downtime: np.ndarray = None
         self._gen_activeprod_t: np.ndarray = None
         self._gen_activeprod_t_redisp: np.ndarray = None
+
+        self._target_flex: np.ndarray = None
+        self._already_modified_load: np.ndarray = None
+        self._actual_flex: np.ndarray = None
+        self._load_uptime: np.ndarray = None
+        self._load_downtime: np.ndarray = None
+        self._load_activeprod_t: np.ndarray = None
+        self._load_activeprod_t_flex: np.ndarray = None
 
         self._thermal_limit_a: np.ndarray = thermal_limit_a
         self._disc_lines: np.ndarray = None
@@ -655,6 +673,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         new_obj.name = self.name
         if dict_ is None:
             dict_ = {}
+        new_obj._support_shedding = self._support_shedding
         new_obj._n_busbar = self._n_busbar
         
         new_obj._init_grid_path = copy.deepcopy(self._init_grid_path)
@@ -676,6 +695,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         new_obj._time_create_bk_act = self._time_create_bk_act
         new_obj._time_opponent = self._time_opponent
         new_obj._time_redisp = self._time_redisp
+        new_obj._time_flex = self._time_flex
         new_obj._time_step = self._time_step
 
         # data relative to interpolation
@@ -716,6 +736,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         new_obj._ignore_min_up_down_times = self._ignore_min_up_down_times
         new_obj._forbid_dispatch_off = self._forbid_dispatch_off
+        new_obj._forbid_flex_off = self._forbid_flex_off
 
         # type of power flow to play
         # if True, then it will not disconnect lines above their thermal limits
@@ -762,6 +783,15 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         new_obj._gen_activeprod_t_redisp = copy.deepcopy(self._gen_activeprod_t_redisp)
 
         new_obj._disc_lines = copy.deepcopy(self._disc_lines)
+
+        # Flexibility data
+        new_obj._target_flex = copy.deepcopy(self._target_flex)
+        new_obj._already_modified_load = copy.deepcopy(self._already_modified_load)
+        new_obj._actual_flex = copy.deepcopy(self._actual_flex)
+        new_obj._load_uptime = copy.deepcopy(self._load_uptime)
+        new_obj._load_downtime = copy.deepcopy(self._load_downtime)
+        new_obj._load_activeprod_t = copy.deepcopy(self._load_activeprod_t)
+        new_obj._load_activeprod_t_flex = copy.deepcopy(self._load_activeprod_t_flex)
 
         # store environment modifications
         new_obj._injection = copy.deepcopy(self._injection)
@@ -954,7 +984,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 f'One of {self.ALERT_KEY} or {self.ALARM_KEY} should be present in the alarm data json, for now.'
             )
     
-    def _set_no_alarm(self):        
+    def _set_no_alarm(self):
         bk_cls = type(self.backend)
         bk_cls.dim_alarms = 0
         bk_cls.alarms_area_names = []
@@ -1359,6 +1389,15 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         )
         self._timestep_overflow = np.zeros(shape=(self.n_line,), dtype=dt_int)
 
+        # Flexible loads
+        self._target_flex = np.zeros(self.n_load, dtype=dt_float)
+        self._already_modified_load = np.zeros(self.n_load, dtype=dt_bool)
+        self._actual_flex = np.zeros(self.n_load, dtype=dt_float)
+        self._load_uptime = np.zeros(self.n_load, dtype=dt_int)
+        self._load_downtime = np.zeros(self.n_load, dtype=dt_int)
+        self._load_activeprod_t = np.zeros(self.n_load, dtype=dt_float)
+        self._load_activeprod_t_flex = np.zeros(self.n_load, dtype=dt_float)
+
         # update the parameters
         self.__new_param = self._parameters  # small hack to have it working as expected
         self._update_parameters()
@@ -1394,6 +1433,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._parameters = self.__new_param
         self._ignore_min_up_down_times = self._parameters.IGNORE_MIN_UP_DOWN_TIME
         self._forbid_dispatch_off = not self._parameters.ALLOW_DISPATCH_GEN_SWITCH_OFF
+        self._forbid_flex_off = not self._parameters.ALLOW_FLEX_LOAD_SWITCH_OFF
 
         # type of power flow to play
         # if True, then it will not disconnect lines above their thermal limits
@@ -1421,7 +1461,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         # nothing to do in general, overloaded for real Environment
         pass
     
-    def reset(self, 
+    def reset(self,
               *,
               seed: Union[int, None] = None,
               options: RESET_OPTIONS_TYPING = None):
@@ -1867,6 +1907,15 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._gen_activeprod_t[:] = 0.0
         self._gen_activeprod_t_redisp[:] = 0.0
 
+    def _reset_flex(self):
+        self._target_flex[:] = 0.0
+        self._already_modified_load[:] = False
+        self._actual_flex[:] = 0.0
+        self._load_uptime[:] = 0
+        self._load_downtime[:] = 0
+        self._load_activeprod_t[:] = 0.0
+        self._load_activeprod_t_flex[:] = 0.0
+
     def _get_new_prod_setpoint(self, action):
         """
         NB this is overidden in _ObsEnv where the data are read from the action to set this environment
@@ -1887,6 +1936,27 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             indx_ok = np.isfinite(tmp)
             new_p[indx_ok] = tmp[indx_ok]
         return new_p
+    
+    def _get_new_load_setpoint(self, action):
+        """
+        NB this is overidden in _ObsEnv where the data are read from the action to set this environment
+        instead
+        """
+        # get the modification of generator active setpoint from the action
+        new_p = 1.0 * self._load_activeprod_t
+        if "load_p" in action._dict_inj:
+            tmp = action._dict_inj["load_p"]
+            indx_ok = np.isfinite(tmp)
+            new_p[indx_ok] = tmp[indx_ok]
+
+        # modification of the environment always override the modification of the agents (if any)
+        # TODO have a flag there if this is the case.
+        if "load_p" in self._env_modification._dict_inj:
+            # modification of the production setpoint value
+            tmp = self._env_modification._dict_inj["load_p"]
+            indx_ok = np.isfinite(tmp)
+            new_p[indx_ok] = tmp[indx_ok]
+        return new_p
 
     def _get_already_modified_gen(self, action):
 
@@ -1898,6 +1968,16 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         )
         self._already_modified_gen[redisp_act_orig != 0] = True
         return self._already_modified_gen
+    
+    def _get_already_modified_load(self, action):
+        flex_act_orig = 1.0 * action._flexibility
+        self._target_flex[self._already_modified_load] += flex_act_orig[self._already_modified_load]
+        first_modified = (~self._already_modified_load) & (flex_act_orig != 0)
+        self._target_flex[first_modified] = (
+            self._actual_flex[first_modified] + flex_act_orig[first_modified]
+        )
+        self._already_modified_load[flex_act_orig != 0] = True
+        return self._already_modified_load
 
     def _prepare_redisp(self, action, new_p, already_modified_gen):
         # trying with an optimization method
@@ -1961,9 +2041,72 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                     }
                 )
         return valid, except_, info_
+    
+    def _prepare_flex(self, action, new_p, already_modified_load):
+        # Trying with an optimization method
+        except_ = None
+        info_ = []
+        valid = True
+
+        # Get the Flexibility action (if any)
+        flex_act_orig = 1.0 * action._flexibility
+
+        if (
+            np.all(np.abs(flex_act_orig) <= 1e-7)
+            and np.all(np.abs(self._target_flex) <= 1e-7)
+            and np.all(np.abs(self._actual_flex) <= 1e-7)
+        ):
+            return valid, except_, info_
+        # Check that everything is consistent with size of loads:
+        if (self._target_flex > self.load_size).any():
+            # action is invalid, the target redispatching would be above size for at least one load
+            cond_invalid = self._target_flex > self.load_size
+            except_ = InvalidFlexibility(
+                "You cannot ask for flexibility higher than the size of the load [it would be always "
+                "invalid because, even if the load is 0, this flexibility would set it "
+                "to a number higher than its maximum size, which is impossible]. Invalid flexibility for "
+                "loads(s): "
+                "{}".format((cond_invalid).nonzero()[0])
+            )
+            self._target_flex -= flex_act_orig
+            return valid, except_, info_
+        if (self._target_flex < - self.load_size).any():
+            # action is invalid, the target redispatching would be below pmin for at least a generator
+            cond_invalid = self._target_flex < - self.load_size
+            except_ = InvalidFlexibility(
+                "You cannot ask for flexibility lower than -self.load_size  [it would be always "
+                "invalid because, even if the setpoint is 0, this dispatch would set it "
+                "to a number below its size, which is impossible]. Invalid flexibility for "
+                "loads(s): "
+                "{}".format((cond_invalid).nonzero()[0])
+            )
+            self._target_flex -= flex_act_orig
+            return valid, except_, info_
+
+        # Can't apply flexiblity to turned off loads [turned off loads need to be turned on before flexibility]
+        if (flex_act_orig[np.abs(new_p) <= 1e-7]).any() and self._forbid_flex_off:
+            # action is invalid, a load has been flexibily adjusted, but it's turned off
+            except_ = InvalidFlexibility(
+                "Impossible to dispatch a turned off Load"
+            )
+            self._target_flex -= flex_act_orig
+            return valid, except_, info_
+
+        if self._forbid_flex_off is True:
+            flex_act_orig_cut = 1.0 * flex_act_orig
+            flex_act_orig_cut[np.abs(new_p) <= 1e-7] = 0.0
+            if (flex_act_orig_cut != flex_act_orig).any():
+                info_.append(
+                    {
+                        "INFO: Flexibility cut because load will be turned_off": (
+                            flex_act_orig_cut != flex_act_orig
+                        ).nonzero()[0]
+                    }
+                )
+        return valid, except_, info_
 
     def _make_redisp(self, already_modified_gen, new_p):
-        """this computes the redispaching vector, taking into account the storage units"""
+        """This computes the redispaching vector, taking into account the storage units"""
         except_ = None
         valid = True
         mismatch = self._actual_dispatch - self._target_dispatch
@@ -1978,7 +2121,277 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             valid = except_ is None
         return valid, except_
 
-    def _compute_dispatch_vect(self, already_modified_gen, new_p):        
+    def _make_flex(self, already_modified_load, new_p):
+        """This computes the flexibility vector, taking into account the storage units"""
+        except_ = None
+        valid = True
+        mismatch = self._actual_flex - self._target_flex
+        mismatch = np.abs(mismatch)
+        if (
+            np.abs((self._actual_flex).sum()) >= self._tol_poly
+            or np.max(mismatch) >= self._tol_poly
+            or np.abs(self._amount_storage) >= self._tol_poly
+            or np.abs(self._sum_curtailment_mw) >= self._tol_poly
+            or np.abs(self._gen_activeprod_t) >= self._tol_poly
+        ):
+            except_ = self._compute_flex_vect(already_modified_load, new_p)
+            valid = except_ is None
+        return valid, except_
+    
+    def _compute_flex_vect(self, already_modified_load, new_p):
+        except_ = None
+        
+        # Gandle the case where there are storage or fleixiblity
+        # action or curtailment action on the "init state"
+        # of the grid
+        if self.nb_time_step == 0:
+            self._load_activeprod_t_flex[:] = new_p
+            
+        # First we define the participating loads
+        # these are the loads that will be adjusted for flexibility
+        load_participating = (
+            (new_p > 0.0)
+            | (np.abs(self._actual_flex) >= 1e-7)
+            | (self._target_flex != self._actual_flex)
+        )
+        load_participating[~self.load_flexible] = False
+        incr_in_chronics = new_p - (
+            self._load_activeprod_t_flex - self._actual_flex
+        )
+
+        # check if the constraints are violated
+        ## total available "juice" to go down (incl ramp and pmin / pmax)
+        p_min_down = (
+            -self.load_size[load_participating] - self._load_activeprod_t_flex[load_participating]
+        )
+        avail_down = np.maximum(p_min_down, -self.load_max_ramp_down[load_participating])
+        ## total available "juice" to go up (incl. ramp and pmin / pmax)
+        p_max_up = (
+            0 - self._load_activeprod_t_flex[load_participating]
+        )
+        avail_up = np.minimum(p_max_up, self.load_max_ramp_up[load_participating])
+        except_ = self._detect_infeasible_flexibility(
+            incr_in_chronics[load_participating], avail_down, avail_up
+        )
+        if except_ is not None:
+            # Try to force the turn on of turned off flexible loads (if parameters allow it)
+            if (
+                self._parameters.IGNORE_MIN_UP_DOWN_TIME
+                and self._parameters.ALLOW_FLEX_LOAD_SWITCH_OFF
+            ):
+                load_participating_tmp = self.load_flexible
+                p_min_down_tmp = (
+                    - self.load_size # Min Load: -Size MW
+                    - self._load_activeprod_t_flex[load_participating_tmp]
+                )
+                avail_down_tmp = np.maximum(
+                    p_min_down_tmp, -self.load_max_ramp_down[load_participating_tmp]
+                )
+                p_max_up_tmp = ( # Max Load: 0 MW
+                    0 - self._load_activeprod_t_flex[load_participating_tmp]
+                )
+                avail_up_tmp = np.minimum(
+                    p_max_up_tmp, self.load_max_ramp_up[load_participating_tmp]
+                )
+                except_tmp = self._detect_infeasible_flexibility(
+                    incr_in_chronics[load_participating_tmp],
+                    avail_down_tmp,
+                    avail_up_tmp,
+                )
+                if except_tmp is None:
+                    # I can "save" the situation by turning on all loads, I do it
+                    # TODO logger here
+                    load_participating = load_participating_tmp
+                    except_ = None
+                else:
+                    return except_tmp
+            else:
+                return except_
+
+        # Define the objective value
+        target_vals = (
+            self._target_flex[load_participating]
+            - self._actual_flex[load_participating]
+        )
+        already_modified_load_me = already_modified_load[load_participating]
+        target_vals_me = target_vals[already_modified_load_me]
+        nb_flexible = load_participating.sum()
+        tmp_zeros = np.zeros((1, nb_flexible), dtype=dt_float)
+        coeffs = 1.0 / (
+            self.load_max_ramp_up + self.load_max_ramp_down + self._epsilon_poly
+        )
+        weights = np.ones(nb_flexible) * coeffs[load_participating]
+        weights /= weights.sum()
+
+        if target_vals_me.shape[0] == 0:
+            # no dispatch means all dispatchable, otherwise i will never get to 0
+            already_modified_load_me[:] = True
+            target_vals_me = target_vals[already_modified_load_me]
+
+        # For numeric stability
+        # to scale the input also:
+        # see https://stackoverflow.com/questions/11155721/positive-directional-derivative-for-linesearch
+        scale_x = max(np.max(np.abs(self._actual_flex)), 1.0)
+        scale_x = dt_float(scale_x)
+        target_vals_me_optim = 1.0 * (target_vals_me / scale_x)
+        target_vals_me_optim = target_vals_me_optim.astype(dt_float)
+
+        # see https://stackoverflow.com/questions/11155721/positive-directional-derivative-for-linesearch
+        # where they advised to scale the function
+        scale_objective = max(0.5 * np.abs(target_vals_me_optim).sum() ** 2, 1.0)
+        scale_objective = np.round(scale_objective, decimals=4)
+        scale_objective = dt_float(scale_objective)
+
+        # add the "sum to 0"
+        mat_sum_0_no_turn_on = np.ones((1, nb_flexible), dtype=dt_float)
+
+        # Take Storage and Generation into account
+        # storages are "load convention" this means that i need to sum the amount of production to sum of storage
+        # hence the "+ self._amount_storage" below
+        # self._sum_curtailment_mw is "generator convention" hence the "-" there
+        const_sum_0_no_turn_on = (
+            np.zeros(1, dtype=dt_float)
+            + self._amount_storage
+            - self._sum_curtailment_mw
+            - self._gen_activeprod_t
+        )
+        # load increase in the chronics
+        new_p_th = new_p[load_participating] + self._actual_flex[load_participating]
+
+        # minimum value available for disp
+        ## first limit delta because of pmin
+        p_min_const = -self.load_size[load_participating] - new_p_th
+        ## second limit delta because of ramps
+        ramp_down_const = (
+            - self.load_max_ramp_down[load_participating]
+            - incr_in_chronics[load_participating]
+        )
+        ## take max of the 2
+        min_disp = np.maximum(p_min_const, ramp_down_const)
+        min_disp = min_disp.astype(dt_float)
+
+        # maximum value available for disp
+        ## first limit delta because of pmin
+        p_max_const = 0 - new_p_th
+        ## second limit delta because of ramps
+        ramp_up_const = (
+            self.load_max_ramp_up[load_participating]
+            - incr_in_chronics[load_participating]
+        )
+        ## take min of the 2
+        max_disp = np.minimum(p_max_const, ramp_up_const)
+        max_disp = max_disp.astype(dt_float)
+
+        # add everything into a linear constraint object
+        # equality
+        added = 0.5 * self._epsilon_poly
+        equality_const = LinearConstraint(
+            mat_sum_0_no_turn_on,  # do the sum
+            (const_sum_0_no_turn_on) / scale_x,  # lower bound
+            (const_sum_0_no_turn_on) / scale_x,  # upper bound
+        )
+        mat_pmin_max_ramps = np.eye(nb_flexible)
+        ineq_const = LinearConstraint(
+            mat_pmin_max_ramps,
+            (min_disp - added) / scale_x,
+            (max_disp + added) / scale_x,
+        )
+
+        # choose a good initial point (close to the solution)
+        # the idea here is to chose a initial point that would be close to the
+        # desired solution (split the (sum of the) dispatch to the available generators)
+        x0 = np.zeros(load_participating.sum())
+        if (np.abs(self._target_flex) >= 1e-7).any() or already_modified_load.any():
+            load_for_x0 = np.abs(self._target_flex[load_participating]) >= 1e-7
+            load_for_x0 |= already_modified_load[load_participating]
+            x0[load_for_x0] = (
+                self._target_flex[load_participating][load_for_x0]
+                - self._actual_flex[load_participating][load_for_x0]
+            ) / scale_x
+            # at this point x0 is made of the difference between the target and the
+            # actual dispatch for all generators that have a
+            # target dispatch non 0.
+            
+            # in this "if" block I set the other component of x0 to
+            # their "right" value
+            can_adjust = (np.abs(x0) <= 1e-7)
+            if can_adjust.any():
+                init_sum = x0.sum()
+                denom_adjust = (1.0 / weights[can_adjust]).sum()
+                if denom_adjust <= 1e-2:
+                    # Don't want divide by something too close to 0.
+                    denom_adjust = 1.0
+                x0[can_adjust] = -init_sum / (weights[can_adjust] * denom_adjust)
+        else:
+            # to "force" the exact reset to 0.0 for all components
+            x0 -= self._actual_flex[load_participating] / scale_x
+
+        def target(actual_flexibility):
+            # define my real objective
+            quad_ = (
+                actual_flexibility[already_modified_load_me] - target_vals_me_optim
+            ) ** 2
+            coeffs_quads = weights[already_modified_load_me] * quad_
+            coeffs_quads_const = coeffs_quads.sum()
+            coeffs_quads_const /= scale_objective  # scaling the function
+            return coeffs_quads_const
+
+        def jac(actual_flexibility):
+            res_jac = 1.0 * tmp_zeros
+            res_jac[0, already_modified_load_me] = (
+                2.0
+                * weights[already_modified_load_me]
+                * (actual_flexibility[already_modified_load_me] - target_vals_me_optim)
+            )
+            res_jac /= scale_objective  # scaling the function
+            return res_jac
+
+        # objective function
+        def f(init):
+            this_res = minimize(
+                target,
+                init,
+                method="SLSQP",
+                constraints=[equality_const, ineq_const],
+                options={
+                    "eps": max(self._epsilon_poly / scale_x, 1e-6),
+                    "ftol": max(self._epsilon_poly / scale_x, 1e-6),
+                    "disp": False,
+                },
+                jac=jac
+                # hess=hess  # not used for SLSQP
+            )
+            return this_res
+        res = f(x0)
+        if res.success:
+            self._actual_flex[load_participating] += res.x * scale_x
+        else:
+            # Check if constraints are "approximately" met
+            mat_const = np.concatenate((mat_sum_0_no_turn_on, mat_pmin_max_ramps))
+            downs = np.concatenate(
+                (const_sum_0_no_turn_on / scale_x, (min_disp - added) / scale_x)
+            )
+            ups = np.concatenate(
+                (const_sum_0_no_turn_on / scale_x, (max_disp + added) / scale_x)
+            )
+            vals = np.matmul(mat_const, res.x)
+            ok_down = np.all(
+                vals - downs >= -self._tol_poly
+            )  # Don't volate "down" constraints
+            ok_up = np.all(vals - ups <= self._tol_poly)
+            if ok_up and ok_down:
+                # Can tolerate "small" perturbations
+                self._actual_flex[load_participating] += res.x * scale_x
+            else:
+                # TODO: try with another method here, maybe
+                error_dispatch = (
+                    "Flexibility automaton terminated with error (no more information available "
+                    'at this point):\n"{}"'.format(res.message)
+                )
+                except_ = InvalidRedispatching(error_dispatch)
+        return except_
+    
+    def _compute_dispatch_vect(self, already_modified_gen, new_p):
         except_ = None
         
         # handle the case where there are storage or redispatching
@@ -2273,6 +2686,49 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 max_ramp_up="max_ramp_down",
             )
             except_ = InvalidRedispatching(msg)
+        return except_
+    
+    def _detect_infeasible_flexibility(self, incr_in_chronics, avail_down, avail_up):
+        """This function is an attempt to give more detailed log by detecting infeasible Flexibility"""
+        except_ = None
+        sum_move = (
+            incr_in_chronics.sum() + self._amount_storage - self._sum_curtailment_mw
+        )
+        avail_down_sum = avail_down.sum()
+        avail_up_sum = avail_up.sum()
+        load_setpoint = self._load_activeprod_t_flex[self.load_flexible]
+        if sum_move > avail_up_sum:
+            # infeasible because too much is asked
+            msg = DETAILED_REDISP_ERR_MSG.format(
+                sum_move=sum_move,
+                avail_up_sum=avail_up_sum,
+                load_setpoint=np.round(load_setpoint, decimals=2),
+                ramp_up=self.load_max_ramp_up[self.load_flexible],
+                gen_pmax=self.load_pmax[self.load_flexible],
+                avail_up=np.round(avail_up, decimals=2),
+                increase="increase",
+                decrease="decrease",
+                maximum="maximum",
+                pmax="pmax",
+                max_ramp_up="max_ramp_up",
+            )
+            except_ = InvalidFlexibility(msg)
+        elif sum_move < avail_down_sum:
+            # infeasible because not enough is asked
+            msg = DETAILED_REDISP_ERR_MSG.format(
+                sum_move=sum_move,
+                avail_up_sum=avail_down_sum,
+                load_setpoint=np.round(load_setpoint, decimals=2),
+                ramp_up=self.load_max_ramp_down[self.load_flexible],
+                gen_pmax=self.load_pmin[self.load_flexible],
+                avail_up=np.round(avail_up, decimals=2),
+                increase="decrease",
+                decrease="increase",
+                maximum="minimum",
+                pmax="pmin",
+                max_ramp_up="max_ramp_down",
+            )
+            except_ = InvalidFlexibility(msg)
         return except_
 
     def _update_actions(self):
@@ -2721,7 +3177,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
     def _aux_handle_curtailment_without_limit(self, action, new_p):
         """modifies the new_p argument !!!! (but not the action)"""
-        if self.redispatching_unit_commitment_availble and (
+        if self.redispatching_unit_commitment_available and (
             action._modif_curtailment or (np.abs(self._limit_curtailment - 1.) >= 1e-7).any()
         ):
             self._aux_update_curtailment_act(action)
@@ -2968,7 +3424,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         # fix redispatching for curtailment storage
         if (
-            self.redispatching_unit_commitment_availble
+            self.redispatching_unit_commitment_available
             and self._parameters.LIMIT_INFEASIBLE_CURTAILMENT_STORAGE_ACTION
         ):
             # limit the curtailment / storage in case of infeasible redispatching
@@ -3010,6 +3466,64 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         else:
             res_action = action
         return res_action, is_illegal_redisp, is_illegal_reco, is_done
+    
+    def _aux_apply_flex(self, action, new_load_p, new_load_p_th, gen_curtailed, except_):
+        is_illegal_flex = False
+        is_done = False
+        is_illegal_reco = False
+
+        # Remember loads that were "up" before the action
+        load_up_before = self._load_activeprod_t > 0.0
+
+        # compute the redispatching and the new productions active setpoint
+        already_modified_load = self._get_already_modified_load(action)
+        valid_flex, except_tmp, _ = self._prepare_flex(
+            action, new_load_p, already_modified_load
+        )
+
+        if except_tmp is not None:
+            orig_action = action
+            action = self._action_space({})
+            if type(self).dim_alerts:
+                action.raise_alert = orig_action.raise_alert
+            is_illegal_flex = True
+            except_.append(except_tmp)
+
+        # case where the action modifies load (TODO maybe make a different env for that...)
+        self._aux_handle_act_inj(action)
+        valid_flex, except_tmp = self._make_flex(already_modified_load, new_load_p)
+
+        if not valid_flex or except_tmp is not None:
+            # game over case (divergence of the scipy routine to compute redispatching)
+            res_action = self._action_space({})
+            if type(self).dim_alerts:
+                res_action.raise_alert = action.raise_alert
+            is_illegal_flex = True
+            except_.append(except_tmp)
+            is_done = True
+            except_.append(
+                InvalidFlexibility(
+                    "Game over due to infeasible flexibility state. "
+                    'The routine used to compute the "next state" has diverged. '
+                    "This means that there is no way to compute a physically valid load state "
+                    "(one that meets all size - ramp min / ramp max with the information "
+                    "provided. As one of the physical constraints would be violated, this means that "
+                    "a load would be damaged in real life. This is a game over."
+                )
+            )
+            return res_action, is_illegal_flex, is_illegal_reco, is_done
+
+        # check the validity of min downtime and max uptime
+        except_tmp = self._handle_updown_times(load_up_before, self._actual_flex)
+        if except_tmp is not None:
+            is_illegal_reco = True
+            res_action = self._action_space({})
+            if type(self).dim_alerts:
+                res_action.raise_alert = action.raise_alert
+            except_.append(except_tmp)
+        else:
+            res_action = action
+        return res_action, is_illegal_flex, is_illegal_reco, is_done
 
     def _aux_update_backend_action(self,
                                    action: BaseAction,
@@ -3365,7 +3879,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             gen_curtailed = self._aux_handle_curtailment_without_limit(action, new_p)
 
             beg__redisp = time.perf_counter()
-            if cls.redispatching_unit_commitment_availble or cls.n_storage > 0.0:
+            if cls.redispatching_unit_commitment_available or cls.n_storage > 0.0:
                 # this computes the "optimal" redispatching
                 # and it is also in this function that the limiting of the curtailment / storage actions
                 # is perform to make the state "feasible"
@@ -3375,6 +3889,19 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 action, is_illegal_redisp, is_illegal_reco, is_done = res_disp
                 
             self._time_redisp += time.perf_counter() - beg__redisp
+
+            new_load_p = self._get_new_load_setpoint(action)
+            new_load_p_th = 1.0 * new_load_p
+
+            # Flexibility
+            beg__flex = time.perf_counter()
+            # if cls.flexible_load_available:
+            #     # This computes the "optimal" flexibility
+            #     res_flex = self._aux_apply_flex(
+            #         action, new_load_p, new_load_p_th, gen_curtailed, except_
+            #     )
+            #     action, is_illegal_redisp, is_illegal_reco, is_done = res_disp
+            self._time_flex += time.perf_counter() - beg__flex
             
             if not is_done:
                 self._aux_update_backend_action(action, action_storage_power, init_disp)
@@ -3536,6 +4063,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._time_opponent = dt_float(0.0)
         self._time_create_bk_act = dt_float(0.0)
         self._time_redisp = dt_float(0.0)
+        self._time_flex = dt_float(0.0)
         self._time_step = dt_float(0.0)
 
         if self._has_attention_budget:
@@ -3653,6 +4181,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             "_time_create_bk_act",
             "_time_opponent",
             "_time_redisp",
+            "_time_flex",
             "_time_step",
             "_epsilon_poly",
             "_helper_action_class",
@@ -3664,6 +4193,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             "_line_status",
             "_ignore_min_up_down_times",
             "_forbid_dispatch_off",
+            "_forbid_flex_off",
             "_no_overflow_disconnection",
             "_timestep_overflow",
             "_nb_timestep_overflow_allowed",
@@ -4401,6 +4931,13 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._gen_activeprod_t[:] = obs._env_internal_params["_gen_activeprod_t"]
         self._gen_activeprod_t_redisp[:] = obs._env_internal_params["_gen_activeprod_t_redisp"]
         
+        # Flexibility
+        self._target_flex[:] = obs.target_flex
+        self._actual_flex[:] = obs.actual_flex
+        self._already_modified_load[:] = obs._env_internal_params["_already_modified_load"]
+        self._load_activeprod_t[:] = obs._env_internal_params["_load_activeprod_t"]
+        self._load_activeprod_t_flex[:] = obs._env_internal_params["_load_activeprod_t_flex"]
+
         # current step
         self.nb_time_step = obs.current_step
         self.delta_time_seconds = 60. * obs.delta_time

@@ -1520,7 +1520,7 @@ class Backend(GridObjects, ABC):
                 else:
                     self.name_shunt = cls.name_shunt
                     
-    def load_redispacthing_data(self,
+    def load_redispatching_data(self,
                                 path : Union[os.PathLike, str],
                                 name : Optional[str]="prods_charac.csv") -> None:
         """
@@ -1567,7 +1567,7 @@ class Backend(GridObjects, ABC):
             to change it.
 
         """
-        self.redispatching_unit_commitment_availble = False
+        self.redispatching_unit_commitment_available = False
 
         # for redispatching
         fullpath = os.path.join(path, name)
@@ -1669,7 +1669,128 @@ class Backend(GridObjects, ABC):
             self.gen_shutdown_cost[i] = dt_float(tmp_gen["shut_down_cost"])
             self.gen_renewable[i] = dt_bool(tmp_gen["type"] in ["wind", "solar"])
             
-        self.redispatching_unit_commitment_availble = True
+        self.redispatching_unit_commitment_available = True
+
+    def load_flexibility_data(self,
+                              path : Union[os.PathLike, str],
+                              name : Optional[str]="flex_loads_charac.csv") -> None:
+        """
+        INTERNAL
+
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+        This method will load everything needed for the flexible / dispatchable load problem.
+
+        We don't recommend at all to modify this function.
+
+        Notes
+        -----
+        Before you use this function, make sure the names of the loads are properly set.
+        
+        For example you can either read them from the grid (setting self.name_load) or call 
+        self._fill_names_obj() beforehand (the later is done in the environment.)
+        
+        Parameters
+        ----------
+        path: ``str``
+            Location of the dataframe containing the flexibility data. This dataframe (csv, comma separated)
+            should have at least the columns (other columns are ignored, order of the colums do not matter):
+
+            - "name": identifying the name of the load (should match the names in self.name_load)
+            - "size": the maximum size of the load (in MW)
+            - "max_ramp_up": maximum value the load can increase its production between two consecutive
+              steps TODO: make it independent from the duration of the step
+            - "max_ramp_down": maximum value the load can decrease its production between two consecutive
+              steps (is positive) TODO: make it independent from the duration of the step
+            - "marginal_cost": "average" marginal cost of the flexible load. For now we don't allow it to vary across
+              different steps or episode in $/(MW.time step duration) and NOT $/MWh  (TODO: change that)
+            - "min_up_time": minimum time a flexible load needs to stay "connected" before we can disconnect it (
+              measured in time step)  (TODO: change that)
+            - "min_down_time": minimum time a load needs to stay "disconnected" before we can connect it again.(
+              measured in time step)  (TODO: change that)
+
+        name: ``str``
+            Name of the dataframe containing the flexibility data. Defaults to 'flex_load_charac.csv', we don't advise
+            to change it.
+
+        """
+        self.flexible_load_available = False
+
+        # for redispatching
+        fullpath = os.path.join(path, name)
+        if not os.path.exists(fullpath):
+            return
+        try:
+            df = pd.read_csv(fullpath, sep=",")
+        except Exception as exc_:
+            warnings.warn(
+                f'Impossible to load the flexibility data for this environment with error:\n"{exc_}"\n'
+                f"Flexibility will be unavailable.\n"
+                f"Please make sure \"{name}\" file is a csv (coma ',') separated file."
+            )
+            return
+
+        mandatory_columns = [
+            "size",
+            "is_flexible",
+            "max_ramp_up",
+            "max_ramp_down",
+            "marginal_cost",
+            "min_up_time",
+            "min_down_time",
+        ]
+        for el in mandatory_columns:
+            if el not in df.columns:
+                warnings.warn(
+                    f"Impossible to load the flexibility data for this environment because"
+                    f"one of the mandatory column is not present ({el}). Please check the file "
+                    f'"{name}" contains all the mandatory columns: {mandatory_columns}'
+                )
+                return
+
+        load_info = {}
+        for _, row in df.iterrows():
+            load_info[row["name"]] = {
+                "size": row["size"],
+                "flexible": row["is_flexible"],
+                "max_ramp_up": row["max_ramp_up"],
+                "max_ramp_down": row["max_ramp_down"],
+                "marginal_cost": row["marginal_cost"],
+                "min_up_time": row["min_up_time"],
+                "min_down_time": row["min_down_time"],
+            }
+
+        self.load_size = np.full(self.n_load, fill_value=1.0, dtype=dt_float)
+        self.load_flexible = np.full(self.n_load, fill_value=False, dtype=dt_bool)
+        self.load_max_ramp_up = np.full(self.n_load, fill_value=0.0, dtype=dt_float)
+        self.load_max_ramp_down = np.full(self.n_load, fill_value=0.0, dtype=dt_float)
+        self.load_min_uptime = np.full(self.n_load, fill_value=-1, dtype=dt_int)
+        self.load_min_downtime = np.full(self.n_load, fill_value=-1, dtype=dt_int)
+        self.load_cost_per_MW = np.full(self.n_load, fill_value=1.0, dtype=dt_float)
+
+        for i, load_nm in enumerate(self.name_load):
+            try:
+                tmp_load = load_info[load_nm]
+            except KeyError as exc_:
+                raise BackendError(
+                    f"Impossible to load the flexibility data. The load {i} with name {load_nm} "
+                    f'could not be located on the description file "{name}".'
+                )
+            self.load_size[i] = self._aux_check_finite_float(
+                tmp_load["size"], f' for load. "{load_nm}" and column "size"'
+            )
+            self.load_flexible[i] = dt_bool(tmp_load["flexible"])
+            tmp = dt_float(tmp_load["max_ramp_up"])
+            if np.isfinite(tmp):
+                self.load_max_ramp_up[i] = tmp
+            tmp = dt_float(tmp_load["max_ramp_down"])
+            if np.isfinite(tmp):
+                self.load_max_ramp_down[i] = tmp
+            self.load_min_uptime[i] = dt_int(tmp_load["min_up_time"])
+            self.load_min_downtime[i] = dt_int(tmp_load["min_down_time"])
+            self.load_cost_per_MW[i] = dt_float(tmp_load["marginal_cost"])
+            
+        self.flexible_load_available = True
 
     def load_storage_data(self,
                           path : Union[os.PathLike, str],

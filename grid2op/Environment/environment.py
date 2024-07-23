@@ -85,6 +85,7 @@ class Environment(BaseEnv):
         backend,
         parameters,
         name="unknown",
+        support_shedding:bool = False,
         n_busbar : N_BUSBAR_PER_SUB_TYPING=DEFAULT_N_BUSBAR_PER_SUB,
         names_chronics_to_backend=None,
         actionClass=TopologyAction,
@@ -95,8 +96,8 @@ class Environment(BaseEnv):
         other_rewards={},
         thermal_limit_a=None,
         with_forecast=True,
-        epsilon_poly=1e-4,  # precision of the redispatching algorithm we don't recommend to go above 1e-4
-        tol_poly=1e-2,  # i need to compute a redispatching if the actual values are "more than tol_poly" the values they should be
+        epsilon_poly=1e-4,  # precision of the redispatching/flexibility algorithm we don't recommend to go above 1e-4
+        tol_poly=1e-2,  # i need to compute a redispatching/flexibility if the actual values are "more than tol_poly" the values they should be
         opponent_space_type=OpponentSpace,
         opponent_action_class=DontAct,
         opponent_class=BaseOpponent,
@@ -155,6 +156,7 @@ class Environment(BaseEnv):
             observation_bk_kwargs=observation_bk_kwargs,
             highres_sim_counter=highres_sim_counter,
             update_obs_after_reward=_update_obs_after_reward,
+            support_shedding=support_shedding,
             n_busbar=n_busbar,  # TODO n_busbar_per_sub different num per substations: read from a config file maybe (if not provided by the user)
             name=name,
             _raw_backend_class=_raw_backend_class if _raw_backend_class is not None else type(backend),
@@ -286,12 +288,19 @@ class Environment(BaseEnv):
             self.backend.load_storage_data(self.get_path_env())
             self.backend._fill_names_obj()
             try:
-                self.backend.load_redispacthing_data(self.get_path_env())
+                self.backend.load_redispatching_data(self.get_path_env())
             except BackendError as exc_:
-                self.backend.redispatching_unit_commitment_availble = False
+                self.backend.redispatching_unit_commitment_available = False
                 warnings.warn(f"Impossible to load redispatching data. This is not an error but you will not be able "
                             f"to use all grid2op functionalities. "
                             f"The error was: \"{exc_}\"")
+            try:
+                self.backend.load_flexibility_data(self.get_path_env())
+            except BackendError as exc_:
+                self.backend.flexible_load_available = False
+                warnings.warn(f"Impossible to load flexibility data. This is not an error but you will not be able "
+                              f"to use all grid2op functionalities. "
+                              f"The error was: \"{exc_}\"")
             exc_ = self.backend.load_grid_layout(self.get_path_env())
             if exc_ is not None:
                 warnings.warn(
@@ -462,6 +471,7 @@ class Environment(BaseEnv):
         # first injections given)
         self._reset_maintenance()
         self._reset_redispatching()
+        self._reset_flex()
         self._reward_to_obs = {}
         do_nothing = self._helper_action_env({})
         
@@ -1317,6 +1327,7 @@ class Environment(BaseEnv):
         self._env_modification = None
         self._reset_maintenance()
         self._reset_redispatching()
+        self._reset_flex()
         self._reset_vectors_and_timings()  # it need to be done BEFORE to prevent cascading failure when there has been
             
         self.reset_grid(init_state, method)
