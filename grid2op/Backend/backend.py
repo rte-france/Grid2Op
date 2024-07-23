@@ -1579,7 +1579,7 @@ class Backend(GridObjects, ABC):
             warnings.warn(
                 f'Impossible to load the redispatching data for this environment with error:\n"{exc_}"\n'
                 f"Redispatching will be unavailable.\n"
-                f"Please make sure \"{name}\" file is a csv (coma ',') separated file."
+                f"Please make sure \"{name}\" file is a csv (comma ',') separated file."
             )
             return
 
@@ -1726,7 +1726,7 @@ class Backend(GridObjects, ABC):
             warnings.warn(
                 f'Impossible to load the flexibility data for this environment with error:\n"{exc_}"\n'
                 f"Flexibility will be unavailable.\n"
-                f"Please make sure \"{name}\" file is a csv (coma ',') separated file."
+                f"Please make sure \"{name}\" file is a csv (comma ',') separated file."
             )
             return
 
@@ -1771,7 +1771,7 @@ class Backend(GridObjects, ABC):
         for i, load_nm in enumerate(self.name_load):
             try:
                 tmp_load = load_info[load_nm]
-            except KeyError as exc_:
+            except KeyError:
                 raise BackendError(
                     f"Impossible to load the flexibility data. The load {i} with name {load_nm} "
                     f'could not be located on the description file "{name}".'

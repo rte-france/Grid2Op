@@ -455,6 +455,7 @@ class TestActionBase(ABC):
             set_topo_vect,
             switcth_topo_vect,
             redispatching,
+            flexibility,
             storage,
             shunts,
         ) = action()

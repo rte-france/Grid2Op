@@ -1096,7 +1096,7 @@ class BaseAction(GridObjects):
             return False
         
         # flexibility is same
-        if (self._modify_flexibility != other._modif_flexibility) or not np.all(
+        if (self._modif_flexibility != other._modif_flexibility) or not np.all(
             self._flexibility == other._flexibility
         ):
             return False
