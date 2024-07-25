@@ -453,15 +453,26 @@ class BackendConverter(Backend):
 
         self._init_class_attr(obj=self.source_backend)
         if self.path_redisp is not None:
-            # redispatching data were available
+            # Redispatching data were available
             try:
-                super().load_redispacthing_data(self.path_redisp, name=self.name_redisp)
-                self.source_backend.load_redispacthing_data(
+                super().load_redispatching_data(self.path_redisp, name=self.name_redisp)
+                self.source_backend.load_redispatching_data(
                     self.path_redisp, name=self.name_redisp
                 )
             except BackendError as exc_:
                 self.redispatching_unit_commitment_available = False
                 warnings.warn(f"Impossible to load redispatching data. This is not an error but you will not be able "
+                            f"to use all grid2op functionalities. "
+                            f"The error was: \"{exc_}\"")
+        if self.path_flex is not None:
+            # Flexibility data were available
+            try:
+                super().load_flexibility_data(self.path_flex, name=self.name_flex)
+                self.source_backend.load_flexibility_data(self.path_flex,
+                                                          name=self.name_flex)
+            except BackendError as exc_:
+                self.flexible_load_available = False
+                warnings.warn(f"Impossible to load flexibility data. This is not an error but you will not be able "
                             f"to use all grid2op functionalities. "
                             f"The error was: \"{exc_}\"")
         if self.path_storage_data is not None:
@@ -721,10 +732,15 @@ class BackendConverter(Backend):
         )
         return target_action
 
-    def load_redispacthing_data(self, path, name="prods_charac.csv"):
-        # data are loaded with the name of the source backend, i need to map it to the target backend too
+    def load_redispatching_data(self, path, name="prods_charac.csv"):
+        # Data is loaded with the name of the source backend, it needs to map it to the target backend too
         self.path_redisp = path
         self.name_redisp = name
+
+    def load_flexibility_data(self, path, name="flex_loads_charac.csv"):
+        # Data is loaded with the name of the source backend, it needs to map it to the target backend too
+        self.path_flex = path
+        self.name_flex = name
 
     def load_storage_data(self, path, name="storage_units_charac.csv"):
         # data are loaded with the name of the source backend, i need to map it to the target backend too

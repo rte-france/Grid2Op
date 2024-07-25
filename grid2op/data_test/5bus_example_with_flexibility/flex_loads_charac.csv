@@ -1,4 +1,0 @@
-size,name,bus,is_flexible,max_ramp_up,max_ramp_down,min_up_time,min_down_time,marginal_cost,x,y,V
-10.7,load_0_0,5,false,0,0,0,0,99999,0,0,102.
-9.7,load_3_1,5,True,2.0,2.0,4,140,0,0,0,102.
-10.0,load_4_2,0,True,3.0,3.0,4,4,140,0,400,102.

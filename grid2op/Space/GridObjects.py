@@ -634,6 +634,7 @@ class GridObjects:
     gen_startup_cost : ClassVar[Optional[np.ndarray]] = None  # start cost (in currency)
     gen_shutdown_cost : ClassVar[Optional[np.ndarray]] = None  # shutdown cost (in currency)
     gen_renewable : ClassVar[Optional[np.ndarray]] = None
+
     # Fleixible load data, not available in all Environments
     flexible_load_available: ClassVar[bool] = False
     load_size: ClassVar[Optional[np.ndarray]] = None
@@ -644,7 +645,7 @@ class GridObjects:
     load_min_downtime: ClassVar[Optional[np.ndarray]] = None
     load_cost_per_MW: ClassVar[Optional[np.ndarray]] = None
 
-    # storage unit static data
+    # Storage unit static data
     storage_type : ClassVar[Optional[np.ndarray]] = None
     storage_Emax : ClassVar[Optional[np.ndarray]] = None
     storage_Emin : ClassVar[Optional[np.ndarray]] = None
@@ -655,19 +656,19 @@ class GridObjects:
     storage_charging_efficiency : ClassVar[Optional[np.ndarray]] = None
     storage_discharging_efficiency : ClassVar[Optional[np.ndarray]] = None
 
-    # grid layout
+    # Grid Layout
     grid_layout : ClassVar[Optional[Dict[str, Tuple[float, float]]]] = None
 
-    # shunt data, not available in every backend
+    # Shunt data, not available in every backend
     shunts_data_available : ClassVar[bool] = False
     n_shunt : ClassVar[Optional[int]] = None
     name_shunt : ClassVar[Optional[np.ndarray]] = None
     shunt_to_subid : ClassVar[Optional[np.ndarray]] = None
 
-    # alarm / alert
+    # Alarm / Alert
     assistant_warning_type = None
     
-    # alarm feature
+    # Alarm feature
     # dimension of the alarm "space" (number of alarm that can be raised at each step)
     dim_alarms = 0  # TODO
     alarms_area_names = []  # name of each area  # TODO
@@ -678,7 +679,7 @@ class GridObjects:
         []
     )  # for each area in the grid, gives which powerlines it contains # TODO
 
-    # alert feature 
+    # Alert feature 
     # dimension of the alert "space" (number of alerts that can be raised at each step)
     dim_alerts = 0  # TODO
     alertable_line_names = []  # name of each line to produce an alert on # TODO
@@ -2043,13 +2044,15 @@ class GridObjects:
                      "line_ex_pos_topo_vect",
                      "line_ex_to_subid",
                      "line_ex_to_sub_pos",
+                     "load_min_uptime",
+                     "load_min_downtime",
                      ]
         if cls.redispatching_unit_commitment_available:
             attrs_int.append("gen_min_uptime")
             attrs_int.append("gen_min_downtime")
-        if cls.flexible_load_available:
-            attrs_int.append("load_min_uptime")
-            attrs_int.append("load_min_downtime")
+        # if cls.flexible_load_available:
+            # attrs_int.append("load_min_uptime")
+            # attrs_int.append("load_min_downtime")
             
         cls._assign_attr(attrs_int, dt_int, "int", raise_if_none)
         
@@ -2074,6 +2077,10 @@ class GridObjects:
                        "storage_loss",
                        "storage_charging_efficiency",
                        "storage_discharging_efficiency",
+                       "load_size",
+                       "load_max_ramp_up",
+                       "load_max_ramp_down",
+                       "load_cost_per_MW"
                        ]
         if cls.redispatching_unit_commitment_available:
             attrs_float += ["gen_pmin",
@@ -2083,11 +2090,11 @@ class GridObjects:
                             "gen_cost_per_MW",
                             "gen_startup_cost",
                             "gen_shutdown_cost"]
-        if cls.flexible_load_available:
-            attrs_float += ["load_size",
-                            "load_max_ramp_up",
-                            "load_max_ramp_down",
-                            "load_cost_per_MW"]
+        # if cls.flexible_load_available:
+        #     attrs_float += ["load_size",
+        #                     "load_max_ramp_up",
+        #                     "load_max_ramp_down",
+        #                     "load_cost_per_MW"]
         cls._assign_attr(attrs_float, dt_float, "float", raise_if_none)
     
     @classmethod
@@ -4074,18 +4081,18 @@ class GridObjects:
                 for nm_attr in cls._li_attr_disp:
                     res[nm_attr] = None
             
-            if cls.flexible_load_available:
-                for nm_attr, type_attr in zip(cls._li_attr_flex_load, cls._type_attr_flex_load):
-                    save_to_dict(
-                        res,
-                        cls,
-                        nm_attr,
-                        (lambda li: [type_attr(el) for el in li]) if as_list else None,
-                        copy_,
-                    )
-            else:
-                for nm_attr in cls._li_attr_flex_load:
-                    res[nm_attr] = None
+            # if cls.flexible_load_available:
+            for nm_attr, type_attr in zip(cls._li_attr_flex_load, cls._type_attr_flex_load):
+                save_to_dict(
+                    res,
+                    cls,
+                    nm_attr,
+                    (lambda li: [type_attr(el) for el in li]) if as_list else None,
+                    copy_,
+                )
+            # else:
+            #     for nm_attr in cls._li_attr_flex_load:
+            #         res[nm_attr] = None
 
             # layout (position of substation on a map of the grid)
             if cls.grid_layout is not None:
@@ -4455,10 +4462,10 @@ class GridObjects:
                         lambda x: np.array(x).astype(type_attr)))
         else:
             cls.flexible_load_available = False
-        # Enables backwards compatibility with Flexibility (introduced 1.10.4)
-        # prim_neutral_lookup = {bool:False, float:0.0, int:0, str:""}
-        # for attr_name, attr_type in zip(cls._li_attr_flex_load, cls._type_attr_flex_load):
-        #     dict_[attr_name] = [prim_neutral_lookup[attr_type]]*cls.n_load
+            # # Enables backwards compatibility with Flexibility (introduced 1.10.4)
+            # prim_neutral_lookup = {bool:False, float:0.0, int:0, str:""}
+            # for attr_name, attr_type in zip(cls._li_attr_flex_load, cls._type_attr_flex_load):
+            #     dict_[attr_name] = [prim_neutral_lookup[attr_type]]*cls.n_load
             
         cls.grid_layout = extract_from_dict(dict_, "grid_layout", lambda x: x)
         cls.name_shunt = extract_from_dict(dict_, "name_shunt", lambda x: x)

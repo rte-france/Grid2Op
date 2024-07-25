@@ -481,7 +481,7 @@ It can of course contain other information, among them:
   we
   strongly encourage to have such. Otherwise, some tools might not work (including all the tool to represent it, such
   as the renderer (`env.render`), the `EpisodeReplay` or even some other dependency package, such as Grid2Viz).
-- "**prods_charac.csv**" (file): [see :func:`grid2op.Backend.Backend.load_redispacthing_data` for a
+- "**prods_charac.csv**" (file): [see :func:`grid2op.Backend.Backend.load_redispatching_data` for a
   description of this file]
   This contains all the information related to "ramps", "pmin / pmax", etc. This file is optional (grid2op can
   perfectly run without it). However, if absent, then the classes
@@ -508,5 +508,5 @@ You can highly customize everything. Only the "config.py" file is really mandato
   if you want to. In that case, you will need to either provide "chronics_class=..." in the config.py file,
   or initialize with `env = grid2op.make(..., chronics_class=...)`
 - if your grid data format contains enough information for grid2op to initialize the redispatching and / or storage
-  data then you can freely use it and override the :func:`grid2op.Backend.Backend.load_redispacthing_data` or
+  data then you can freely use it and override the :func:`grid2op.Backend.Backend.load_redispatching_data` or
   :func:`grid2op.Backend.Backend.load_storage_data` and read if from the grid file without any issues at all.

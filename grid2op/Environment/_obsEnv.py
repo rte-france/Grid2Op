@@ -435,7 +435,7 @@ class _ObsEnv(BaseEnv):
         return new_p
     
     def _get_new_load_setpoint(self, action):
-        new_p = 1.0 * self._backend_action_set.prod_p.values
+        new_p = 1.0 * self._backend_action_set.load_p.values
         if "load_p" in action._dict_inj:
             tmp = action._dict_inj["load_p"]
             indx_ok = np.isfinite(tmp)

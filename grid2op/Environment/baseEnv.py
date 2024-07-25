@@ -3259,7 +3259,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         gen_curtailed = (np.abs(curtailment_vect - 1.) >= 1e-7)  
         max_action = self.gen_pmax[gen_curtailed] * curtailment_vect[gen_curtailed]
         new_gen_p[gen_curtailed] = np.minimum(max_action, new_gen_p[gen_curtailed])
-        return new_gen_p
+        return gen_curtailed
 
     def _aux_handle_curtailment_without_limit(self, action, new_p):
         """Modifies the new_p argument in-place!!!! (action not affected)"""
@@ -3301,7 +3301,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             # "strong" curtailment but afterwards you ask to set everything to 1. (so no curtailment)
             # Cannot reuse the previous case ('too_much' > self._tol_poly) because the
             # curtailment is already computed there...
-            new_p_with_previous_curtailment = self._aux_compute_new_p_curtailment(1.0 * new_gen_p_th,
+            new_p_with_previous_curtailment = 1.0 * new_gen_p_th
+            self._aux_compute_new_p_curtailment(new_p_with_previous_curtailment,
                                                 self._limit_curtailment_prev)
             curtailed = new_gen_p_th - new_p_with_previous_curtailment
 
