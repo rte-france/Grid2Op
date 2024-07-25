@@ -3444,7 +3444,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                     this_p_load = 1.0 * self._env_modification._dict_inj[inj_key]
                     act_modif = action._dict_inj[inj_key]
                     # Overwrite load profile (chronics) from environment with injections specified in Action
-                    # Note: Propsoed injection must be finite for it to be considered
+                    # Note: Proposed injection must be finite for it to be considered
                     this_p_load[np.isfinite(act_modif)] = act_modif[np.isfinite(act_modif)]
                     self._env_modification._dict_inj[inj_key][:] = this_p_load
                 else:
@@ -3623,7 +3623,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         beg_res = time.perf_counter()
 
         # Update the thermal limit, for DLR for example
-        self.backend.update_thermal_limit(self) 
+        self.backend.update_thermal_limit(self)
 
         overflow_lines = self.backend.get_line_overflow()
         # Save the current topology as "last" topology (for connected powerlines)

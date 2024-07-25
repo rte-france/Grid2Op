@@ -2043,16 +2043,13 @@ class GridObjects:
                      "line_or_to_sub_pos",
                      "line_ex_pos_topo_vect",
                      "line_ex_to_subid",
-                     "line_ex_to_sub_pos",
-                     "load_min_uptime",
-                     "load_min_downtime",
-                     ]
+                     "line_ex_to_sub_pos"]
         if cls.redispatching_unit_commitment_available:
             attrs_int.append("gen_min_uptime")
             attrs_int.append("gen_min_downtime")
-        # if cls.flexible_load_available:
-            # attrs_int.append("load_min_uptime")
-            # attrs_int.append("load_min_downtime")
+        if cls.flexible_load_available:
+            attrs_int.append("load_min_uptime")
+            attrs_int.append("load_min_downtime")
             
         cls._assign_attr(attrs_int, dt_int, "int", raise_if_none)
         
@@ -2062,8 +2059,7 @@ class GridObjects:
                      "name_line", 
                      "name_sub", 
                      "name_storage",
-                     "storage_type",
-        ]
+                     "storage_type"]
         if cls.redispatching_unit_commitment_available:
             attrs_str.append("gen_type")
         cls._assign_attr(attrs_str, str, "str", raise_if_none)
@@ -2076,12 +2072,7 @@ class GridObjects:
                        "storage_marginal_cost",
                        "storage_loss",
                        "storage_charging_efficiency",
-                       "storage_discharging_efficiency",
-                       "load_size",
-                       "load_max_ramp_up",
-                       "load_max_ramp_down",
-                       "load_cost_per_MW"
-                       ]
+                       "storage_discharging_efficiency"]
         if cls.redispatching_unit_commitment_available:
             attrs_float += ["gen_pmin",
                             "gen_pmax",
@@ -2090,11 +2081,11 @@ class GridObjects:
                             "gen_cost_per_MW",
                             "gen_startup_cost",
                             "gen_shutdown_cost"]
-        # if cls.flexible_load_available:
-        #     attrs_float += ["load_size",
-        #                     "load_max_ramp_up",
-        #                     "load_max_ramp_down",
-        #                     "load_cost_per_MW"]
+        if cls.flexible_load_available:
+            attrs_float += ["load_size",
+                            "load_max_ramp_up",
+                            "load_max_ramp_down",
+                            "load_cost_per_MW"]
         cls._assign_attr(attrs_float, dt_float, "float", raise_if_none)
     
     @classmethod
@@ -4453,19 +4444,14 @@ class GridObjects:
                 )
         
         cls.flexible_load_available = False
-        if dict_["load_flexible"] is not None:
-            cls.flexible_load_available = True
-            type_attr_flex_load = [dt_float, dt_bool, dt_float,
-                                  dt_float, dt_int, dt_int, dt_float]
-            for nm_attr, type_attr in zip(cls._li_attr_flex_load, type_attr_flex_load):
-                setattr(cls, nm_attr, extract_from_dict(dict_, nm_attr,
-                        lambda x: np.array(x).astype(type_attr)))
-        else:
-            cls.flexible_load_available = False
-            # # Enables backwards compatibility with Flexibility (introduced 1.10.4)
-            # prim_neutral_lookup = {bool:False, float:0.0, int:0, str:""}
-            # for attr_name, attr_type in zip(cls._li_attr_flex_load, cls._type_attr_flex_load):
-            #     dict_[attr_name] = [prim_neutral_lookup[attr_type]]*cls.n_load
+        set_flex_defaults  = True
+        if "load_flexible" in dict_:
+            if dict_["load_flexible"] is not None:
+                cls.flexible_load_available = True
+                set_flex_defaults = False
+        # Enables backwards compatibility with Flexibility (introduced 1.10.4)
+        GridObjects.set_cls_flexibility(dict_, set_defaults=set_flex_defaults)
+
             
         cls.grid_layout = extract_from_dict(dict_, "grid_layout", lambda x: x)
         cls.name_shunt = extract_from_dict(dict_, "name_shunt", lambda x: x)
@@ -4574,6 +4560,31 @@ class GridObjects:
         obj_._compute_pos_big_topo_cls()
         cls = cls.init_grid(obj_)  # , force=True
         return cls()
+    
+    @classmethod
+    def set_cls_flexibility(cls, dict_:dict, set_defaults:bool=True) -> dict:
+        """
+        Set flexibility-related attributes for GridObjects. Can use
+        default-values for Backwards compatability.
+
+        Args:
+            dict_ (dict): Dictionary from which 'GridObjects' is constructed
+            set_defaults (bool, optional): Whether to fill with default-values. Defaults to True.
+
+        Returns:
+            dict: Modified Dictionary from which 'GridObjects' is constructed
+        """
+        # Enables backwards compatibility with Flexibility (introduced 1.10.4)
+        type_attr_flex_load = [dt_float, dt_bool, dt_float,
+                            dt_float, dt_int, dt_int, dt_float]
+        if set_defaults:
+            prim_neutral_lookup = {bool:False, float:0.0, int:0, str:""}
+            for attr_name, attr_type in zip(cls._li_attr_flex_load, cls._type_attr_flex_load):
+                dict_[attr_name] = [prim_neutral_lookup[attr_type]]*cls.n_load
+        for nm_attr, type_attr in zip(cls._li_attr_flex_load, type_attr_flex_load):
+            setattr(cls, nm_attr, extract_from_dict(dict_, nm_attr,
+                    lambda x: np.array(x).astype(type_attr)))
+        return dict_
 
     @classmethod
     def process_shunt_satic_data(cls):
