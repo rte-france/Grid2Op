@@ -139,7 +139,7 @@ class TestL2RPN_CASE14_SANDBOXCompat(unittest.TestCase):
 
     def test_action_space(self):
         assert issubclass(self.env.action_space.subtype, PlayableAction)
-        assert self.env.action_space.n == 160
+        assert self.env.action_space.n == 171
 
     def test_observation_space(self):
         assert issubclass(self.env.observation_space.subtype, CompleteObservation)

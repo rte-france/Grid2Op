@@ -178,7 +178,7 @@ class TestL2RPN_CASE14_SANDBOX(unittest.TestCase):
 
     def test_action_space(self):
         assert issubclass(self.env.action_space.subtype, PlayableAction)
-        assert self.env.action_space.n == 166, f"{self.env.action_space.n} instead of 166"
+        assert self.env.action_space.n == 177, f"{self.env.action_space.n} instead of 177"
 
     def test_observation_space(self):
         assert issubclass(self.env.observation_space.subtype, CompleteObservation)

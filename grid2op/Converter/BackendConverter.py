@@ -147,6 +147,9 @@ class BackendConverter(Backend):
         # for redispatching data
         self.path_redisp = None
         self.name_redisp = None
+        # for flexibility data
+        self.path_flex = None
+        self.name_flex = None
         self.path_grid_layout = None
         self.name_grid_layout = None
         self.path_storage_data = None

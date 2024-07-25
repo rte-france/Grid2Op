@@ -71,7 +71,7 @@ class TestGymAlertCompat(unittest.TestCase):
         assert str_ == ("Dict('change_bus': MultiBinary(177), 'change_line_status': MultiBinary(59), "
                         "'curtail': Box([-1.  0. -1. -1. -1.  0.  0.  0.  0.  0. -1.  0.  0. -1.  0.  0. -1.  "
                         "0.\n  0. -1. -1. -1.], [-1.  1. -1. -1. -1.  1.  1.  1.  1.  1. -1.  1.  1. -1.  1.  "
-                        "1. -1.  1.\n  1. -1. -1. -1.], (22,), float32), 'raise_alert': MultiBinary(10), "
+                        "1. -1.  1.\n  1. -1. -1. -1.], (22,), float32), 'flexibility': Box(0.0, 0.0, (37,), float32), 'raise_alert': MultiBinary(10), "
                         "'redispatch': Box([ -1.4   0.   -1.4 -10.4  -1.4   0.    0.    0.    0.    0.   -2.8   "
                         "0.\n   0.   -2.8   0.    0.   -4.3   0.    0.   -2.8  -8.5  -9.9], [ 1.4  0.   1.4 10.4  "
                         "1.4  0.   0.   0.   0.   0.   2.8  0.   0.   2.8\n  0.   0.   4.3  0.   0.   2.8  8.5  9.9], "
@@ -120,36 +120,47 @@ class TestGymAlertCompat(unittest.TestCase):
         act.raise_alert = [2]
         act_gym = env_gym.action_space.to_gym(act)
         act_str = act_gym.__str__() 
-        assert act_str == ("OrderedDict([('change_bus', array([False, False, False, False, False, False, False, False, False,"
-                           "\n       False, False, False, False, False, False, False, False, False,\n       "
-                           "False, False, False, False, False, False, False, False, False,\n       False, False, False, "
-                           "False, False, False, False, False, False,\n       False, False, False, False, False, False, False, "
-                           "False, False,\n       False, False, False, False, False, False, False, False, False,\n       False, "
-                           "False, False, False, False, False, False, False, False,\n       False, False, False, False, False, False, "
-                           "False, False, False,\n       False, False, False, False, False, False, False, False, False,\n       "
-                           "False, False, False, False, False, False, False, False, False,\n       False, False, False, False, False, "
-                           "False, False, False, False,\n       False, False, False, False, False, False, False, False, False,\n       "
-                           "False, False, False, False, False, False, False, False, False,\n       False, False, False, False, False, "
-                           "False, False, False, False,\n       False, False, False, False, False, False, False, False, False,\n       "
-                           "False, False, False, False, False, False, False, False, False,\n       False, False, False, False, False, "
-                           "False, False, False, False,\n       False, False, False, False, False, False, False, False, False,\n       "
-                           "False, False, False, False, False, False, False, False, False,\n       False, False, False, False, False, "
-                           "False])), ('change_line_status', array([False, False, False, False, False, False, False, False, False,\n       "
-                           "False, False, False, False, False, False, False, False, False,\n       False, False, False, False, False, "
-                           "False, False, False, False,\n       False, False, False, False, False, False, False, False, False,\n       "
-                           "False, False, False, False, False, False, False, False, False,\n       False, False, False, False, False, "
-                           "False, False, False, False,\n       False, False, False, False, False])), ('curtail', array([-1., -1., -1., "
-                           "-1., -1., -1., -1., -1., -1., -1., -1., -1., -1.,\n       -1., -1., -1., -1., -1., -1., -1., -1., -1.], "
-                           "dtype=float32)), ('raise_alert', array([False, False,  True, False, False, False, False, False, False,\n       "
-                           "False])), ('redispatch', array([0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,\n       "
-                           "0., 0., 0., 0., 0.], dtype=float32)), ('set_bus', array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "
-                           "0, 0, 0, 0, 0,\n       0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,\n       0, 0, 0, 0, "
-                           "0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,\n       0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "
-                           "0, 0, 0, 0, 0,\n       0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,\n       0, 0, 0, 0, 0, 0, "
-                           "0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,\n       0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "
-                           "0, 0,\n       0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,\n       0], dtype=int32)), "
-                           "('set_line_status', array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,\n       0, 0, 0, 0, 0, 0, "
-                           "0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,\n       0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=int32))])")
+        assert act_str == ("OrderedDict([('change_bus', array([False, False, False, False, False, False, False, False, False,\n       "
+                            "False, False, False, False, False, False, False, False, False,\n       "
+                            "False, False, False, False, False, False, False, False, False,\n       "
+                            "False, False, False, False, False, False, False, False, False,\n       "
+                            "False, False, False, False, False, False, False, False, False,\n       "
+                            "False, False, False, False, False, False, False, False, False,\n       "
+                            "False, False, False, False, False, False, False, False, False,\n       "
+                            "False, False, False, False, False, False, False, False, False,\n       "
+                            "False, False, False, False, False, False, False, False, False,\n       "
+                            "False, False, False, False, False, False, False, False, False,\n       "
+                            "False, False, False, False, False, False, False, False, False,\n       "
+                            "False, False, False, False, False, False, False, False, False,\n       "
+                            "False, False, False, False, False, False, False, False, False,\n       "
+                            "False, False, False, False, False, False, False, False, False,\n       "
+                            "False, False, False, False, False, False, False, False, False,\n       "
+                            "False, False, False, False, False, False, False, False, False,\n       "
+                            "False, False, False, False, False, False, False, False, False,\n       "
+                            "False, False, False, False, False, False, False, False, False,\n       "
+                            "False, False, False, False, False, False, False, False, False,\n       "
+                            "False, False, False, False, False, False])), ('change_line_status', array([False, False, False, False, False, False, False, False, False,\n       "
+                            "False, False, False, False, False, False, False, False, False,\n       "
+                            "False, False, False, False, False, False, False, False, False,\n       "
+                            "False, False, False, False, False, False, False, False, False,\n       "
+                            "False, False, False, False, False, False, False, False, False,\n       "
+                            "False, False, False, False, False, False, False, False, False,\n       "
+                            "False, False, False, False, False])), ('curtail', array([-1., -1., -1., -1., -1., -1., -1., -1., -1., -1., -1., -1., -1.,\n       "
+                            "-1., -1., -1., -1., -1., -1., -1., -1., -1.], dtype=float32)), ('flexibility', array([0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,\n       "
+                            "0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,\n       "
+                            "0., 0., 0.], dtype=float32)), ('raise_alert', array([False, False,  True, False, False, False, False, False, False,\n       "
+                            "False])), ('redispatch', array([0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,\n       "
+                            "0., 0., 0., 0., 0.], dtype=float32)), ('set_bus', array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,\n       "
+                            "0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,\n       "
+                            "0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,\n       "
+                            "0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,\n       "
+                            "0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,\n       "
+                            "0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,\n       "
+                            "0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,\n       "
+                            "0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,\n       "
+                            "0])), ('set_line_status', array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,\n       "
+                            "0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,\n       "
+                            "0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]))])")
 
     def test_convert_alert_to_gym(self):
         """test i can create the env"""
@@ -160,7 +171,7 @@ class TestGymAlertCompat(unittest.TestCase):
                 for el in env_gym.action_space.spaces
             ]
         )
-        assert dim_act_space == 526, f"{dim_act_space} != 526"
+        assert dim_act_space == 563, f"{dim_act_space} != 563"
         dim_obs_space = np.sum(
             [
                 np.sum(env_gym.observation_space[el].shape).astype(int)
@@ -196,7 +207,7 @@ class TestGymAlertCompat(unittest.TestCase):
                 for el in env_gym.action_space.spaces
             ]
         )
-        assert dim_act_space == 526, f"{dim_act_space=} != 526"
+        assert dim_act_space == 563, f"{dim_act_space=} != 563"
 
     def test_keep_only_2_alert_attr(self):
         """test the keep_only_attr method"""
