@@ -99,6 +99,8 @@ ERR_MSG_KWARGS = {
     " obs.simulate and obs.get_forecasted_env). This should be a dictionnary. (by default it's None)"),
     "class_in_file": ("experimental: tell grid2op to store the classes generated in the hard drive "
                       "which can solve lots of pickle / multi processing related issue"),
+    "support_shedding": ("experimental: allow grid2op to shed loads / generators without causing an" 
+                         "immediate game over")
 }
 
 NAME_CHRONICS_FOLDER = "chronics"
@@ -885,6 +887,16 @@ def make_from_dataset_path(
     if "class_in_file" in kwargs:
         classes_in_file_kwargs = bool(kwargs["class_in_file"])
         use_class_in_files = classes_in_file_kwargs
+
+    # Flexibility
+    support_shedding = _get_default_aux(
+        "support_shedding",
+        kwargs,
+        defaultClassApp=bool,
+        defaultinstance=False,
+        msg_error=ERR_MSG_KWARGS["support_shedding"],
+        isclass=False,
+    )
         
     if use_class_in_files:
         # new behaviour
@@ -950,6 +962,7 @@ def make_from_dataset_path(
                                 attention_budget_cls=attention_budget_class,
                                 kwargs_attention_budget=kwargs_attention_budget,
                                 logger=logger,
+                                support_shedding=support_shedding,
                                 n_busbar=n_busbar,  # TODO n_busbar_per_sub different num per substations: read from a config file maybe (if not provided by the user)
                                 _compat_glop_version=_compat_glop_version,
                                 _read_from_local_dir=None,  # first environment to generate the classes and save them
@@ -1030,6 +1043,7 @@ def make_from_dataset_path(
         attention_budget_cls=attention_budget_class,
         kwargs_attention_budget=kwargs_attention_budget,
         logger=logger,
+        support_shedding=support_shedding,
         n_busbar=n_busbar,  # TODO n_busbar_per_sub different num per substations: read from a config file maybe (if not provided by the user)
         _compat_glop_version=_compat_glop_version,
         _read_from_local_dir=classes_path,

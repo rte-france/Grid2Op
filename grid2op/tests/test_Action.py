@@ -69,7 +69,7 @@ def _get_action_grid_class():
         [3, 21, 10, 15, 22, 16, 23, 32, 37, 26, 47, 50, 54, 35, 38, 44, 57, 45, 51, 55]
     )
 
-    GridObjects.redispatching_unit_commitment_availble = True
+    GridObjects.redispatching_unit_commitment_available = True
     GridObjects.gen_type = np.array(["thermal"] * 5)
     GridObjects.gen_pmin = np.array([0.0] * 5)
     GridObjects.gen_pmax = np.array([100.0] * 5)
@@ -82,6 +82,15 @@ def _get_action_grid_class():
     GridObjects.gen_max_ramp_up = np.array([10.0, 5.0, 15.0, 7.0, 8.0])
     GridObjects.gen_max_ramp_down = np.array([11.0, 6.0, 16.0, 8.0, 9.0])
     GridObjects.gen_renewable = ~GridObjects.gen_redispatchable
+
+    GridObjects.flexible_load_available = True
+    GridObjects.load_min_uptime = np.array([0] * 11)
+    GridObjects.load_min_downtime = np.array([0] * 11)
+    GridObjects.load_cost_per_MW = np.array([0.0] * 11)
+    GridObjects.load_size = np.array([0.0] * 11)
+    GridObjects.load_flexible = np.array([False] * 11)
+    GridObjects.load_max_ramp_up = np.array([0.0] * 11)
+    GridObjects.load_max_ramp_down = np.array([0.0] * 11)
 
     GridObjects.n_storage = 2
     GridObjects.name_storage = np.array(["storage_0", "storage_1"])
@@ -315,6 +324,13 @@ def _get_action_grid_class():
         "gen_cost_per_MW": [70.0] * 5,
         "gen_startup_cost": [0.0] * 5,
         "gen_shutdown_cost": [0.0] * 5,
+        "load_size":[0.0]*11,
+        "load_flexible":[False]*11,
+        "load_max_ramp_up": [0.0]*11,
+        "load_max_ramp_down": [0.0]*11,
+        "load_min_uptime": [0.0]*11,
+        "load_min_downtime": [0.0]*11,
+        "load_cost_per_MW": [0.0]*11,
         "storage_type": ["battery"] * 2,
         "storage_Emax": [100.0, 100.0],
         "storage_Emin": [0.0, 0.0],
@@ -455,6 +471,7 @@ class TestActionBase(ABC):
             set_topo_vect,
             switcth_topo_vect,
             redispatching,
+            flexibility,
             storage,
             shunts,
         ) = action()

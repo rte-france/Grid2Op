@@ -64,7 +64,7 @@ def _get_action_grid_class():
         [3, 21, 10, 15, 22, 16, 23, 32, 37, 26, 47, 50, 54, 35, 38, 44, 57, 45, 51, 55]
     )
 
-    GridObjects.redispatching_unit_commitment_availble = True
+    GridObjects.redispatching_unit_commitment_available = True
     GridObjects.gen_type = np.array(["thermal"] * 3 + ["wind"] * 2)
     GridObjects.gen_pmin = np.array([0.0] * 5)
     GridObjects.gen_pmax = np.array([100.0] * 5)
@@ -77,6 +77,15 @@ def _get_action_grid_class():
     GridObjects.gen_max_ramp_up = np.array([10.0, 5.0, 15.0, 7.0, 8.0])
     GridObjects.gen_max_ramp_down = np.array([11.0, 6.0, 16.0, 8.0, 9.0])
     GridObjects.gen_renewable = ~GridObjects.gen_redispatchable
+
+    GridObjects.flexible_load_available = True
+    GridObjects.load_size = np.array([10.0] * 11)
+    GridObjects.load_min_uptime = np.array([0] * 11)
+    GridObjects.load_min_downtime = np.array([0] * 11)
+    GridObjects.load_cost_per_MW = np.array([70.0] * 11)
+    GridObjects.load_flexible = np.array([False] * 11)
+    GridObjects.load_max_ramp_up = np.array([0.0] * 11)
+    GridObjects.load_max_ramp_down = np.array([0.0] * 11)
 
     GridObjects.n_storage = 2
     GridObjects.name_storage = np.array(["storage_0", "storage_1"])

@@ -193,7 +193,7 @@ Set up the productions and storage characteristics
 
 Work in progress.
 
-Have a look at :func:`grid2op.Backend.Backend.load_redispacthing_data` for productions characteristics and
+Have a look at :func:`grid2op.Backend.Backend.load_redispatching_data` for productions characteristics and
 :func:`grid2op.Backend. Backend.load_storage_data` for storage characteristics.
 
 .. _test_env_ex:

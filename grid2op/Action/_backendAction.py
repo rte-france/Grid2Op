@@ -661,6 +661,14 @@ class _BackendAction(GridObjects):
         """
         self.prod_p.change_val(new_redispatching)
 
+    def set_flexibility(self, new_flexibility):
+        """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+            
+            This is called by the environment, do not alter.
+        """
+        self.load_p.change_val(new_flexibility)
+
     def _aux_iadd_inj(self, dict_injection):
         """
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\

@@ -60,6 +60,7 @@ class TestCurtailmentEnv(HelperTests, unittest.TestCase):
             "This action will:\n"
             "\t - NOT change anything to the injections\n"
             "\t - NOT perform any redispatching action\n"
+            "\t - NOT perform any flexibility action\n"
             "\t - NOT modify any storage capacity\n"
             "\t - Perform the following curtailment:\n"
             '\t \t - Limit unit "gen_5_2" to 50.0% of its Pmax (setpoint: 0.500)\n'

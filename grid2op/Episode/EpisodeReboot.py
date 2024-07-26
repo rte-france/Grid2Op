@@ -222,11 +222,15 @@ class EpisodeReboot:
             self.env.reset()
 
         self.env._gen_activeprod_t[:] = obs.prod_p.astype(dt_float)
+        self.env._load_demand_t[:] = obs.load_p.astype(dt_float)
         self.env._actual_dispatch[:] = obs.actual_dispatch.astype(dt_float)
+        self.env._actual_flex[:] = obs.actual_flex.astype(dt_float)
         self.env._target_dispatch[:] = obs.target_dispatch.astype(dt_float)
-        self.env._gen_activeprod_t_redisp[:] = obs.prod_p.astype(
-            dt_float
-        ) + obs.actual_dispatch.astype(dt_float)
+        self.env._target_flex[:] = obs.target_flex.astype(dt_float)
+        self.env._gen_activeprod_t_redisp[:] = obs.prod_p.astype(dt_float) + \
+                                               obs.actual_dispatch.astype(dt_float)
+        self.env._load_demand_t_flex[:] = obs.load_p.astype(dt_float) + \
+                                              obs.actual_flex.astype(dt_float)
         self.env.current_obs = obs
         self.env._timestep_overflow[:] = obs.timestep_overflow.astype(dt_int)
         self.env._times_before_line_status_actionable[

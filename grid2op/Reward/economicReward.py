@@ -47,10 +47,10 @@ class EconomicReward(BaseReward):
         self.worst_cost = None
 
     def initialize(self, env):
-        if not env.redispatching_unit_commitment_availble:
+        if not env.redispatching_unit_commitment_available:
             raise Grid2OpException(
                 "Impossible to use the EconomicReward reward with an environment without generators"
-                "cost. Please make sure env.redispatching_unit_commitment_availble is available."
+                "cost. Please make sure env.redispatching_unit_commitment_available is available."
             )
         self.worst_cost = dt_float((env.gen_cost_per_MW * env.gen_pmax).sum() * env.delta_time_seconds / 3600.0)
 
