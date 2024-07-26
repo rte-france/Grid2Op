@@ -83,6 +83,15 @@ def _get_action_grid_class():
     GridObjects.gen_max_ramp_down = np.array([11.0, 6.0, 16.0, 8.0, 9.0])
     GridObjects.gen_renewable = ~GridObjects.gen_redispatchable
 
+    GridObjects.flexible_load_available = True
+    GridObjects.load_min_uptime = np.array([0] * 11)
+    GridObjects.load_min_downtime = np.array([0] * 11)
+    GridObjects.load_cost_per_MW = np.array([0.0] * 11)
+    GridObjects.load_size = np.array([0.0] * 11)
+    GridObjects.load_flexible = np.array([False] * 11)
+    GridObjects.load_max_ramp_up = np.array([0.0] * 11)
+    GridObjects.load_max_ramp_down = np.array([0.0] * 11)
+
     GridObjects.n_storage = 2
     GridObjects.name_storage = np.array(["storage_0", "storage_1"])
     GridObjects.storage_to_subid = np.array([1, 2])

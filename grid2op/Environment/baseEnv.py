@@ -2961,41 +2961,42 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._gen_uptime[gen_still_connected] += 1
         self._gen_downtime[gen_still_disconnected] += 1
 
-        # Update min downtime & min uptime (loads)
-        load_disconnected_this = load_up_before & (~load_up_after)
-        load_connected_this_timestep = (~load_up_before) & (load_up_after)
-        load_still_connected = load_up_before & load_up_after
-        load_still_disconnected = (~load_up_before) & (~load_up_after)
+        if self.flexible_load_available:
+            # Update min downtime & min uptime (loads)
+            load_disconnected_this = load_up_before & (~load_up_after)
+            load_connected_this_timestep = (~load_up_before) & (load_up_after)
+            load_still_connected = load_up_before & load_up_after
+            load_still_disconnected = (~load_up_before) & (~load_up_after)
 
-        if ((self._load_downtime[load_connected_this_timestep]
-             < self.load_min_downtime[load_connected_this_timestep]).any()
-             and not self._ignore_min_up_down_times):
-            # Reconnected a load before the minimum time allowed
-            id_load = (self._load_downtime[load_connected_this_timestep]
-                       < self.load_min_downtime[load_connected_this_timestep])
-            id_load = (id_load).nonzero()[0]
-            id_load = (load_connected_this_timestep[id_load]).nonzero()[0]
-            except_ = LoadTurnedOnTooSoon(f"A load has been connected too early ({id_load})")
-            return except_
-        else:
-            self._load_downtime[load_connected_this_timestep] = -1
-            self._load_uptime[load_connected_this_timestep] = 1
+            if ((self._load_downtime[load_connected_this_timestep]
+                < self.load_min_downtime[load_connected_this_timestep]).any()
+                and not self._ignore_min_up_down_times):
+                # Reconnected a load before the minimum time allowed
+                id_load = (self._load_downtime[load_connected_this_timestep]
+                        < self.load_min_downtime[load_connected_this_timestep])
+                id_load = (id_load).nonzero()[0]
+                id_load = (load_connected_this_timestep[id_load]).nonzero()[0]
+                except_ = LoadTurnedOnTooSoon(f"A load has been connected too early ({id_load})")
+                return except_
+            else:
+                self._load_downtime[load_connected_this_timestep] = -1
+                self._load_uptime[load_connected_this_timestep] = 1
 
-        if ((self._load_uptime[load_disconnected_this]
-             < self.load_min_uptime[load_disconnected_this]).any()
-             and not self._ignore_min_up_down_times):
-            # Disconnected a load before the minimum time allowed
-            id_load = (self._load_uptime[load_disconnected_this] 
-                       < self.load_min_uptime[load_disconnected_this])
-            id_load = (id_load).nonzero()[0]
-            id_load = (load_connected_this_timestep[id_load]).nonzero()[0]
-            except_ = LoadTurnedOffTooSoon(f"Some load has been disconnected too early ({id_load})")
-            return except_
-        else:
-            self._load_downtime[load_connected_this_timestep] = 0
-            self._load_uptime[load_connected_this_timestep] = 1
-        self._load_uptime[load_still_connected] += 1
-        self._load_downtime[load_still_disconnected] += 1
+            if ((self._load_uptime[load_disconnected_this]
+                < self.load_min_uptime[load_disconnected_this]).any()
+                and not self._ignore_min_up_down_times):
+                # Disconnected a load before the minimum time allowed
+                id_load = (self._load_uptime[load_disconnected_this] 
+                        < self.load_min_uptime[load_disconnected_this])
+                id_load = (id_load).nonzero()[0]
+                id_load = (load_connected_this_timestep[id_load]).nonzero()[0]
+                except_ = LoadTurnedOffTooSoon(f"Some load has been disconnected too early ({id_load})")
+                return except_
+            else:
+                self._load_downtime[load_connected_this_timestep] = 0
+                self._load_uptime[load_connected_this_timestep] = 1
+            self._load_uptime[load_still_connected] += 1
+            self._load_downtime[load_still_disconnected] += 1
         return except_
 
     def get_obs(self, _update_state=True, _do_copy=True):

@@ -4058,7 +4058,7 @@ class GridObjects:
             # Indeed, at this stage (first call in the backend.load_grid) these
             # attributes are not loaded yet
             
-            # redispatching
+            # Redispatching
             if cls.redispatching_unit_commitment_available:
                 for nm_attr, type_attr in zip(cls._li_attr_disp, cls._type_attr_disp):
                     save_to_dict(
@@ -4072,20 +4072,21 @@ class GridObjects:
                 for nm_attr in cls._li_attr_disp:
                     res[nm_attr] = None
             
-            # if cls.flexible_load_available:
-            for nm_attr, type_attr in zip(cls._li_attr_flex_load, cls._type_attr_flex_load):
-                save_to_dict(
-                    res,
-                    cls,
-                    nm_attr,
-                    (lambda li: [type_attr(el) for el in li]) if as_list else None,
-                    copy_,
-                )
-            # else:
-            #     for nm_attr in cls._li_attr_flex_load:
-            #         res[nm_attr] = None
+            # Flexibility
+            if cls.flexible_load_available:
+                for nm_attr, type_attr in zip(cls._li_attr_flex_load, cls._type_attr_flex_load):
+                    save_to_dict(
+                        res,
+                        cls,
+                        nm_attr,
+                        (lambda li: [type_attr(el) for el in li]) if as_list else None,
+                        copy_,
+                    )
+            else:
+                for nm_attr in cls._li_attr_flex_load:
+                    res[nm_attr] = None
 
-            # layout (position of substation on a map of the grid)
+            # Layout (position of substation on a map of the grid)
             if cls.grid_layout is not None:
                 save_to_dict(
                     res,
@@ -4099,7 +4100,7 @@ class GridObjects:
             else:
                 res["grid_layout"] = None
 
-            # storage data
+            # Storage Data
             save_to_dict(
                 res,
                 cls,
@@ -4164,13 +4165,13 @@ class GridObjects:
                 copy_,
             )
 
-            # alert or alarm
+            # Alert or Alarm
             if cls.assistant_warning_type is not None:
                 res["assistant_warning_type"] = str(cls.assistant_warning_type)
             else:
                 res["assistant_warning_type"] = None
             
-            # area for the alarm feature
+            # Area for the alarm feature
             res["dim_alarms"] = cls.dim_alarms
         
 
@@ -4197,16 +4198,16 @@ class GridObjects:
                 copy_,
             )
             
-            # number of line alert for the alert feature
+            # No. of line alerst for the alert feature
             res['dim_alerts'] = cls.dim_alerts 
-            # save alert line names to dict
+            # Save alert line names to dict
             save_to_dict(
                 res, cls, "alertable_line_names", (lambda li: [str(el) for el in li]) if as_list else None, copy_
             )
             save_to_dict(
                 res, cls, "alertable_line_ids", (lambda li: [int(el) for el in li])  if as_list else None, copy_
             )
-            # avoid further computation and save it
+            # Avoid further computation and save it
             if not as_list:
                 cls._CLS_DICT = res.copy()
         return res
