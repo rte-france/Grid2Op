@@ -268,7 +268,7 @@ class TestBasisObsBehaviour(unittest.TestCase):
             "load_max_ramp_down": [0.0]*11,
             "load_min_uptime": [0.0]*11,
             "load_min_downtime": [0.0]*11,
-            "load_cost_per_MW" [0.0]*11,
+            "load_cost_per_MW": [0.0]*11,
             "grid_layout": {
                 "sub_0": [-280.0, -81.0],
                 "sub_1": [-100.0, -270.0],

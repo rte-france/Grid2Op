@@ -321,7 +321,7 @@ def _get_action_grid_class():
         "load_max_ramp_down": [0.0]*11,
         "load_min_uptime": [0.0]*11,
         "load_min_downtime": [0.0]*11,
-        "load_cost_per_MW" [0.0]*11,
+        "load_cost_per_MW": [0.0]*11,
         "storage_type": ["battery"] * 2,
         "storage_Emax": [100.0, 100.0],
         "storage_Emin": [0.0, 0.0],
