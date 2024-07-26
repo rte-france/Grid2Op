@@ -22,6 +22,7 @@ __all__ = [
     "OnLines",
     "InvalidReconnection",
     "UnitCommitorRedispachingNotAvailable",
+    "FlexibilityNotAvailable",
     "NotEnoughGenerators",
     "GeneratorTurnedOffTooSoon",
     "GeneratorTurnedOnTooSoon",
@@ -88,6 +89,7 @@ from grid2op.Exceptions.illegalActionExceptions import (IllegalAction,
                                                         OnLines,
                                                         InvalidReconnection,
                                                         UnitCommitorRedispachingNotAvailable,
+                                                        FlexibilityNotAvailable
                                                         )
 
 from grid2op.Exceptions.ambiguousActionExceptions import (NotEnoughGenerators,

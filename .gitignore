@@ -71,8 +71,6 @@ var/
 
 # Jupyter Notebooks inside Package
 grid2op/**/*.ipynb
-# Jupyter Notebooks in top-level project directory
-*.ipynb
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
