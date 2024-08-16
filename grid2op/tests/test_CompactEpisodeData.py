@@ -12,7 +12,7 @@ import pdb
 import unittest
 
 import grid2op
-from grid2op.Agent import OneChangeThenNothing
+from grid2op.Agent import DoNothingAgent, OneChangeThenNothing
 from grid2op.tests.helper_path_test import *
 from grid2op.Chronics import Multifolder
 from grid2op.Reward import L2RPNReward
@@ -140,6 +140,8 @@ class TestCompactEpisodeData(unittest.TestCase):
         assert len(episode_data.observations) == self.max_iter + 1
         assert len(episode_data.env_actions) == self.max_iter
         assert len(episode_data.attacks) == self.max_iter
+        assert len(episode_data.ambiguous) == self.max_iter
+        assert len(episode_data.legal) == self.max_iter
 
     def test_one_episode_with_saving(self):
         f = tempfile.mkdtemp()
@@ -163,6 +165,7 @@ class TestCompactEpisodeData(unittest.TestCase):
         OneChange = OneChangeThenNothing.gen_next(
             {"set_bus": {"lines_or_id": [(1, -1)]}}
         )
+        # env.reset(options=)
         runner = Runner(
             init_grid_path=self.init_grid_path,
             init_env_path=self.init_grid_path,
@@ -178,9 +181,10 @@ class TestCompactEpisodeData(unittest.TestCase):
             agentClass=OneChange,
             use_compact_episode_data=True,
         )
-        ep_id, ep_name, cum_reward, timestep, max_ts, episode_data = runner.run_one_episode(
-            max_iter=self.max_iter, detailed_output=True
-        )
+        with warnings.catch_warnings(category=UserWarning, action="ignore"):
+            *_, episode_data = runner.run_one_episode(
+                max_iter=self.max_iter, detailed_output=True,
+            )
         # Check that the type of first action is set bus
         assert episode_data.action_space.from_vect(episode_data.actions[0]).get_types()[2]
 
@@ -257,7 +261,7 @@ class TestCompactEpisodeData(unittest.TestCase):
         )
 
         episode_data = CompactEpisodeData.from_disk(path=f, ep_id=res[0][1])
-        lines_impacted, subs_impacted = episode_data.attack_space.from_vect(episode_data.attacks[0]).get_topological_impact()
+        lines_impacted, _ = episode_data.attack_space.from_vect(episode_data.attacks[0]).get_topological_impact()
         assert lines_impacted[3]
 
     def test_can_return_ep_data(self):
