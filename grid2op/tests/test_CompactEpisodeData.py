@@ -181,10 +181,8 @@ class TestCompactEpisodeData(unittest.TestCase):
             agentClass=OneChange,
             use_compact_episode_data=True,
         )
-        with warnings.catch_warnings(category=UserWarning, action="ignore"):
-            *_, episode_data = runner.run_one_episode(
-                max_iter=self.max_iter, detailed_output=True,
-            )
+        *_, episode_data = runner.run_one_episode(
+            max_iter=self.max_iter, detailed_output=True,
         # Check that the type of first action is set bus
         assert episode_data.action_space.from_vect(episode_data.actions[0]).get_types()[2]
 
