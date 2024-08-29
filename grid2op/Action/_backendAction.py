@@ -613,6 +613,7 @@ class _BackendAction(GridObjects):
         self.load_p.reset()
         self.load_q.reset()
         self.storage_power.reset()
+        
         # storage unit have their power reset to 0. each step
         self.storage_power.changed[:] = True
         self.storage_power.values[:] = 0.0
