@@ -6,82 +6,82 @@
 .. |episode_example| image:: ./img/grid2op_action.jpg
 
 ===============================================
-Welcome to Grid2Op's technical documentation!
+Welcome to Grid2Op's documentation
 ===============================================
 
 Grid2Op is a pythonic, easy to use framework, to be able to develop, train or evaluate performances of "agent" or
-"controller" that acts on a powergrid in  different ways.
+"controller" that acts on a powergrid.
 
-It is modular and can be use to train reinforcement learning agent or to assess the performance of optimal control
-algorithm.
+It is modular and can be use to train reinforcement learning agent or to assess the performance of any kind of
+agent controlling powergrids (heuristic, machine learning, optimization, mix of everything etc.)
 
-It is flexible and allows the power flow to be computed by the algorithm of your choice. It abstracts the modification
-of a powergrid and use this abstraction to compute the **cascading failures** resulting from powerlines disconnection
-for example.
-
-**Features**
-
-  - abstract the computation of the "cascading failures"
-  - ability to have the same code running with multiple powerflows
-  - parallel execution of one agent / controller on multiple independent scenarios (multiprocessing)
-  - fully customisable: this software has been built to be fully customizable to serve different
-    purposes and not only reinforcement learning, or the L2RPN competition.
+It is highly flexible and can be modified in different ways.
 
 Grid2Op philosophy
 --------------------
 Grid2Op is a python module that aims to make easier the research on sequential decision making applied to power systems.
 
-This package adopt the "reinforcement learning" point of view and is compatible with the openAI gym programming
-interface (see section :ref:`openai-gym` for more information).
+This package adopt the "sequential decision making" point of view, for example suited
+for training and evaluation "reinforcement learning" agents.
 
-Applied to power system, the "reinforcement learning" framework ask:
+It is made of 4 main blocks:
 
-- a "controller" (named Agent) to take an "action" on the powergrid (for example for L2RPN competitions in 2019
-  and 2020 these actions consist in modifying the connectivity of the powergrid).
-- the "environment" (*a.k.a* the "real world") applies that action on the powergrid, applies some other modifications
-  and return the next state.
+- a module that will embed all the "external" / "exogenous" data, called the "time series" (formelly call "chronics"). 
+  This module for example contain the variation of each and generators.
+- a module that will compute the "powerflows", called "backend". It is important to note that grid2op itself 
+  assumes nothing on the powergrid. And in theory you can use any solver that you want to compute the state of 
+  the grid (static / steady state or dynamic / transient or DC modeling or AC modeling etc. with trafo being modled in `T` or in `Pi`)
+- a module that "takes decision", called "action" on the grid based on the current grid state, called "observation" and 
+  possible future forecasted grid states
+- a module that wrap all the above together and implements a few other feature such as making sure provided actions are "legal"
+  (meet certain rules) or even emulating (if the module that compute the grid states does not do it) the behaviour of some 
+  "protections".
 
-The goal of grid2op is to model "sequential decision making" that could be made by human operators, for example
-changing the configuration of some "substations" as demonstrate in the figure below:
+The goal of grid2op is to model "sequential decision making" that could be made by 
+human operators, for example changing the configuration of some "substations" 
+as demonstrate in the figure below:
 
 |episode_example|
 
-Any kind of "controller" can be implemented using this framework even though it has been inspired by the
-"reinforcement learning" community. You can implement some heuristic "controllers" (some examples are available in the
-:ref:`agent-module` module description), "controllers" that comes from the Optimization community
-(for example "Optimal Power Flow") or
-"Model Predictive Control". One of the goal of Grid2Op is to allow everyone to contribute to closing the gap
-between all these research communities.
+.. note::
+   Any kind of "controller" can be implemented using this framework even though it has been inspired by the
+   "reinforcement learning" community. You can implement some heuristic "controllers" (some examples are available in the
+   :ref:`agent-module` module description), "controllers" that comes from the Optimization community
+   (for example "Optimal Power Flow") or
+   "Model Predictive Control". One of the goal of Grid2Op is to allow everyone to contribute to closing the gap
+   between all these research communities.
+
+.. note::
+   Consecutive steps are "correlated" in the sense that the action taken
+   at time `t` is part of the process that defines the state observed at 
+   step `t+1`. More information on this is given in the 
+   :ref:`mdp-doc-module` for example.
+
 
 Main module content
 ---------------------
 
+This is where you can go if you want some quick introduction about grid2op 
+or overall view of what is happing when you "run" a scenario using in grid2op.
+
 .. toctree::
-   :maxdepth: 2
-   :caption: Quickstart
+   :maxdepth: 1
+   :caption: Overview
 
    quickstart
    grid2op
 
-Environments
----------------
-.. toctree::
-   :maxdepth: 2
-   :caption: Focus on an "environment"
-
-   available_envs
-   makeenv
-   env_content
-   create_an_environment
-   dive_into_time_series
-   data_pipeline
-   troubleshoot
-
 Usage examples
 ---------------------
+
+On this part of the documentation we focus on some usage of grid2op in different 
+context, for example using optimization or when "wrapping" grid2op into 
+a gymnsium compatible environment (with only subset of grid2op capabilities)
+to ease training of reinforcement learning agents.
+
 .. toctree::
-   :maxdepth: 2
-   :caption: Learn by Example
+   :maxdepth: 1
+   :caption: Learn with examples
 
    optimization
    gym
@@ -91,49 +91,112 @@ Usage examples
 Modeling
 ----------
 
+This part of the documentation focuses on the different 
+"model" in grid2op. You can find the formal definition
+(or at least an attempt at such) for the "Markov Decision Process"
+(a mathematical framework used to model sequential decisions making) and 
+the how the elements accessible in the observation or modifiable in 
+the action of the agent are represented.
+
+You can also find some discussion about the topology of the grid (one 
+of the focus of grid2op) and the representation of the grid as a 
+graph.
+
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Models
 
    mdp
    modeled_elements
    grid_graph
+   topology
+
+Environments
+---------------
+
+Here we try to explain rapidly how to load pre existing environment and how some 
+customization can make grid2op faster (depending on the context)
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Focus on an "environment"
+
+   available_envs
+   makeenv
+   dive_into_time_series
+   data_pipeline
+   troubleshoot
 
 Plotting capabilities
 ----------------------
 
+Some plotting capabilities of grid2op. 
+
+.. warning::
+   This has not been updated
+   for a long time and is maybe not up to date.
+
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Plot
 
    plot
 
-Technical Documentation
-----------------------------
+Technical documentation for grid2op users
+-------------------------------------------
+
+This part of the documentation is dedicated to grid2op users. It 
+covers detailed description of all the modules, classes and their main method
+that you, as a user, can use in grid2op.
+
+The documentation there is mainly descirptive. It explains what is done but 
+avoid (in general) getting in "too much gory details" on how these 
+things are done.
+
+As a starting point, we suggest you first look here before diving more
+deeply into the other section of the documentation.
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Technical Documentation
+   :maxdepth: 1
+   :caption: Technical documentation for grid2op users
 
-   action
-   agent
-   backend
-   chronics
-   converter
-   createbackend
-   environment
-   episode
-   exception
-   observation
-   opponent
-   parameters
-   reward
-   rules
-   runner
-   simulator
-   space
-   timeserie_handlers
-   utils
-   voltagecontroler
+   user
+
+External contribution technical Documentation
+------------------------------------------------
+
+This part of the documentation is focued on external contribution.
+It is best suited if you want to use grid2op as a "core" and extend / modify
+it with different elements.
+
+For example, you might want to :
+- use a different solver to compute powerflows 
+  (called :class:`grid2op.Backend.Backend` in grid2op)
+- create a new environment
+- load time series from a different format than the grid2op default csv
+- have an opponent that act differently than the provided ones
+- evaluate the performance of the agent differently (change the reward / score function)
+- use a different way to control the voltages
+- etc.
+ 
+The main focuse of these pages of the documentation is put on the 
+interface and still avoid getting into too much detail on how things
+are done internally whenever possible.
+
+This is the type of documentation you should be looking at if the 
+current grid2op modelling statisfies you in its vast majority 
+but if you want to slightly modify one of its component
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Technical documentation for grid2op external contributors
+
+   developer
+
+Developer technical Documentation
+-----------------------------------
+
+
+DOC IN PROGRESS...
 
 .. include:: final.rst

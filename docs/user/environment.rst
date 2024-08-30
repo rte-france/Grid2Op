@@ -151,7 +151,7 @@ Feel free to consult the documentation of the :func:`Environment.reset` function
 for more information (this doc might be outdated, the one of the function should 
 be more up to date with the code).
 
-.. info::
+.. note::
     In the near future (next few releases) we will also attempt to make the 
     customization of the `parameters` or the `skip number of steps`, `maximum duration 
     of the scenarios` also available in `env.reset()` options.

@@ -12,6 +12,10 @@ from grid2op.Agent.baseAgent import BaseAgent
 
 class OneChangeThenNothing(BaseAgent):
     """
+    .. warning::
+        As of grid2op 1.10.2, this class has been deprecated. Please use `env.reset(options={"init state": THE_INITIAl_CHANGE})`
+        instead.
+    
     This is a specific kind of BaseAgent. It does an BaseAction (possibly non empty) at the first time step and then does
     nothing.
 
@@ -26,6 +30,7 @@ class OneChangeThenNothing(BaseAgent):
 
     Examples
     ---------
+    
     We advise to use this class as following
 
     .. code-block:: python
@@ -50,7 +55,7 @@ class OneChangeThenNothing(BaseAgent):
             # run 2 episode with it
             res_2 = runner.run(nb_episode=2)
 
-    Notes:
+    Notes
     ------
     
     After grid2op 1.10.2, this class has been deprecated. A cleaner alternative
