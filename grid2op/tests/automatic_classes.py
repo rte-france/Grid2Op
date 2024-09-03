@@ -33,7 +33,7 @@ from grid2op.gym_compat import (BoxGymActSpace,
                                 BoxGymObsSpace,
                                 DiscreteActSpace,
                                 MultiDiscreteActSpace)
-from grid2op.gym_compat.legacy import GymEnv as LegacyGymEnv  # TODO GYMENV
+from grid2op.gym_compat import GymEnv # TODO GYMENV
 
 # TODO test the runner saved classes and reload
 
@@ -558,7 +558,7 @@ class GymEnvAutoClassTester(unittest.TestCase):
                 
     def test_gym_with_step(self):
         """test the step function also disconnects (or not) the lines"""
-        env_gym = LegacyGymEnv(self.env)
+        env_gym = GymEnv(self.env)
         act = {}
         self._aux_run_envs(act, env_gym)
         env_gym.reset()
@@ -566,12 +566,12 @@ class GymEnvAutoClassTester(unittest.TestCase):
             
     def test_gym_normal(self):
         """test I can create the gym env"""
-        env_gym = LegacyGymEnv(self.env)
+        env_gym = GymEnv(self.env)
         env_gym.reset()
     
     def test_gym_box(self):
         """test I can create the gym env with box ob space and act space"""
-        env_gym = LegacyGymEnv(self.env)
+        env_gym = GymEnv(self.env)
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env_gym.action_space = BoxGymActSpace(self.env.action_space)
@@ -580,7 +580,7 @@ class GymEnvAutoClassTester(unittest.TestCase):
     
     def test_gym_discrete(self):
         """test I can create the gym env with discrete act space"""
-        env_gym = LegacyGymEnv(self.env)
+        env_gym = GymEnv(self.env)
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env_gym.action_space = DiscreteActSpace(self.env.action_space)
@@ -590,7 +590,7 @@ class GymEnvAutoClassTester(unittest.TestCase):
         
     def test_gym_multidiscrete(self):
         """test I can create the gym env with multi discrete act space"""
-        env_gym = LegacyGymEnv(self.env)
+        env_gym = GymEnv(self.env)
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             env_gym.action_space = MultiDiscreteActSpace(self.env.action_space)
@@ -602,12 +602,12 @@ class GymEnvAutoClassTester(unittest.TestCase):
     def test_asynch_fork(self):
         if _IS_WINDOWS:
             self.skipTest("no fork on windows")
-        async_vect_env = AsyncVectorEnv((lambda: LegacyGymEnv(self.env), lambda: LegacyGymEnv(self.env)),
+        async_vect_env = AsyncVectorEnv((lambda: GymEnv(self.env), lambda: GymEnv(self.env)),
                                         context="fork")
         obs = async_vect_env.reset()
         
     def test_asynch_spawn(self):
-        async_vect_env = AsyncVectorEnv((lambda: LegacyGymEnv(self.env), lambda: LegacyGymEnv(self.env)),
+        async_vect_env = AsyncVectorEnv((lambda: GymEnv(self.env), lambda: GymEnv(self.env)),
                                         context="spawn")
         obs = async_vect_env.reset()
         
