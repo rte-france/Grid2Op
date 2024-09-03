@@ -260,6 +260,40 @@ class TestCompactEpisodeData(unittest.TestCase):
         lines_impacted, subs_impacted = episode_data.attack_space.from_vect(episode_data.attacks[0]).get_topological_impact()
         assert lines_impacted[3]
 
+    def test_can_return_ep_data(self):
+        # One episode
+        res = self.runner.run(nb_episode=1,
+                              episode_id=[0],
+                              env_seeds=[0],
+                              max_iter=self.max_iter,
+                              add_detailed_output=True,
+                              nb_process=1
+                              )
+        for el in res:
+            assert isinstance(el[-1], CompactEpisodeData)
+            
+        # 2 episodes, sequential mode
+        res = self.runner.run(nb_episode=2,
+                              episode_id=[0, 1],
+                              env_seeds=[0, 1],
+                              max_iter=self.max_iter,
+                              add_detailed_output=True,
+                              nb_process=1
+                              )
+        for el in res:
+            assert isinstance(el[-1], CompactEpisodeData)
+        
+        # 2 episodes, parrallel mode
+        res = self.runner.run(nb_episode=2,
+                              episode_id=[0, 1],
+                              env_seeds=[0, 1],
+                              max_iter=self.max_iter,
+                              add_detailed_output=True,
+                              nb_process=2
+                              )
+        for el in res:
+            assert isinstance(el[-1], CompactEpisodeData)
+
 
 if __name__ == "__main__":
     unittest.main()

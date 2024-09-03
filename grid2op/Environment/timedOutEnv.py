@@ -9,12 +9,14 @@
 import time
 from math import floor
 from typing import Any, Dict, Tuple, Union, List, Literal
-    
+import os
+
 from grid2op.Environment.environment import Environment
 from grid2op.Action import BaseAction
 from grid2op.Observation import BaseObservation
 from grid2op.Exceptions import EnvError
 from grid2op.Space import DEFAULT_N_BUSBAR_PER_SUB
+from grid2op.MakeEnv.PathUtils import USE_CLASS_IN_FILE
 
 
 class TimedOutEnvironment(Environment):  # TODO heritage ou alors on met un truc de base
@@ -71,7 +73,19 @@ class TimedOutEnvironment(Environment):  # TODO heritage ou alors on met un truc
         self._nb_dn_last = 0
         self._is_init_dn = False
         if isinstance(grid2op_env, Environment):
-            super().__init__(**grid2op_env.get_kwargs())
+            kwargs = grid2op_env.get_kwargs()
+            if grid2op_env.classes_are_in_files():
+                # I need to build the classes
+                
+                # first take the "ownership" of the tmp directory
+                kwargs["_local_dir_cls"] = grid2op_env._local_dir_cls
+                grid2op_env._local_dir_cls = None
+                
+                # then generate the proper classes
+                sys_path = os.path.abspath(kwargs["_local_dir_cls"].name)
+                bk_type = type(grid2op_env.backend)
+                self._add_classes_in_files(sys_path, bk_type, grid2op_env.classes_are_in_files())
+            super().__init__(**kwargs)
         elif isinstance(grid2op_env, dict):
             super().__init__(**grid2op_env)
         else:
@@ -182,6 +196,7 @@ class TimedOutEnvironment(Environment):  # TODO heritage ou alors on met un truc
     
     @classmethod
     def init_obj_from_kwargs(cls,
+                             *,
                              other_env_kwargs,
                              init_env_path,
                              init_grid_path,
@@ -215,41 +230,51 @@ class TimedOutEnvironment(Environment):  # TODO heritage ou alors on met un truc
                              observation_bk_kwargs,
                              _raw_backend_class,
                              _read_from_local_dir,
+                             _local_dir_cls,
+                             _overload_name_multimix,
                              n_busbar=DEFAULT_N_BUSBAR_PER_SUB):
-        res = TimedOutEnvironment(grid2op_env={"init_env_path": init_env_path,
-                                               "init_grid_path": init_grid_path,
-                                               "chronics_handler": chronics_handler,
-                                               "backend": backend,
-                                               "parameters": parameters,
-                                               "name": name,
-                                               "names_chronics_to_backend": names_chronics_to_backend,
-                                               "actionClass": actionClass,
-                                               "observationClass": observationClass,
-                                               "rewardClass": rewardClass,
-                                               "legalActClass": legalActClass,
-                                               "voltagecontrolerClass": voltagecontrolerClass,
-                                               "other_rewards": other_rewards,
-                                               "opponent_space_type": opponent_space_type,
-                                               "opponent_action_class": opponent_action_class,
-                                               "opponent_class": opponent_class,
-                                               "opponent_init_budget": opponent_init_budget,
-                                               "opponent_budget_per_ts": opponent_budget_per_ts,
-                                               "opponent_budget_class": opponent_budget_class,
-                                               "opponent_attack_duration": opponent_attack_duration,
-                                               "opponent_attack_cooldown": opponent_attack_cooldown,
-                                               "kwargs_opponent": kwargs_opponent,
-                                               "with_forecast": with_forecast,
-                                               "attention_budget_cls": attention_budget_cls,
-                                               "kwargs_attention_budget": kwargs_attention_budget,
-                                               "has_attention_budget": has_attention_budget,
-                                               "logger": logger,
-                                               "kwargs_observation": kwargs_observation,
-                                               "observation_bk_class": observation_bk_class,
-                                               "observation_bk_kwargs": observation_bk_kwargs,
-                                               "_raw_backend_class": _raw_backend_class,
-                                               "_read_from_local_dir": _read_from_local_dir,
-                                               "n_busbar": int(n_busbar)},
-                                  **other_env_kwargs)
+        grid2op_env={"init_env_path": init_env_path,
+                     "init_grid_path": init_grid_path,
+                     "chronics_handler": chronics_handler,
+                     "backend": backend,
+                     "parameters": parameters,
+                     "name": name,
+                     "names_chronics_to_backend": names_chronics_to_backend,
+                     "actionClass": actionClass,
+                     "observationClass": observationClass,
+                     "rewardClass": rewardClass,
+                     "legalActClass": legalActClass,
+                     "voltagecontrolerClass": voltagecontrolerClass,
+                     "other_rewards": other_rewards,
+                     "opponent_space_type": opponent_space_type,
+                     "opponent_action_class": opponent_action_class,
+                     "opponent_class": opponent_class,
+                     "opponent_init_budget": opponent_init_budget,
+                     "opponent_budget_per_ts": opponent_budget_per_ts,
+                     "opponent_budget_class": opponent_budget_class,
+                     "opponent_attack_duration": opponent_attack_duration,
+                     "opponent_attack_cooldown": opponent_attack_cooldown,
+                     "kwargs_opponent": kwargs_opponent,
+                     "with_forecast": with_forecast,
+                     "attention_budget_cls": attention_budget_cls,
+                     "kwargs_attention_budget": kwargs_attention_budget,
+                     "has_attention_budget": has_attention_budget,
+                     "logger": logger,
+                     "kwargs_observation": kwargs_observation,
+                     "observation_bk_class": observation_bk_class,
+                     "observation_bk_kwargs": observation_bk_kwargs,
+                     "_raw_backend_class": _raw_backend_class,
+                     "_read_from_local_dir": _read_from_local_dir,
+                     "n_busbar": int(n_busbar),
+                     "_local_dir_cls": _local_dir_cls,
+                     "_overload_name_multimix": _overload_name_multimix}
+        if not "time_out_ms" in other_env_kwargs:
+            raise EnvError("You cannot make a MaskedEnvironment without providing the list of lines of interest")
+        for el in other_env_kwargs:
+            if el == "time_out_ms":
+                continue
+            warnings.warn(f"kwargs {el} provided to make the environment will be ignored")
+        res = TimedOutEnvironment(grid2op_env, time_out_ms=other_env_kwargs["time_out_ms"])
         return res
     
 

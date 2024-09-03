@@ -126,24 +126,35 @@ class __AuxGymActionSpace:
             env, (Environment, MultiMixEnvironment, BaseMultiProcessEnvironment)
         ):
             # action_space is an environment
-            self.initial_act_space = env.action_space
-            self._init_env = env
+            # self.initial_act_space = env.action_space
+            # self._init_env = env
+            self._template_act = env.action_space()
+            self._converter = None
+            self.__is_converter = False
         elif isinstance(env, ActionSpace) and converter is None:
             warnings.warn(
                 "It is now deprecated to initialize an Converter with an "
                 "action space. Please use an environment instead."
             )
-            self.initial_act_space = env
-            self._init_env = None
+            self._converter = None
+            self._template_act = env()
+            self.__is_converter = False
+        elif isinstance(env, type(self)):
+            self._template_act = env._template_act.copy()
+            self._converter = env._converter
+            self.__is_converter = env.__is_converter
         else:
             raise RuntimeError(
                 "GymActionSpace must be created with an Environment or an ActionSpace (or a Converter)"
             )
         dict_ = {}
+        
         # TODO Make sure it works well !
         if converter is not None and isinstance(converter, Converter):
             # a converter allows to ... convert the data so they have specific gym space
-            self.initial_act_space = converter
+            # self.initial_act_space = converter
+            self._converter = converter
+            self._template_act = converter.init_action_space()
             dict_ = converter.get_gym_dict(type(self))
             self.__is_converter = True
         elif converter is not None:
@@ -155,7 +166,7 @@ class __AuxGymActionSpace:
             )
         else:
             self._fill_dict_act_space(
-                dict_, self.initial_act_space, dict_variables=dict_variables
+                dict_, dict_variables=dict_variables
             )
             dict_ = self._fix_dict_keys(dict_)
             self.__is_converter = False
@@ -194,11 +205,11 @@ class __AuxGymActionSpace:
         If an attribute has been ignored, for example by :func`GymEnv.keep_only_obs_attr`
         or and is now present here, it will be re added in the final observation
         """
-        if self._init_env is None:
-            raise RuntimeError(
-                "Impossible to reencode a space that has been initialized with an "
-                "action space as input. Please provide a valid"
-            )
+        # if self._init_env is None:
+        #     raise RuntimeError(
+        #         "Impossible to reencode a space that has been initialized with an "
+        #         "action space as input. Please provide a valid"
+        #     )
         if self.__is_converter:
             raise RuntimeError(
                 "Impossible to reencode a space that is a converter space."
@@ -224,13 +235,15 @@ class __AuxGymActionSpace:
             else:
                 raise RuntimeError(f"Impossible to find key {key} in your action space")
         my_dict[key2] = fun
-        res = type(self)(env=self._init_env, dict_variables=my_dict)
+        res = type(self)(env=self, dict_variables=my_dict)
         return res
 
-    def _fill_dict_act_space(self, dict_, action_space, dict_variables):
+    def _fill_dict_act_space(self, dict_, dict_variables):
         # TODO what about dict_variables !!!
         for attr_nm, sh, dt in zip(
-            action_space.attr_list_vect, action_space.shape, action_space.dtype
+            type(self._template_act).attr_list_vect,
+            self._template_act.shapes(),
+            self._template_act.dtypes()
         ):
             if sh == 0:
                 # do not add "empty" (=0 dimension) arrays to gym otherwise it crashes
@@ -249,7 +262,7 @@ class __AuxGymActionSpace:
                     my_type = type(self)._BoxType(low=-1, high=1, shape=shape, dtype=dt)
                 elif attr_nm == "_set_topo_vect":
                     my_type = type(self)._BoxType(low=-1,
-                                                  high=type(action_space).n_busbar_per_sub,
+                                                  high=type(self._template_act).n_busbar_per_sub,
                                                   shape=shape, dtype=dt)
             elif dt == dt_bool:
                 # boolean observation space
@@ -263,28 +276,28 @@ class __AuxGymActionSpace:
                 SpaceType = type(self)._BoxType
 
                 if attr_nm == "prod_p":
-                    low = action_space.gen_pmin
-                    high = action_space.gen_pmax
+                    low = type(self._template_act).gen_pmin
+                    high = type(self._template_act).gen_pmax
                     shape = None
                 elif attr_nm == "prod_v":
                     # voltages can't be negative
                     low = 0.0
                 elif attr_nm == "_redispatch":
                     # redispatch
-                    low = -1.0 * action_space.gen_max_ramp_down
-                    high = 1.0 * action_space.gen_max_ramp_up
-                    low[~action_space.gen_redispatchable] = 0.0
-                    high[~action_space.gen_redispatchable] = 0.0
+                    low = -1.0 * type(self._template_act).gen_max_ramp_down
+                    high = 1.0 * type(self._template_act).gen_max_ramp_up
+                    low[~type(self._template_act).gen_redispatchable] = 0.0
+                    high[~type(self._template_act).gen_redispatchable] = 0.0
                 elif attr_nm == "_curtail":
                     # curtailment
-                    low = np.zeros(action_space.n_gen, dtype=dt_float)
-                    high = np.ones(action_space.n_gen, dtype=dt_float)
-                    low[~action_space.gen_renewable] = -1.0
-                    high[~action_space.gen_renewable] = -1.0
+                    low = np.zeros(type(self._template_act).n_gen, dtype=dt_float)
+                    high = np.ones(type(self._template_act).n_gen, dtype=dt_float)
+                    low[~type(self._template_act).gen_renewable] = -1.0
+                    high[~type(self._template_act).gen_renewable] = -1.0
                 elif attr_nm == "_storage_power":
                     # storage power
-                    low = -1.0 * action_space.storage_max_p_prod
-                    high = 1.0 * action_space.storage_max_p_absorb
+                    low = -1.0 * type(self._template_act).storage_max_p_prod
+                    high = 1.0 * type(self._template_act).storage_max_p_absorb
                 my_type = SpaceType(low=low, high=high, shape=shape, dtype=dt)
 
             if my_type is None:
@@ -317,10 +330,10 @@ class __AuxGymActionSpace:
         if self.__is_converter:
             # case where the action space comes from a converter, in this case the converter takes the
             # delegation to convert the action to openai gym
-            res = self.initial_act_space.convert_action_from_gym(gymlike_action)
+            res = self._converter.convert_action_from_gym(gymlike_action)
         else:
             # case where the action space is a "simple" action space
-            res = self.initial_act_space()
+            res = self._template_act.copy()
             for k, v in gymlike_action.items():
                 internal_k = self.keys_human_2_grid2op[k]
                 if internal_k in self._keys_encoding:
@@ -347,7 +360,7 @@ class __AuxGymActionSpace:
 
         """
         if self.__is_converter:
-            gym_action = self.initial_act_space.convert_action_to_gym(action)
+            gym_action = self._converter.convert_action_to_gym(action)
         else:
             # in that case action should be an instance of grid2op BaseAction
             assert isinstance(

@@ -84,7 +84,6 @@ pkgs = {
 }
 pkgs["extras"]["test"] += pkgs["extras"]["optional"]
 pkgs["extras"]["test"] += pkgs["extras"]["plot"]
-pkgs["extras"]["test"] += pkgs["extras"]["chronix2grid"]
 pkgs["extras"]["test"] += pkgs["extras"]["gymnasium"]
 
 if sys.version_info.minor <= 7:

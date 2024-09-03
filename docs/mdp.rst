@@ -1,5 +1,9 @@
-.. include:: special.rst
+.. for the color
+.. include:: special.rst 
 
+.. for the observation attributes
+.. include:: user/special.rst
+  
 .. _mdp-doc-module:
 
 Dive into grid2op sequential decision process

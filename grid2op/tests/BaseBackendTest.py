@@ -97,6 +97,7 @@ class BaseTestLoadingCase(MakeBackend):
         return "test_case14.json"
     
     def test_load_file(self):
+        self.skip_if_needed()
         backend = self.make_backend_with_glue_code()
         path_matpower = self.get_path()
         case_file = self.get_casefile()
@@ -2190,11 +2191,13 @@ class BaseTestResetEqualsLoadGrid(MakeBackend):
 
     def test_reset_equals_reset(self):
         self.skip_if_needed()
-        # Reset backend1 with reset
-        self.env1.reset()
-        # Reset backend2 with reset
-        self.env2.reset()
-        self._compare_backends()
+        with warnings.catch_warnings():
+            warnings.filterwarnings("error")
+            # Reset backend1 with reset
+            self.env1.reset()
+            # Reset backend2 with reset
+            self.env2.reset()
+            self._compare_backends()
 
     def _compare_backends(self):
         # Compare

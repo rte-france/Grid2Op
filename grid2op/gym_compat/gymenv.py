@@ -107,16 +107,28 @@ class __AuxGymEnv(Generic[ObsType, ActType]):
     def __init__(self,
                  env_init: Environment,
                  shuffle_chronics:Optional[bool]=True,
-                 render_mode: Literal["rgb_array"]="rgb_array"):
+                 render_mode: Literal["rgb_array"]="rgb_array",
+                 with_forecast: bool=False):
         cls = type(self)
         check_gym_version(cls._gymnasium)
+        self.action_space = cls._ActionSpaceType(env_init)
+        self.observation_space = cls._ObservationSpaceType(env_init)
+        self.reward_range = env_init.reward_range
+        self.metadata = env_init.metadata
         self.init_env = env_init.copy()
-        self.action_space = cls._ActionSpaceType(self.init_env)
-        self.observation_space = cls._ObservationSpaceType(self.init_env)
-        self.reward_range = self.init_env.reward_range
-        self.metadata = self.init_env.metadata
         self.init_env.render_mode = render_mode
         self._shuffle_chronics = shuffle_chronics
+        if not with_forecast:
+            # default in grid2op 1.10.3
+            # to improve pickle compatibility and speed
+            self.init_env.deactivate_forecast()
+            self.init_env._observation_space.obs_env.close()
+            self.init_env._observation_space.obs_env = None
+            self.init_env._observation_space._ObsEnv_class = None
+            self.init_env._last_obs._obs_env = None
+            self.init_env._last_obs._ptr_kwargs_env = False
+            self.init_env.current_obs._obs_env = None
+            self.init_env.current_obs._ptr_kwargs_env = False
             
         super().__init__()  # super should reference either gym.Env or gymnasium.Env
         if not hasattr(self, "_np_random"):
@@ -219,11 +231,11 @@ class __AuxGymEnv(Generic[ObsType, ActType]):
         self.observation_space.seed(next_seed)
             
     def _aux_seed_g2op(self, seed):
-            # then seed the underlying grid2op env
-            max_ = np.iinfo(dt_int).max 
-            next_seed = sample_seed(max_, self._np_random)
-            underlying_env_seeds = self.init_env.seed(next_seed)
-            return seed, next_seed, underlying_env_seeds
+        # then seed the underlying grid2op env
+        max_ = np.iinfo(dt_int).max 
+        next_seed = sample_seed(max_, self._np_random)
+        underlying_env_seeds = self.init_env.seed(next_seed)
+        return seed, next_seed, underlying_env_seeds
         
     def _aux_seed(self, seed: Optional[int]=None):
         # deprecated in gym >=0.26
@@ -321,5 +333,32 @@ if GYMNASIUM_AVAILABLE:
             return self._aux_reset_new(seed, options)
 
         def step(self, action: ActType) -> Tuple[ObsType, float, bool, bool, STEP_INFO_TYPING]:
+            """Run one timestep of the environment’s dynamics using the agent actions.
+            
+            When the end of an episode is reached (terminated or truncated), 
+            it is necessary to call reset() to reset this environment’s state for the next episode.
+
+            Parameters
+            ----------
+            action : ``ActType``
+                An action that can be process by the :func:`grid2op.gym_compat.gym_act_space.GymActionSpace.from_gym` 
+                (given in the form of a gymnasium action belonging to a gymnasium space.).
+                
+                For example it can be a sorted dictionary if you are using default 
+                :class:`grid2op.gym_compat.gym_act_space.GymActionSpace`  
+                or a numpy array if you are using :class:`grid2op.gym_compat.box_gym_actspace.BoxGymnasiumActSpace`
+
+            Returns
+            -------
+            Tuple[ObsType, float, bool, bool, STEP_INFO_TYPING]
+                
+                - observation: an instance of the current observation space (can be a dictionary, a numpy array etc.)
+                - reward: the reward for the previous action
+                - truncated: whether the environment was terminated
+                - done: whether the environment is done
+                - info: other information, see :func:`grid2op.Environment.BaseEnv.step` for more
+                  information about the available informations.
+                  
+            """
             return self._aux_step_new(action)
     GymnasiumEnv.__doc__ = __AuxGymEnv.__doc__

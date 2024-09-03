@@ -70,6 +70,7 @@ class IdToAct(Converter):
     def __init__(self, action_space):
         Converter.__init__(self, action_space)
         self.__class__ = IdToAct.init_grid(action_space)
+        self.init_action_space = action_space
         self.all_actions = []
         # add the do nothing topology
         self.all_actions.append(super().__call__())

@@ -73,7 +73,7 @@ class BaseHandler(RandomObject):
         self.path : Optional[os.PathLike] = None
         self.max_episode_duration : Optional[int] = None
     
-    def set_max_iter(self, max_iter: Optional[int]) -> None:
+    def _set_max_iter(self, max_iter: Optional[int]) -> None:
         """
         INTERNAL
 
@@ -494,3 +494,14 @@ class BaseHandler(RandomObject):
         action space.
         """
         raise NotImplementedError()
+    
+    def regenerate_with_new_seed(self):
+        """This function is called in case of data being "cached" (for example using the 
+        :class:`grid2op.Chronics.MultifolderWithCache`)
+        
+        In this case, the data in cache needs to be updated if the seed has changed since
+        the time they have been added to it.
+        
+        If your handler has some random part, we recommend you to implement this function.
+        Otherwise feel free to ignore it"""
+        pass

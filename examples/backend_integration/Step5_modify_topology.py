@@ -58,7 +58,7 @@ class CustomBackend_Minimal(CustomBackend_Step4):
     # are either 1 or 2)
     def apply_action(self, backendAction: Union["grid2op.Action._backendAction._BackendAction", None]) -> None:
         # the following few lines are highly recommended
-        if action is None:
+        if backendAction is None:
             return
         
         # loads and generators are modified in the previous script
@@ -173,12 +173,12 @@ class CustomBackend_Minimal(CustomBackend_Step4):
 if __name__ == "__main__":
     import grid2op
     import os
-    from Step0_make_env import make_env_for_backend
+    from Step0_make_env import make_env_for_backend, create_action
     
     path_grid2op = grid2op.__file__
     path_data_test = os.path.join(os.path.split(path_grid2op)[0], "data")
     
-    env_name = "l2rpn_wcci_2022_dev"
+    env_name = "rte_case5_example"
     # one of:
     # - rte_case5_example: the grid in the documentation (completely fake grid)
     # - l2rpn_case14_sandbox: inspired from IEEE 14
@@ -206,16 +206,16 @@ if __name__ == "__main__":
         sub_id = 1
         local_topo = (1, 2, 1, 2, 1, 2)
     elif env_name == "l2rpn_wcci_2022_dev":
-        sub_id = 3
-        local_topo = (1, 2, 1, 2, 1)
+        raise RuntimeError("Storage units are not handled by the example backend, and there are some on the grid.")
+        # sub_id = 3
+        # local_topo = (1, 2, 1, 2, 1)
     else:
         raise RuntimeError(f"Unknown grid2op environment name {env_name}")
     action = env.action_space({"set_bus": {"substations_id": [(sub_id, local_topo)]}})
     #############################    
     
     # this is technical to grid2op
-    bk_act = env._backend_action_class()
-    bk_act += action
+    bk_act = create_action(env, backend, action)
     ####################################
     
     # this is what the backend receive:

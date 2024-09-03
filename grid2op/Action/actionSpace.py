@@ -44,6 +44,7 @@ class ActionSpace(SerializableActionSpace):
         gridobj,
         legal_action,
         actionClass=BaseAction,  # need to be a base grid2op type (and not a type generated on the fly)
+        _local_dir_cls=None,
     ):
         """
         INTERNAL USE ONLY
@@ -71,7 +72,7 @@ class ActionSpace(SerializableActionSpace):
         """
         actionClass._add_shunt_data()
         actionClass._update_value_set()
-        SerializableActionSpace.__init__(self, gridobj, actionClass=actionClass)
+        SerializableActionSpace.__init__(self, gridobj, actionClass=actionClass, _local_dir_cls=_local_dir_cls)
         self.legal_action = legal_action
 
     def __call__(

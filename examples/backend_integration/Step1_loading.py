@@ -34,6 +34,7 @@ ERR_MSG_ELSEWHERE = "Will be detailed in another example script"
 
 
 class CustomBackend_Step1(Backend):
+    shunts_data_available = False
     def load_grid(self,
                   path : Union[os.PathLike, str],
                   filename : Optional[Union[os.PathLike, str]]=None) -> None:
@@ -170,8 +171,8 @@ if __name__ == "__main__":
     # storage_pos_topo_vect
     
     # for example
-    print(type(backend).name_load)
-    print(type(backend).load_to_subid)
-    print(type(backend).load_to_sub_pos)
-    print(type(backend).load_pos_topo_vect)
+    print(f"Name of the loads, seen in grid2op: {type(backend).name_load}")
+    print(f"Id of substation, for each load: {type(backend).load_to_subid}")
+    print(f"Position in the substation topology vector, for each load: {type(backend).load_to_sub_pos}")
+    print(f"Position in the global topology vector, for each load: {type(backend).load_pos_topo_vect}")
     
