@@ -162,14 +162,16 @@ deeply into the other section of the documentation.
 
    user
 
-External contribution technical Documentation
-------------------------------------------------
+
+Technical documentation for grid2op "external" contributions
+----------------------------------------------------------------
 
 This part of the documentation is focued on external contribution.
 It is best suited if you want to use grid2op as a "core" and extend / modify
 it with different elements.
 
 For example, you might want to :
+
 - use a different solver to compute powerflows 
   (called :class:`grid2op.Backend.Backend` in grid2op)
 - create a new environment
@@ -185,18 +187,47 @@ are done internally whenever possible.
 
 This is the type of documentation you should be looking at if the 
 current grid2op modelling statisfies you in its vast majority 
-but if you want to slightly modify one of its component
+but if you want to slightly modify one of its component.
+
+.. note::
+   This type of contribution can be developed and hosted in a different 
+   github repository than grid2op (*eg* lightsim2grid, another faster backend
+   is hosted on https://github.com/bdonnot/lightsim2grid.git)
+
+   Feel free to contact us if you have done such an "external contribution" so 
+   that we can at least reference it in the documentation.
 
 .. toctree::
    :maxdepth: 1
-   :caption: Technical documentation for grid2op external contributors
+   :caption: Technical documentation for grid2op "external" contributions
 
    developer
 
-Developer technical Documentation
------------------------------------
 
+Technical documentation for grid2op developers
+-------------------------------------------------
 
-DOC IN PROGRESS...
+This part of the documentation also focuses on external contribution. It
+focuses on the core of grid2op. If you want to :
+
+- change the grid2op internal representation
+- add a functionality to grid2op (*eg* a new type of actions or a new attribute to the observation)
+- change the representatino of this or this elements
+- etc.
+
+We encourage you to get in touch with us for such development. 
+
+.. note::
+   Most of the work falling into this category should probably be 
+   integrated into the main grid2op repository.
+
+.. warning:: 
+   DOC IN PROGRESS...
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Technical documentation for grid2op developers
+
+   grid2op_dev
 
 .. include:: final.rst

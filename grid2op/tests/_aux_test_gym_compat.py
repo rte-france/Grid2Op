@@ -18,7 +18,7 @@ from grid2op.tests.helper_path_test import *
 from grid2op.Action import PlayableAction
 
 from grid2op.gym_compat import GymActionSpace, GymObservationSpace
-from grid2op.gym_compat import GymEnv
+from grid2op.gym_compat.legacy import GymEnv as LegacyGymEnv   # TODO GYMENV
 from grid2op.gym_compat import ContinuousToDiscreteConverter
 from grid2op.gym_compat import ScalerAttrConverter
 from grid2op.gym_compat import MultiToTupleConverter
@@ -36,7 +36,7 @@ import pdb
 
 class AuxilliaryForTest:
     def _aux_GymEnv_cls(self):
-        return GymEnv
+        return LegacyGymEnv
     
     def _aux_ContinuousToDiscreteConverter_cls(self):
         return ContinuousToDiscreteConverter

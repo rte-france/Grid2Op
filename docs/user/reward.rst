@@ -44,7 +44,7 @@ the environment you are using. For the example above, the "l2rpn_case14_sandbox"
 using the :class:`RedispReward`.
 
 Using a reward function available in grid2op
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 If you want to customize your environment by adapting the reward and use a reward available in grid2op
 it is rather simple, you need to specify it in the `make` command:

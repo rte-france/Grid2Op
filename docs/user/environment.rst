@@ -84,7 +84,7 @@ What happens here is the following:
 You might want to customize this general behaviour in multiple way:
 
 - you might want to study only one chronics (equivalent to only one level of a video game)
-  see `Study always the same chronics`_
+  see `Study always the same time serie`_
 - you might want to loop through the chronics, but not always in the same order. If that is the case
   you might want to consult the section `Shuffle the chronics order`_
 - you might also have spotted some chronics that have bad properties. In this case, you can
@@ -153,8 +153,8 @@ be more up to date with the code).
 
 .. note::
     In the near future (next few releases) we will also attempt to make the 
-    customization of the `parameters` or the `skip number of steps`, `maximum duration 
-    of the scenarios` also available in `env.reset()` options.
+    customization of the `parameters` or the `skip number of steps`, 
+    `maximum duration of the scenarios` also available in `env.reset()` options.
 
 .. _environment-module-chronics-info:
 

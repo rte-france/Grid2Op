@@ -333,5 +333,32 @@ if GYMNASIUM_AVAILABLE:
             return self._aux_reset_new(seed, options)
 
         def step(self, action: ActType) -> Tuple[ObsType, float, bool, bool, STEP_INFO_TYPING]:
+            """Run one timestep of the environment’s dynamics using the agent actions.
+            
+            When the end of an episode is reached (terminated or truncated), 
+            it is necessary to call reset() to reset this environment’s state for the next episode.
+
+            Parameters
+            ----------
+            action : ``ActType``
+                An action that can be process by the :func:`grid2op.gym_compat.gym_act_space.GymActionSpace.from_gym` 
+                (given in the form of a gymnasium action belonging to a gymnasium space.).
+                
+                For example it can be a sorted dictionary if you are using default 
+                :class:`grid2op.gym_compat.gym_act_space.GymActionSpace`  
+                or a numpy array if you are using :class:`grid2op.gym_compat.box_gym_actspace.BoxGymnasiumActSpace`
+
+            Returns
+            -------
+            Tuple[ObsType, float, bool, bool, STEP_INFO_TYPING]
+                
+                - observation: an instance of the current observation space (can be a dictionary, a numpy array etc.)
+                - reward: the reward for the previous action
+                - truncated: whether the environment was terminated
+                - done: whether the environment is done
+                - info: other information, see :func:`grid2op.Environment.BaseEnv.step` for more
+                  information about the available informations.
+                  
+            """
             return self._aux_step_new(action)
     GymnasiumEnv.__doc__ = __AuxGymEnv.__doc__

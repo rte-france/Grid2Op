@@ -31,15 +31,16 @@ class OneChangeThenNothing(BaseAgent):
     Examples
     ---------
     
-    We advise to use this class as following
+    This class is deprecated in favor of the "init state" reset options. Please avoid using it.
+    
+    But if you really want to use it... then you can do it with:
 
     .. code-block:: python
 
         # This class has been deprecated, please use the env.reset()
         # with proper options instead
         
-        
-        DEPRECATED ! 
+        # DEPRECATED ! 
         import grid2op
         from grid2op.Agent import OneChangeThenNothing
         acts_dict_ = [{}, {"set_line_status": [(0,-1)]}]  # list of dictionaries. Each dictionary
@@ -49,11 +50,12 @@ class OneChangeThenNothing(BaseAgent):
         for act_as_dict in zip(acts_dict_):
             # generate the proper class that will perform the first action (encoded by {}) in acts_dict_
             agent_class = OneChangeThenNothing.gen_next(act_as_dict)
-
+            
             # start a runner with this agent
             runner = Runner(**env.get_params_for_runner(), agentClass=agent_class)
             # run 2 episode with it
             res_2 = runner.run(nb_episode=2)
+
 
     Notes
     ------
