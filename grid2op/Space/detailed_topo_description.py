@@ -34,18 +34,18 @@ class DetailedTopoDescription(object):
     In order to fill a :class:`DetailedTopoDescription` you need to fill the 
     following attribute:
     
-    - :attr:`DetailedTopoDescription.busbar_name`: 
-    - :attr:`DetailedTopoDescription.busbar_to_subid`
-    - :attr:`DetailedTopoDescription.busbar_connectors`
+    - :attr:`DetailedTopoDescription.conn_node_name`: 
+    - :attr:`DetailedTopoDescription.conn_node_to_subid`
+    - (deprecated) :attr:`DetailedTopoDescription.conn_node_connectors`
     - :attr:`DetailedTopoDescription.switches`
     - :attr:`DetailedTopoDescription.switches_to_topovect_id`
     - :attr:`DetailedTopoDescription.switches_to_shunt_id` 
-    - :attr:`DetailedTopoDescription.load_to_busbar_id` 
-    - :attr:`DetailedTopoDescription.gen_to_busbar_id`
-    - :attr:`DetailedTopoDescription.line_or_to_busbar_id`
-    - :attr:`DetailedTopoDescription.line_ex_to_busbar_id`
-    - :attr:`DetailedTopoDescription.storage_to_busbar_id`
-    - :attr:`DetailedTopoDescription.shunt_to_busbar_id`
+    - :attr:`DetailedTopoDescription.load_to_conn_node_id` 
+    - :attr:`DetailedTopoDescription.gen_to_conn_node_id`
+    - :attr:`DetailedTopoDescription.line_or_to_conn_node_id`
+    - :attr:`DetailedTopoDescription.line_ex_to_conn_node_id`
+    - :attr:`DetailedTopoDescription.storage_to_conn_node_id`
+    - :attr:`DetailedTopoDescription.shunt_to_conn_node_id`
 
     To create a "detailed description of the swtiches", somewhere in the implementation of your
     backend you have a piece of code looking like:
@@ -71,18 +71,18 @@ class DetailedTopoDescription(object):
                 
                 # you fill it with the data in the grid you read
                 # (at this stage you tell grid2op what the grid is made of)
-                detailed_topo_desc.busbar_name = ...
-                detailed_topo_desc.busbar_to_subid = ...
-                detailed_topo_desc.busbar_connectors = ...
+                detailed_topo_desc.conn_node_name = ...
+                detailed_topo_desc.conn_node_to_subid = ...
+                # (deprecated) detailed_topo_desc.conn_node_connectors = ...
                 detailed_topo_desc.switches = ...
                 detailed_topo_desc.switches_to_topovect_id = ...
                 detailed_topo_desc.switches_to_shunt_id = ...
-                detailed_topo_desc.load_to_busbar_id = ...
-                detailed_topo_desc.gen_to_busbar_id = ...
-                detailed_topo_desc.line_or_to_busbar_id = ...
-                detailed_topo_desc.line_ex_to_busbar_id = ...
-                detailed_topo_desc.storage_to_busbar_id = ...
-                detailed_topo_desc.shunt_to_busbar_id = ...
+                detailed_topo_desc.load_to_conn_node_id = ...
+                detailed_topo_desc.gen_to_conn_node_id = ...
+                detailed_topo_desc.line_or_to_conn_node_id = ...
+                detailed_topo_desc.line_ex_to_conn_node_id = ...
+                detailed_topo_desc.storage_to_conn_node_id = ...
+                detailed_topo_desc.shunt_to_conn_node_id = ...
                 
                 # and then you assign it as a member of this class
                 self.detailed_topo_desc =  detailed_topo_desc
@@ -127,48 +127,54 @@ class DetailedTopoDescription(object):
     OBJ_ID_COL = 2
     
     #: In the :attr:`DetailedTopoDescription.switches` table, tells that column 2
-    #: concerns the id of the busbar that this switches connects / disconnects
-    BUSBAR_ID_COL = 3
+    #: concerns the id of the connection node that this switches connects / disconnects
+    CONN_NODE_ID_COL = 3
     
     #: In the :attr:`DetailedTopoDescription.switches` table, column 2
-    #: if a 0 is present, then this switch will connect a load to a busbar
+    #: if a 0 is present, then this switch will connect a load to a connection node
     LOAD_ID = 0
     
     #: In the :attr:`DetailedTopoDescription.switches` table, column 2
-    #: if a 1 is present, then this switch will connect a generator to a busbar
+    #: if a 1 is present, then this switch will connect a generator to a connection node
     GEN_ID = 1
     
     #: In the :attr:`DetailedTopoDescription.switches` table, column 2
-    #: if a 2 is present, then this switch will connect a storage unit to a busbar
+    #: if a 2 is present, then this switch will connect a storage unit to a connection node
     STORAGE_ID = 2
     
     #: In the :attr:`DetailedTopoDescription.switches` table, column 2
-    #: if a 3 is present, then this switch will connect a line (origin side) to a busbar
+    #: if a 3 is present, then this switch will connect a line (origin side) to a connection node
     LINE_OR_ID = 3
     
     #: In the :attr:`DetailedTopoDescription.switches` table, column 2
-    #: if a 4 is present, then this switch will connect a line (extremity side) to a busbar
+    #: if a 4 is present, then this switch will connect a line (extremity side) to a connection node
     LINE_EX_ID = 4
     
     #: In the :attr:`DetailedTopoDescription.switches` table, column 2
-    #: if a 5 is present, then this switch will connect a shunt to a busbar
+    #: if a 5 is present, then this switch will connect a shunt to a connection node
     SHUNT_ID = 5
     
+    #: In the :attr:`DetailedTopoDescription.switches` table, column 2
+    #: if a 5 is present, then this switch will connect a standard "connection node"
+    #: to another connection node. There isn't anything special about any
+    #: of the "connection node".
+    OTHER = 6
+    
     def __init__(self):        
-        #: vector of string that has the size of the number of busbars on your grid
-        #: and for each busbar it gives... its name
-        self.busbar_name = None
+        #: vector of string that has the size of the number of connection nodes on your grid
+        #: and for each connection node it gives... its name
+        self.conn_node_name = None
         
-        #: vector of int that has the size of the number of busbars on
-        #: your grid and for each busbar it gives the substation id [0...n_sub] to which
-        #: the busbar belongs to.
-        self.busbar_to_subid = None
+        #: vector of int that has the size of the number of connection nodes on
+        #: your grid and for each connection node it gives the substation id [0...n_sub] to which
+        #: the connection node belongs to.
+        self.conn_node_to_subid = None
         
-        #: A matrix representing the "switches" between the busbars.
-        #: It counts 2 columns and as many rows as the number of "switches" between
-        #: the busbars. And for each "busbars switches" it gives the id of the
-        #: busbars it can connect / disconnect.
-        self.busbar_connectors = None 
+        # #: A matrix representing the "switches" between the connection nodes.
+        # #: It counts 2 columns and as many rows as the number of "switches" between
+        # #: the connection nodes. And for each "connection node switches" it gives the id of the
+        # #: connection nodes it can connect / disconnect.
+        # self.conn_node_connectors = None 
     
         #: It is a matrix describing each switches. This matrix has 'n_switches' rows and 4 columns. 
         #: Each column provides an information about the switch:
@@ -177,14 +183,15 @@ class DetailedTopoDescription(object):
         #:     - col 1 gives the object type it connects (0 = LOAD, etc.) see :attr:`DetailedTopoDescription.LOAD_ID`, 
         #:       :attr:`DetailedTopoDescription.GEN_ID`, :attr:`DetailedTopoDescription.STORAGE_ID`, 
         #:       :attr:`DetailedTopoDescription.LINE_OR_ID`, :attr:`DetailedTopoDescription.LINE_EX_ID` 
-        #:       and :attr:`DetailedTopoDescription.SHUNT_ID`
-        #:     - col 2 gives the ID of the object it connects (number between 0 and n_load-1 if previous column is 0 for example)
-        #:     - col 3 gives the busbar id that this switch connects its element to
+        #:       or :attr:`DetailedTopoDescription.SHUNT_ID` or :attr:`DetailedTopoDescription.OTHER`
+        #:     - col 2 gives the ID of the connection node it connects (number between 0 and n_conn_node-1)
+        #:     - col 3 gives the other ID of the connection node it connects
         self.switches = None
         
         #: This is a vector of integer having the same size as the number of switches in your grid.
         #: For each switches it gives the ID of the element this switch controls in the `topo_vect` vector
-        #: When `-1` it means the element is not reprensented in the `topo_vect` (for example it's a shunt)
+        #: When `-1` it means the element is not reprensented in the `topo_vect` (for example it's a shunt
+        #: or a standard "connection node")
         self.switches_to_topovect_id = None
         
         #: This is a vector of integer having the same size as the number of switches in your grid.
@@ -193,26 +200,26 @@ class DetailedTopoDescription(object):
         self.switches_to_shunt_id = None
         
         #: A list of tuple that has the same size as the number of loads on the grid.
-        #: For each loads, it gives the busbar ids to which (thanks to a switch) a load can be
-        #: connected. For example if `type(env)..detailed_topo_desc.load_to_busbar_id[0]` is the tuple `(1, 15)` this means that load
-        #: id 0 can be connected to either busbar id 1 or busbar id 15.
+        #: For each loads, it gives the connection node ids to which (thanks to a switch) a load can be
+        #: connected. For example if `type(env)..detailed_topo_desc.load_to_conn_node_id[0]` is the tuple `(1, 15)` this means that load
+        #: id 0 can be connected to either connection node id 1 or connection node id 15.
         #: This information is redundant with the one provided in :attr:`DetailedTopoDescription.switches`
-        self.load_to_busbar_id = None
+        self.load_to_conn_node_id = None
         
-        #: Same as :attr:`DetailedTopoDescription.load_to_busbar_id` but for generators
-        self.gen_to_busbar_id = None
+        #: Same as :attr:`DetailedTopoDescription.load_to_conn_node_id` but for generators
+        self.gen_to_conn_node_id = None
         
-        #: Same as :attr:`DetailedTopoDescription.load_to_busbar_id` but for lines (or side)
-        self.line_or_to_busbar_id = None
+        #: Same as :attr:`DetailedTopoDescription.load_to_conn_node_id` but for lines (or side)
+        self.line_or_to_conn_node_id = None
         
-        #: Same as :attr:`DetailedTopoDescription.load_to_busbar_id` but for lines (ex side)
-        self.line_ex_to_busbar_id = None
+        #: Same as :attr:`DetailedTopoDescription.load_to_conn_node_id` but for lines (ex side)
+        self.line_ex_to_conn_node_id = None
         
-        #: Same as :attr:`DetailedTopoDescription.load_to_busbar_id` but for storage unit
-        self.storage_to_busbar_id = None
+        #: Same as :attr:`DetailedTopoDescription.load_to_conn_node_id` but for storage unit
+        self.storage_to_conn_node_id = None
         
-        #: Same as :attr:`DetailedTopoDescription.load_to_busbar_id` but for shunt
-        self.shunt_to_busbar_id = None
+        #: Same as :attr:`DetailedTopoDescription.load_to_conn_node_id` but for shunt
+        self.shunt_to_conn_node_id = None
     
     @classmethod
     def from_ieee_grid(cls, init_grid):
@@ -220,15 +227,15 @@ class DetailedTopoDescription(object):
         n_sub = init_grid.n_sub
         
         res = cls()
-        res.busbar_name = np.array([f"busbar_{i}" for i in range(2 * init_grid.n_sub)])
-        res.busbar_to_subid = np.arange(n_sub) % init_grid.n_sub  
+        res.conn_node_name = np.array([f"conn_node_{i}" for i in range(2 * init_grid.n_sub)])
+        res.conn_node_to_subid = np.arange(n_sub) % init_grid.n_sub  
         
-        # in current environment, there are 2 busbars per substations, 
+        # in current environment, there are 2 conn_nodes per substations, 
         # and 1 connector allows to connect both of them
         nb_connector = n_sub
-        res.busbar_connectors = np.zeros((nb_connector, 2), dtype=dt_int)
-        res.busbar_connectors[:, 0] = np.arange(n_sub)
-        res.busbar_connectors[:, 1] = np.arange(n_sub) + n_sub
+        res.conn_node_connectors = np.zeros((nb_connector, 2), dtype=dt_int)
+        res.conn_node_connectors[:, 0] = np.arange(n_sub)
+        res.conn_node_connectors[:, 1] = np.arange(n_sub) + n_sub
         
         # for each element (load, gen, etc.)
         # gives the id of the busbar to which this element can be connected thanks to a
@@ -275,20 +282,20 @@ class DetailedTopoDescription(object):
                 where_el = np.where(arr_subid == sub_id)[0]
                 res.switches[prev_el : (prev_el + 2 * nb_el), cls.OBJ_TYPE_COL] = obj_col
                 res.switches[prev_el : (prev_el + 2 * nb_el), cls.OBJ_ID_COL] = np.repeat(where_el, 2)
-                res.switches[prev_el : (prev_el + 2 * nb_el), cls.BUSBAR_ID_COL] = np.tile(np.array([1, 2]), nb_el)
+                res.switches[prev_el : (prev_el + 2 * nb_el), cls.CONN_NODE_ID_COL] = np.tile(np.array([1, 2]), nb_el)
                 res.switches_to_topovect_id[prev_el : (prev_el + 2 * nb_el)] = np.repeat(pos_topo_vect[arr_subid == sub_id], 2)
                 if init_grid.shunts_data_available and obj_col == cls.SHUNT_ID:
                     res.switches_to_shunt_id[prev_el : (prev_el + 2 * nb_el)] = np.repeat(where_el, 2)
                 prev_el += 2 * nb_el
         
         # and also fill some extra information
-        res.load_to_busbar_id = [(load_sub, load_sub + n_sub) for load_id, load_sub in enumerate(init_grid.load_to_subid)]
-        res.gen_to_busbar_id = [(gen_sub, gen_sub + n_sub) for gen_id, gen_sub in enumerate(init_grid.gen_to_subid)]
-        res.line_or_to_busbar_id = [(line_or_sub, line_or_sub + n_sub) for line_or_id, line_or_sub in enumerate(init_grid.line_or_to_subid)]
-        res.line_ex_to_busbar_id = [(line_ex_sub, line_ex_sub + n_sub) for line_ex_id, line_ex_sub in enumerate(init_grid.line_ex_to_subid)]
-        res.storage_to_busbar_id = [(storage_sub, storage_sub + n_sub) for storage_id, storage_sub in enumerate(init_grid.storage_to_subid)]
+        res.load_to_conn_node_id = [(load_sub, load_sub + n_sub) for load_id, load_sub in enumerate(init_grid.load_to_subid)]
+        res.gen_to_conn_node_id = [(gen_sub, gen_sub + n_sub) for gen_id, gen_sub in enumerate(init_grid.gen_to_subid)]
+        res.line_or_to_conn_node_id = [(line_or_sub, line_or_sub + n_sub) for line_or_id, line_or_sub in enumerate(init_grid.line_or_to_subid)]
+        res.line_ex_to_conn_node_id = [(line_ex_sub, line_ex_sub + n_sub) for line_ex_id, line_ex_sub in enumerate(init_grid.line_ex_to_subid)]
+        res.storage_to_conn_node_id = [(storage_sub, storage_sub + n_sub) for storage_id, storage_sub in enumerate(init_grid.storage_to_subid)]
         if init_grid.shunts_data_available:
-            res.shunt_to_busbar_id = [(shunt_sub, shunt_sub + n_sub) for shunt_id, shunt_sub in enumerate(init_grid.shunt_to_subid)]
+            res.shunt_to_conn_node_id = [(shunt_sub, shunt_sub + n_sub) for shunt_id, shunt_sub in enumerate(init_grid.shunt_to_subid)]
         return res
     
     def compute_switches_position(self, topo_vect: np.ndarray, shunt_bus: Optional[np.ndarray]=None):
