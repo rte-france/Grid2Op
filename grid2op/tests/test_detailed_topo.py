@@ -16,46 +16,85 @@ from grid2op.Action import BaseAction, CompleteAction
 from grid2op.Observation import BaseObservation
 from grid2op.Runner import Runner
 from grid2op.Backend import PandaPowerBackend
-from grid2op.Space import AddDetailedTopoIEEE
+from grid2op.Space import AddDetailedTopoIEEE, DetailedTopoDescription
 from grid2op.Agent import BaseAgent
 
 import pdb
-REF_HASH = '7d79e8debc7403dae95bd95a023d5627a8a760e34bb26e3adfd2b842446830d455b53aeb5d89276b0e431f9022dc1c73e77ff3ecb10df0f60aaaf65754bbdf87'
+REF_HASH = 'c8296b80b3b920b2971bd82e93f998a043ccb3738f04ca0d3f23f524306da8e95109f5af27e28a85597151b3988840674f4e6ad1efa69dbab1a2174765f330ec'
 
 
-def _aux_test_correct(detailed_topo_desc, dim_topo):
-    assert detailed_topo_desc is not None
-    assert  detailed_topo_desc.load_to_busbar_id == [
-        (1, 15), (2, 16), (3, 17), (4, 18), (5, 19), (8, 22), (9, 23), (10, 24), (11, 25), (12, 26), (13, 27)
-    ]
-    assert detailed_topo_desc.gen_to_busbar_id == [(1, 15), (2, 16), (5, 19), (5, 19), (7, 21), (0, 14)]
+def _aux_test_correct(detailed_topo_desc : DetailedTopoDescription, gridobj, nb_bb_per_sub):
+    if nb_bb_per_sub == 2:
+        assert detailed_topo_desc is not None
+        assert (detailed_topo_desc.load_to_conn_node_id == np.array([28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38], dtype=np.int32)).all()
+        assert (detailed_topo_desc.gen_to_conn_node_id == np.array([39, 40, 41, 42, 43, 44], dtype=np.int32)).all()
+        assert (detailed_topo_desc.line_or_to_conn_node_id == np.array([45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55,
+                                                                    56, 57, 58, 59, 60, 61, 62, 63, 64], dtype=np.int32)).all()
+        
+        # test the switches (but i don't want to copy this huge data here)
+        assert (detailed_topo_desc.switches.sum(axis=0) == np.array([1159, 959, 17732, 8730])).all()
+        ref_1 = np.array([  7,  12,  17,  22,  27,  32,  37,  42,  47,  52,  57,  62,  67,
+                           72, 117,  97,  98, 120, 101, 102, 123, 105, 106, 126, 109, 110,
+                          129, 113, 114, 134, 123, 124, 137, 127, 128, 140, 131, 132, 143,
+                          135, 136, 146, 139, 140, 149, 143, 144, 140, 108, 109, 143, 112,
+                          113, 148, 122, 123, 150, 123, 124, 154, 130, 131, 149, 110, 111,
+                          153, 111, 112, 155, 112, 113, 158, 116, 117, 160, 117, 118, 162,
+                          118, 119, 165, 122, 123, 168, 126, 127, 172, 133, 134, 174, 134,
+                          135, 176, 135, 136, 181, 145, 146, 183, 146, 147, 186, 150, 151,
+                          190, 157, 158, 193, 161, 162, 186, 135, 136, 188, 136, 137, 191,
+                          140, 141, 195, 147, 148, 199, 154, 155, 195, 134, 135, 200, 144,
+                          145, 200, 139, 140, 203, 143, 144, 206, 147, 148, 207, 145, 146,
+                          210, 149, 150, 218, 168, 169, 221, 172, 173, 224, 176, 177, 223,
+                          168, 169, 229, 181, 182, 228, 173, 174, 232, 180, 181, 235, 184,
+                          185, 230, 164, 165, 234, 171, 172, 233, 163, 164, 237, 170, 171,
+                          238, 168, 169, 237, 166, 167, 241, 173, 174, 247, 177, 178])
+        assert (detailed_topo_desc.switches.sum(axis=1) == ref_1).all()
+        hash_ = hashlib.blake2b((detailed_topo_desc.switches.tobytes())).hexdigest()
+        assert hash_ == REF_HASH, f"{hash_}"
     
-    # test the switches (but i don't want to copy this huge data here)
-    assert (detailed_topo_desc.switches.sum(axis=0) == np.array([712, 310, 902, 180])).all()
-    ref_1 = np.array([ 7,  8,  4,  5,  5,  6,  2,  3,  3,  4,  7,  8,  8,  9,  9, 10,  6,
-                       7,  4,  5,  5,  6, 11, 12,  9, 10,  6,  7, 13, 14, 22, 23, 23, 24,
-                      11, 12, 13, 14,  8,  9, 25, 26, 10, 11, 13, 14, 15, 16, 10, 11,  9,
-                      10, 10, 11, 16, 17, 17, 18, 18, 19, 27, 28,  8,  9, 28, 29, 26, 27,
-                      30, 31, 13, 14, 30, 31, 11, 12, 14, 15, 22, 23, 23, 24, 31, 32, 29,
-                      30, 14, 15, 16, 17, 25, 26, 24, 25, 18, 19, 22, 23, 27, 28, 20, 21,
-                      28, 29, 24, 25, 22, 23, 30, 31, 26, 27, 30, 31, 24, 25, 29, 30, 32,
-                      33])
-    assert (detailed_topo_desc.switches.sum(axis=1) == ref_1).all()
-    hash_ = hashlib.blake2b((detailed_topo_desc.switches.tobytes())).hexdigest()
-    assert hash_ == REF_HASH, f"{hash_}"
+    assert detailed_topo_desc.switches.shape[0] == (nb_bb_per_sub + 1) * (gridobj.dim_topo + gridobj.n_shunt) + gridobj.n_sub * (nb_bb_per_sub * (nb_bb_per_sub - 1) // 2)
     
+    # test the names
+    cls = type(detailed_topo_desc)
+    dtd = detailed_topo_desc
+    n_bb_per_sub = nb_bb_per_sub
+    
+    # TODO make a loop for all elements here :
+    # for el_nm in ["load", "gen", "line_or", "line_ex", "storage", "shunt"]:
+    #     ...
+    el_nm = "load"
+    nb_el = gridobj.n_load
+    prev_el = gridobj.n_sub * (nb_bb_per_sub * (nb_bb_per_sub - 1) // 2)
+    for el_nm, nb_el in zip(["load", "gen", "line_or", "line_ex", "storage", "shunt"],
+                            [gridobj.n_load, gridobj.n_gen, gridobj.n_line, gridobj.n_line, gridobj.n_storage, gridobj.n_shunt]):
+        next_el = prev_el + nb_el * (1 + n_bb_per_sub) 
+        for i, el in enumerate(dtd.conn_node_name[dtd.switches[prev_el : next_el : (1 + n_bb_per_sub), cls.CONN_NODE_1_ID_COL]]):
+            assert f"conn_node_{el_nm}_{i}" in el, f"error for what should be the switch connecting conn node to {el_nm} {i} to its conn node breaker"
+        for i, el in enumerate(dtd.conn_node_name[dtd.switches[prev_el : next_el : (1 + n_bb_per_sub), cls.CONN_NODE_2_ID_COL]]):
+            assert f"conn_node_breaker_{el_nm}_{i}" in el, f"error for what should be the switch connecting conn node to {el_nm} {i} to its conn node breaker"
+        
+        for bb_i in range(1, n_bb_per_sub + 1):
+            assert (dtd.conn_node_name[dtd.switches[prev_el : next_el : (1 + n_bb_per_sub), cls.CONN_NODE_2_ID_COL]] == 
+                    dtd.conn_node_name[dtd.switches[(prev_el + bb_i) : next_el : (1 + n_bb_per_sub), cls.CONN_NODE_1_ID_COL]]).all(), (
+                        f"Error for what should connect a {el_nm} breaker connection node to busbar {bb_i}")
+            
+            for i, el in enumerate(dtd.conn_node_name[dtd.switches[(prev_el + bb_i) : next_el : (1 + n_bb_per_sub), cls.CONN_NODE_2_ID_COL]]):
+                assert f"busbar_{bb_i-1}" in el, f"error for what should be the switch connecting conn node {el_nm} {i} (its breaker) to busbar {bb_i}"
+        prev_el = next_el      
+         
     # siwtches to pos topo vect
-    ref_switches_pos_topo_vect = np.array([ 2,  2,  0,  0,  1,  1,  8,  8,  7,  7,  4,  4,  5,  5,  6,  6,  3,
-                                            3, 12, 12, 11, 11, 10, 10,  9,  9, 18, 18, 15, 15, 16, 16, 17, 17,
-                                           13, 13, 14, 14, 23, 23, 22, 22, 19, 19, 20, 20, 21, 21, 30, 30, 28,
-                                           28, 29, 29, 24, 24, 25, 25, 26, 26, 27, 27, 31, 31, 33, 33, 32, 32,
-                                           34, 34, 36, 36, 35, 35, 37, 37, 42, 42, 38, 38, 39, 39, 41, 41, 40,
-                                           40, -1, -1, 45, 45, 44, 44, 43, 43, 48, 48, 46, 46, 47, 47, 51, 51,
-                                           50, 50, 49, 49, 55, 55, 54, 54, 52, 52, 53, 53, 58, 58, 56, 56, 57,
-                                           57], dtype=np.int32)
-    for i in range(-1, dim_topo):
-        assert np.sum(ref_switches_pos_topo_vect == i).sum() == 2, f"error for topo_vect_id = {i}"
-    assert np.all(detailed_topo_desc.switches_to_topovect_id == ref_switches_pos_topo_vect)
+    # TODO detailed topo
+    # ref_switches_pos_topo_vect = np.array([ 2,  2,  0,  0,  1,  1,  8,  8,  7,  7,  4,  4,  5,  5,  6,  6,  3,
+    #                                         3, 12, 12, 11, 11, 10, 10,  9,  9, 18, 18, 15, 15, 16, 16, 17, 17,
+    #                                        13, 13, 14, 14, 23, 23, 22, 22, 19, 19, 20, 20, 21, 21, 30, 30, 28,
+    #                                        28, 29, 29, 24, 24, 25, 25, 26, 26, 27, 27, 31, 31, 33, 33, 32, 32,
+    #                                        34, 34, 36, 36, 35, 35, 37, 37, 42, 42, 38, 38, 39, 39, 41, 41, 40,
+    #                                        40, -1, -1, 45, 45, 44, 44, 43, 43, 48, 48, 46, 46, 47, 47, 51, 51,
+    #                                        50, 50, 49, 49, 55, 55, 54, 54, 52, 52, 53, 53, 58, 58, 56, 56, 57,
+    #                                        57], dtype=np.int32)
+    # for i in range(-1, dim_topo):
+    #     assert np.sum(ref_switches_pos_topo_vect == i).sum() == 2, f"error for topo_vect_id = {i}"
+    # assert np.all(detailed_topo_desc.switches_to_topovect_id == ref_switches_pos_topo_vect)
     
 
 class _PPBkForTestDetTopo(AddDetailedTopoIEEE, PandaPowerBackend):
@@ -64,20 +103,25 @@ class _PPBkForTestDetTopo(AddDetailedTopoIEEE, PandaPowerBackend):
 
 class TestDTDAgent(BaseAgent):
     def act(self, observation: BaseObservation, reward: float, done: bool = False) -> BaseAction:
-        _aux_test_correct(type(observation).detailed_topo_desc, type(observation).dim_topo)
+        _aux_test_correct(type(observation).detailed_topo_desc, type(observation),  type(observation).n_busbar_per_sub)
         return super().act(observation, reward, done)
 
         
 class DetailedTopoTester(unittest.TestCase):
+    def _aux_n_bb_per_sub(self):
+        return 2
+    
     def setUp(self) -> None:
+        n_bb_per_sub = self._aux_n_bb_per_sub()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self.env = grid2op.make(
             "educ_case14_storage",
+            n_busbar=n_bb_per_sub,
             test=True,
             backend=_PPBkForTestDetTopo(),
             action_class=CompleteAction,
-            _add_to_name="DetailedTopoTester",
+            _add_to_name=f"DetailedTopoTester_{n_bb_per_sub}",
         )
         return super().setUp()
     
@@ -87,13 +131,13 @@ class DetailedTopoTester(unittest.TestCase):
     
     def test_init_ok(self):
         obs = self.env.reset()
-        _aux_test_correct(type(obs).detailed_topo_desc, type(obs).dim_topo)
+        _aux_test_correct(type(obs).detailed_topo_desc, type(obs), self._aux_n_bb_per_sub())
 
     def test_work_simulate(self):
         obs = self.env.reset()
-        _aux_test_correct(type(obs).detailed_topo_desc, type(obs).dim_topo)
+        _aux_test_correct(type(obs).detailed_topo_desc, type(obs), self._aux_n_bb_per_sub())
         sim_o, *_ = obs.simulate(self.env.action_space())
-        _aux_test_correct(type(sim_o).detailed_topo_desc, type(sim_o).dim_topo)
+        _aux_test_correct(type(sim_o).detailed_topo_desc, type(sim_o), self._aux_n_bb_per_sub())
     
     def test_runner_seq(self):
         obs = self.env.reset()
@@ -111,7 +155,7 @@ class DetailedTopoTester(unittest.TestCase):
         obs = self.env.reset()
         env_cpy = self.env.copy()
         obs_cpy = env_cpy.reset()
-        _aux_test_correct(type(obs_cpy).detailed_topo_desc, type(obs_cpy).dim_topo)
+        _aux_test_correct(type(obs_cpy).detailed_topo_desc, type(obs_cpy), self._aux_n_bb_per_sub())
     
     def test_get_loads_bus_switches(self):
         """test I can acess the loads and also that the results is correctly computed by _backendaction._aux_get_bus_detailed_topo"""
@@ -186,14 +230,14 @@ class DetailedTopoTester(unittest.TestCase):
         
     def test_compute_switches_position(self):
         obs = self.env.reset()
-        busbar_connectors_state, switches_state = type(obs).detailed_topo_desc.compute_switches_position(obs.topo_vect, obs._shunt_bus)
+        switches_state = type(obs).detailed_topo_desc.compute_switches_position(obs.topo_vect, obs._shunt_bus)
         assert np.sum(switches_state) == 60
         assert switches_state[::2].all()  # all on bus 1
         assert (~switches_state[1::2]).all()  # nothing on busbar 2
         
         # move everything to bus 2
-        busbar_connectors_state, switches_state = type(obs).detailed_topo_desc.compute_switches_position(np.full(obs.topo_vect.shape, fill_value=2),
-                                                                                                         np.full(obs._shunt_bus.shape, fill_value=2))
+        switches_state = type(obs).detailed_topo_desc.compute_switches_position(np.full(obs.topo_vect.shape, fill_value=2),
+                                                                                np.full(obs._shunt_bus.shape, fill_value=2))
         assert np.sum(switches_state) == 60
         assert switches_state[1::2].all()
         assert (~switches_state[::2]).all()
@@ -202,7 +246,7 @@ class DetailedTopoTester(unittest.TestCase):
         topo_vect = 1 * obs.topo_vect
         topo_vect[type(obs).line_or_pos_topo_vect[0]] = -1
         topo_vect[type(obs).line_ex_pos_topo_vect[0]] = -1
-        busbar_connectors_state, switches_state = type(obs).detailed_topo_desc.compute_switches_position(topo_vect, obs._shunt_bus)
+        switches_state = type(obs).detailed_topo_desc.compute_switches_position(topo_vect, obs._shunt_bus)
         assert np.sum(switches_state) == 58
         assert switches_state[::2].sum() == 58
         assert switches_state[1::2].sum() == 0
@@ -213,7 +257,7 @@ class DetailedTopoTester(unittest.TestCase):
         # load 3 to bus 2
         topo_vect = 1 * obs.topo_vect
         topo_vect[type(obs).load_pos_topo_vect[3]] = 2
-        busbar_connectors_state, switches_state = type(obs).detailed_topo_desc.compute_switches_position(topo_vect, obs._shunt_bus)
+        switches_state = type(obs).detailed_topo_desc.compute_switches_position(topo_vect, obs._shunt_bus)
         assert np.sum(switches_state) == 60
         assert switches_state[::2].sum() == 59
         assert switches_state[1::2].sum() == 1
@@ -223,7 +267,7 @@ class DetailedTopoTester(unittest.TestCase):
         # gen 1 to bus 2
         topo_vect = 1 * obs.topo_vect
         topo_vect[type(obs).gen_pos_topo_vect[1]] = 2
-        busbar_connectors_state, switches_state = type(obs).detailed_topo_desc.compute_switches_position(topo_vect, obs._shunt_bus)
+        switches_state = type(obs).detailed_topo_desc.compute_switches_position(topo_vect, obs._shunt_bus)
         assert np.sum(switches_state) == 60
         assert switches_state[::2].sum() == 59
         assert switches_state[1::2].sum() == 1
@@ -234,7 +278,7 @@ class DetailedTopoTester(unittest.TestCase):
         topo_vect = 1 * obs.topo_vect
         el_id = 6
         topo_vect[type(obs).line_or_pos_topo_vect[el_id]] = 2
-        busbar_connectors_state, switches_state = type(obs).detailed_topo_desc.compute_switches_position(topo_vect, obs._shunt_bus)
+        switches_state = type(obs).detailed_topo_desc.compute_switches_position(topo_vect, obs._shunt_bus)
         assert np.sum(switches_state) == 60
         assert switches_state[::2].sum() == 59
         assert switches_state[1::2].sum() == 1
@@ -245,7 +289,7 @@ class DetailedTopoTester(unittest.TestCase):
         topo_vect = 1 * obs.topo_vect
         el_id = 9
         topo_vect[type(obs).line_ex_pos_topo_vect[el_id]] = 2
-        busbar_connectors_state, switches_state = type(obs).detailed_topo_desc.compute_switches_position(topo_vect, obs._shunt_bus)
+        switches_state = type(obs).detailed_topo_desc.compute_switches_position(topo_vect, obs._shunt_bus)
         assert np.sum(switches_state) == 60
         assert switches_state[::2].sum() == 59
         assert switches_state[1::2].sum() == 1
@@ -256,7 +300,7 @@ class DetailedTopoTester(unittest.TestCase):
         topo_vect = 1 * obs.topo_vect
         el_id = 0
         topo_vect[type(obs).storage_pos_topo_vect[el_id]] = 2
-        busbar_connectors_state, switches_state = type(obs).detailed_topo_desc.compute_switches_position(topo_vect, obs._shunt_bus)
+        switches_state = type(obs).detailed_topo_desc.compute_switches_position(topo_vect, obs._shunt_bus)
         assert np.sum(switches_state) == 60
         assert switches_state[::2].sum() == 59
         assert switches_state[1::2].sum() == 1
@@ -267,7 +311,7 @@ class DetailedTopoTester(unittest.TestCase):
         shunt_bus = 1 * obs._shunt_bus
         el_id = 0
         shunt_bus[el_id] = 2
-        busbar_connectors_state, switches_state = type(obs).detailed_topo_desc.compute_switches_position(obs.topo_vect, shunt_bus)
+        switches_state = type(obs).detailed_topo_desc.compute_switches_position(obs.topo_vect, shunt_bus)
         assert np.sum(switches_state) == 60
         assert switches_state[::2].sum() == 59
         assert switches_state[1::2].sum() == 1
@@ -279,52 +323,52 @@ class DetailedTopoTester(unittest.TestCase):
         obs = self.env.reset()
         bk_act = self.env._backend_action
         # nothing modified
-        busbar_coupler_state, switches_state = bk_act.get_all_switches()
-        assert (~busbar_coupler_state).all(), "busbar coupler should all be set to False here"
+        switches_state = bk_act.get_all_switches()
+        # assert (~busbar_coupler_state).all(), "busbar coupler should all be set to False here"
         assert switches_state[::2].all()
         assert (~switches_state[1::2]).all()
         
         # I modified the position of a "regular" element load 1 for the sake of the example
         switches_this_loads = bk_act.detailed_topo_desc.switches_to_topovect_id == bk_act.load_pos_topo_vect[1]
         bk_act += self.env.action_space({"set_bus": {"loads_id": [(1, 2)]}})
-        busbar_coupler_state, switches_state = bk_act.get_all_switches()
-        assert (~busbar_coupler_state).all(), "busbar coupler should all be set to False here"
+        switches_state = bk_act.get_all_switches()
+        # assert (~busbar_coupler_state).all(), "busbar coupler should all be set to False here"
         assert (switches_state[::2] == False).sum() == 1, "only one 'switches to busbar 1' should be opened"
         assert (switches_state[1::2] == True).sum() == 1, "only one 'switches to busbar 2' should be opened"
         assert (switches_state[switches_this_loads] == [False, True]).all()
         # I disconnect it
         bk_act += self.env.action_space({"set_bus": {"loads_id": [(1, -1)]}})
-        busbar_coupler_state, switches_state = bk_act.get_all_switches()
-        assert (~busbar_coupler_state).all(), "busbar coupler should all be set to False here"
+        switches_state = bk_act.get_all_switches()
+        # assert (~busbar_coupler_state).all(), "busbar coupler should all be set to False here"
         assert (switches_state[::2] == False).sum() == 1, "one 'switches to busbar 1' should be opened (the disconnected load)"
         assert (switches_state[1::2] == False).all(), "no 'switches to busbar 2' should be opened"
         assert (switches_state[switches_this_loads] == [False, False]).all()
         # set back it back to its original position
         bk_act += self.env.action_space({"set_bus": {"loads_id": [(1, 1)]}})
-        busbar_coupler_state, switches_state = bk_act.get_all_switches()
-        assert (~busbar_coupler_state).all(), "busbar coupler should all be set to False here"
+        switches_state = bk_act.get_all_switches()
+        # assert (~busbar_coupler_state).all(), "busbar coupler should all be set to False here"
         assert switches_state[::2].all()
         assert (~switches_state[1::2]).all()
         
         # I modify the position of a shunt (a bit special)
         switches_this_shunts = bk_act.detailed_topo_desc.switches_to_shunt_id == 0
         bk_act += self.env.action_space({"shunt": {"set_bus": [(0, 2)]}})
-        busbar_coupler_state, switches_state = bk_act.get_all_switches()
-        assert (~busbar_coupler_state).all(), "busbar coupler should all be set to False here"
+        switches_state = bk_act.get_all_switches()
+        # assert (~busbar_coupler_state).all(), "busbar coupler should all be set to False here"
         assert (switches_state[::2] == False).sum() == 1, "only one 'switches to busbar 1' should be opened"
         assert (switches_state[1::2] == True).sum() == 1, "only one 'switches to busbar 2' should be opened"
         assert (switches_state[switches_this_shunts] == [False, True]).all()
         # I disconnect it
         bk_act += self.env.action_space({"shunt": {"set_bus": [(0, -1)]}})
-        busbar_coupler_state, switches_state = bk_act.get_all_switches()
-        assert (~busbar_coupler_state).all(), "busbar coupler should all be set to False here"
+        switches_state = bk_act.get_all_switches()
+        # assert (~busbar_coupler_state).all(), "busbar coupler should all be set to False here"
         assert (switches_state[::2] == False).sum() == 1, "one 'switches to busbar 1' should be opened (the disconnected load)"
         assert (switches_state[1::2] == False).all(), "no 'switches to busbar 2' should be opened"
         assert (switches_state[switches_this_shunts] == [False, False]).all()
         # set back it back to its original position
         bk_act += self.env.action_space({"shunt": {"set_bus": [(0, 1)]}})
-        busbar_coupler_state, switches_state = bk_act.get_all_switches()
-        assert (~busbar_coupler_state).all(), "busbar coupler should all be set to False here"
+        switches_state = bk_act.get_all_switches()
+        # assert (~busbar_coupler_state).all(), "busbar coupler should all be set to False here"
         assert switches_state[::2].all()
         assert (~switches_state[1::2]).all()
         
@@ -334,6 +378,7 @@ class DetailedTopoTester(unittest.TestCase):
         
  # TODO test no shunt too
  # TODO test "_get_full_cls_str"(experimental_read_from_local_dir)
+ # TODO test with different n_busbar_per_sub
  
 if __name__ == "__main__":
     unittest.main()

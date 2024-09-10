@@ -484,13 +484,13 @@ class BaseAction(GridObjects):
 
         self._set_switch_status = None
         self._change_switch_status = None
-        self._set_busbar_coup_status = None
-        self._change_busbar_coup_status = None
+        # self._set_busbar_coup_status = None
+        # self._change_busbar_coup_status = None
         if cls.detailed_topo_desc is not None:
             self._set_switch_status = np.full(shape=cls.detailed_topo_desc.switches.shape[0], fill_value=0, dtype=dt_int)
             self._change_switch_status = np.full(shape=cls.detailed_topo_desc.switches.shape[0], fill_value=False, dtype=dt_bool)
-            self._set_busbar_coup_status = np.full(shape=cls.detailed_topo_desc.busbar_name.shape[0], fill_value=0, dtype=dt_int)
-            self._change_busbar_coup_status = np.full(shape=cls.detailed_topo_desc.busbar_name.shape[0], fill_value=False, dtype=dt_bool)
+            # self._set_busbar_coup_status = np.full(shape=cls.detailed_topo_desc.busbar_name.shape[0], fill_value=0, dtype=dt_int)
+            # self._change_busbar_coup_status = np.full(shape=cls.detailed_topo_desc.busbar_name.shape[0], fill_value=False, dtype=dt_bool)
         
         # change the stuff
         self._modif_inj = False
@@ -507,8 +507,8 @@ class BaseAction(GridObjects):
         # TODO detailed topo
         self._modif_set_switch = False
         self._modif_change_switch = False
-        self._modif_set_busbar_coup = False
-        self._modif_change_busbar_coup = False
+        # self._modif_set_busbar_coup = False
+        # self._modif_change_busbar_coup = False
 
     @classmethod
     def process_shunt_satic_data(cls):
@@ -551,8 +551,8 @@ class BaseAction(GridObjects):
             "_single_act",
             "_modif_set_switch",
             "_modif_change_switch",
-            "_modif_set_busbar_coup",
-            "_modif_change_busbar_coup",
+            # "_modif_set_busbar_coup",  deprecatedd
+            # "_modif_change_busbar_coup",  deprecatedd
         ]
 
         attr_vect = [
@@ -574,7 +574,8 @@ class BaseAction(GridObjects):
             
         if type(self).detailed_topo_desc is not None:
             attr_vect += ["_set_switch_status", "_change_switch_status",
-                          "_set_busbar_coup_status", "_change_busbar_coup_status"]
+                        #   "_set_busbar_coup_status", "_change_busbar_coup_status"  # deprecated
+                          ]
             
         for attr_nm in attr_simple:
             setattr(other, attr_nm, getattr(self, attr_nm))
@@ -774,13 +775,20 @@ class BaseAction(GridObjects):
             # TODO detailed topo
             
             if self._modif_set_switch:
-                pass
+                res["set_switch_status"] = [
+                    (int(id_), int(val))
+                    for id_, val in enumerate(self._set_switch_status)
+                    if val != 0
+                ]
+                if not res["set_switch_status"]:
+                    del res["set_switch_status"]
+                    
             if self._modif_change_switch:
-                pass
-            if self._modif_set_busbar_coup:
-                pass
-            if self._modif_change_busbar_coup:
-                pass
+                res["change_switch_status"] = [
+                    int(id_) for id_, val in enumerate(self._change_switch_status) if val
+                ]
+                if not res["change_switch_status"]:
+                    del res["change_switch_status"]
             
         return res
 
@@ -868,10 +876,10 @@ class BaseAction(GridObjects):
         cls.attr_list_vect.append("_change_switch_status")
         
         # for busbar coupler (busbar to busbar)
-        cls.authorized_keys.add("set_busbar_coupler")
-        cls.authorized_keys.add("change_busbar_coupler")
-        cls.attr_list_vect.append("_set_busbar_coup_status")
-        cls.attr_list_vect.append("_change_busbar_coup_status")
+        # cls.authorized_keys.add("set_busbar_coupler")
+        # cls.authorized_keys.add("change_busbar_coupler")
+        # cls.attr_list_vect.append("_set_busbar_coup_status")
+        # cls.attr_list_vect.append("_change_busbar_coup_status")
         
         cls.attr_list_set = set(cls.attr_list_vect)
     
@@ -931,8 +939,8 @@ class BaseAction(GridObjects):
         # detailed topology
         self._modif_set_switch = False
         self._modif_change_switch = False
-        self._modif_set_busbar_coup = False
-        self._modif_change_busbar_coup = False
+        # self._modif_set_busbar_coup = False
+        # self._modif_change_busbar_coup = False
 
     def can_affect_something(self) -> bool:
         """
@@ -955,8 +963,8 @@ class BaseAction(GridObjects):
             or self._modif_alert
             or self._modif_set_switch
             or self._modif_change_switch
-            or self._modif_set_busbar_coup
-            or self._modif_change_busbar_coup
+            # or self._modif_set_busbar_coup
+            # or self._modif_change_busbar_coup
         )
 
     def _get_array_from_attr_name(self, attr_name):
@@ -995,8 +1003,8 @@ class BaseAction(GridObjects):
         if type(self).detailed_topo_desc is not None:
             self._modif_set_switch = (self._set_switch_status != 0).any()
             self._modif_change_switch = (self._change_switch_status).any()
-            self._modif_set_busbar_coup = (self._set_busbar_coup_status != 0).any()
-            self._modif_change_busbar_coup = (self._change_busbar_coup_status).any()
+            # self._modif_set_busbar_coup = (self._set_busbar_coup_status != 0).any()
+            # self._modif_change_busbar_coup = (self._change_busbar_coup_status).any()
 
     def _assign_attr_from_name(self, attr_nm, vect):
         if hasattr(self, attr_nm):
@@ -1214,8 +1222,8 @@ class BaseAction(GridObjects):
             and (not self._modif_change_bus)
             and (not self._modif_set_status)
             and (not self._modif_change_status)
-            and (not self._set_switch_status)
-            and (not self._change_switch_status)
+            and (not self._modif_set_switch)
+            and (not self._modif_change_switch)
         )
 
     def compute_switches_status(self):
@@ -1273,30 +1281,33 @@ class BaseAction(GridObjects):
             raise AmbiguousAction("Trying to modify the status of some switches (with 'change_switch') "
                                   "and change the busbar to which the same element is connected "
                                   "(using `change_bus`)")
+        # TODO detailed topo : make it ambiguous to modify a substation topology
+        # with set_bus / change_bus and with set_switch / change_switch at the same same time
+        
         ## busbar couplers
-        if ((self._set_busbar_coup_status != 0) & self._change_busbar_coup_status).any():
-            raise AmbiguousAction("Trying to both set the status of some busbar couplers (with 'set_busbar_coupler') "
-                                  "and change it (with 'change_busbar_coupler') using the same action.")
-        if change_bus_vect.any() & self._change_busbar_coup_status.any():
-            # TODO detailed topo: it's not really ambiguous if not on the same subsation
-            raise AmbiguousAction("Trying to modify the status of some busbar coupler (with 'change_busbar_coupler') "
-                                  "and change the busbar to some element "
-                                  "(using `change_bus`). This if for now impossible.")
-        if (set_topo_vect != 0).any() & self._change_busbar_coup_status.any():
-            # TODO detailed topo: it's not really ambiguous if not on the same subsation
-            raise AmbiguousAction("Trying to modify the status of some busbar coupler (with 'change_busbar_coupler') "
-                                  "and change the busbar to some element "
-                                  "(using `set_bus`). This if for now impossible.")
-        if change_bus_vect.any() & (self._set_busbar_coup_status != 0).any():
-            # TODO detailed topo: it's not really ambiguous if not on the same subsation
-            raise AmbiguousAction("Trying to modify the status of some busbar coupler (with 'set_busbar_coupler') "
-                                  "and change the busbar to some element "
-                                  "(using `change_bus`). This if for now impossible.")
-        if (set_topo_vect != 0).any() & (self._set_busbar_coup_status != 0).any():
-            # TODO detailed topo: it's not really ambiguous if not on the same subsation
-            raise AmbiguousAction("Trying to modify the status of some busbar coupler (with 'set_busbar_coupler') "
-                                  "and change the busbar to some element "
-                                  "(using `set_bus`). This if for now impossible.")
+        # if ((self._set_busbar_coup_status != 0) & self._change_busbar_coup_status).any():
+        #     raise AmbiguousAction("Trying to both set the status of some busbar couplers (with 'set_busbar_coupler') "
+        #                           "and change it (with 'change_busbar_coupler') using the same action.")
+        # if change_bus_vect.any() & self._change_busbar_coup_status.any():
+        #     # TODO detailed topo: it's not really ambiguous if not on the same subsation
+        #     raise AmbiguousAction("Trying to modify the status of some busbar coupler (with 'change_busbar_coupler') "
+        #                           "and change the busbar to some element "
+        #                           "(using `change_bus`). This if for now impossible.")
+        # if (set_topo_vect != 0).any() & self._change_busbar_coup_status.any():
+        #     # TODO detailed topo: it's not really ambiguous if not on the same subsation
+        #     raise AmbiguousAction("Trying to modify the status of some busbar coupler (with 'change_busbar_coupler') "
+        #                           "and change the busbar to some element "
+        #                           "(using `set_bus`). This if for now impossible.")
+        # if change_bus_vect.any() & (self._set_busbar_coup_status != 0).any():
+        #     # TODO detailed topo: it's not really ambiguous if not on the same subsation
+        #     raise AmbiguousAction("Trying to modify the status of some busbar coupler (with 'set_busbar_coupler') "
+        #                           "and change the busbar to some element "
+        #                           "(using `change_bus`). This if for now impossible.")
+        # if (set_topo_vect != 0).any() & (self._set_busbar_coup_status != 0).any():
+        #     # TODO detailed topo: it's not really ambiguous if not on the same subsation
+        #     raise AmbiguousAction("Trying to modify the status of some busbar coupler (with 'set_busbar_coupler') "
+        #                           "and change the busbar to some element "
+        #                           "(using `set_bus`). This if for now impossible.")
             
         # TODO detailed topo put elsewhere maybe ?
         

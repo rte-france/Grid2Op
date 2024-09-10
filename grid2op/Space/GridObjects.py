@@ -1360,7 +1360,7 @@ class GridObjects:
             else:
                 # set all the attributes
                 setattr(cls, attr_nm, attr)
-                if cls.detailed_topo_desc is not None:
+                if cls.detailed_topo_desc is not None and isinstance(cls.detailed_topo_desc, dict):
                     cls.detailed_topo_desc = DetailedTopoDescription.from_dict(cls.detailed_topo_desc)
         
         # make sure to catch data intiialized even outside of this function

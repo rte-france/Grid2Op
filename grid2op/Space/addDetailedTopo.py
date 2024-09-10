@@ -10,7 +10,7 @@ from grid2op.Space.detailed_topo_description import DetailedTopoDescription
 
 
 class AddDetailedTopoIEEE:    
-    """This class allows to add some detailed topology for the ieee network
+    """This class allows to add some detailed topology for the ieee networks
     (not present in the file most of the time)
     
     If you want to use it, you can by doing the following (or something similar)
