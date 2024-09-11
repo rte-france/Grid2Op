@@ -1243,8 +1243,7 @@ class BaseAction(GridObjects):
         It does not modify the action.
         """
             
-        # TODO detailed topo
-        
+        # TODO detailed topo : implement it !
         # set_line_status = 1 * self._set_line_status  # needed ?
         # switch_line_status = copy.deepcopy(self._switch_line_status)  # needed ?
         # topology changed
@@ -1283,33 +1282,9 @@ class BaseAction(GridObjects):
                                   "(using `change_bus`)")
         # TODO detailed topo : make it ambiguous to modify a substation topology
         # with set_bus / change_bus and with set_switch / change_switch at the same same time
-        
-        ## busbar couplers
-        # if ((self._set_busbar_coup_status != 0) & self._change_busbar_coup_status).any():
-        #     raise AmbiguousAction("Trying to both set the status of some busbar couplers (with 'set_busbar_coupler') "
-        #                           "and change it (with 'change_busbar_coupler') using the same action.")
-        # if change_bus_vect.any() & self._change_busbar_coup_status.any():
-        #     # TODO detailed topo: it's not really ambiguous if not on the same subsation
-        #     raise AmbiguousAction("Trying to modify the status of some busbar coupler (with 'change_busbar_coupler') "
-        #                           "and change the busbar to some element "
-        #                           "(using `change_bus`). This if for now impossible.")
-        # if (set_topo_vect != 0).any() & self._change_busbar_coup_status.any():
-        #     # TODO detailed topo: it's not really ambiguous if not on the same subsation
-        #     raise AmbiguousAction("Trying to modify the status of some busbar coupler (with 'change_busbar_coupler') "
-        #                           "and change the busbar to some element "
-        #                           "(using `set_bus`). This if for now impossible.")
-        # if change_bus_vect.any() & (self._set_busbar_coup_status != 0).any():
-        #     # TODO detailed topo: it's not really ambiguous if not on the same subsation
-        #     raise AmbiguousAction("Trying to modify the status of some busbar coupler (with 'set_busbar_coupler') "
-        #                           "and change the busbar to some element "
-        #                           "(using `change_bus`). This if for now impossible.")
-        # if (set_topo_vect != 0).any() & (self._set_busbar_coup_status != 0).any():
-        #     # TODO detailed topo: it's not really ambiguous if not on the same subsation
-        #     raise AmbiguousAction("Trying to modify the status of some busbar coupler (with 'set_busbar_coupler') "
-        #                           "and change the busbar to some element "
-        #                           "(using `set_bus`). This if for now impossible.")
             
         # TODO detailed topo put elsewhere maybe ?
+        raise NotImplementedError("Not implemented yet, maybe check detailed_topo_desc.from_switches_position")
         
         return set_topo_vect, change_bus_vect, shunt_bus
     

@@ -12,6 +12,7 @@ import numpy as np
 import hashlib
 
 import grid2op
+from grid2op.dtypes import dt_bool
 from grid2op.Action import BaseAction, CompleteAction
 from grid2op.Observation import BaseObservation
 from grid2op.Runner import Runner
@@ -347,9 +348,94 @@ class DetailedTopoTester(unittest.TestCase):
         assert (~switches_state[id_switch_or:(id_switch_or + nb_busbar + 1)]).all()
         assert (~switches_state[id_switch_ex:(id_switch_ex + nb_busbar + 1)]).all()
         
+    def test_from_switches_position_basic(self):
+        nb_busbar = self._aux_n_bb_per_sub()
+        start_id = (nb_busbar * (nb_busbar - 1) // 2) * type(self.env).n_sub
+        dtd = type(self.env).detailed_topo_desc
+        
+        # all connected
+        switches_state = np.ones(dtd.switches.shape[0], dtype=dt_bool)
+        topo_vect, shunt_bus = dtd.from_switches_position(switches_state)
+        assert (topo_vect == 1).all()
+        assert (shunt_bus == 1).all()
+        
+        # connect all to bus 1
+        switches_state = np.ones(dtd.switches.shape[0], dtype=dt_bool)
+        switches_state[:start_id] = False
+        switches_state[(start_id + 1)::(nb_busbar + 1)] = True  # busbar 1
+        switches_state[(start_id + 2)::(nb_busbar + 1)] = False  # busbar 2
+        topo_vect, shunt_bus = dtd.from_switches_position(switches_state)
+        assert (topo_vect == 1).all()
+        assert (shunt_bus == 1).all()
+        
+        # connect all to bus 2
+        switches_state = np.ones(dtd.switches.shape[0], dtype=dt_bool)
+        switches_state[:start_id] = False
+        switches_state[(start_id + 1)::(nb_busbar + 1)] = False  # busbar 1
+        switches_state[(start_id + 2)::(nb_busbar + 1)] = True  # busbar 2
+        topo_vect, shunt_bus = dtd.from_switches_position(switches_state)
+        assert (topo_vect == 2).all()
+        assert (shunt_bus == 2).all()
+    
+        # connect all el to busbar 2, but connect all busbar together
+        switches_state = np.ones(dtd.switches.shape[0], dtype=dt_bool)
+        switches_state[:start_id] = True  # connect all busbars together
+        switches_state[(start_id + 1)::(nb_busbar + 1)] = False  # busbar 1
+        switches_state[(start_id + 2)::(nb_busbar + 1)] = True  # busbar 2
+        topo_vect, shunt_bus = dtd.from_switches_position(switches_state)
+        assert (topo_vect == 1).all()
+        assert (shunt_bus == 1).all()
+        
+        # connect all el to busbar 1, but disconnect the element with their breaker
+        switches_state = np.ones(dtd.switches.shape[0], dtype=dt_bool)
+        switches_state[:start_id] = True  # connect all busbars together
+        switches_state[(start_id)::(nb_busbar + 1)] = False  # breaker
+        switches_state[(start_id + 1)::(nb_busbar + 1)] = False  # busbar 1
+        switches_state[(start_id + 2)::(nb_busbar + 1)] = True  # busbar 2
+        topo_vect, shunt_bus = dtd.from_switches_position(switches_state)
+        assert (topo_vect == -1).all()
+        assert (shunt_bus == -1).all()
+        
+    def test_from_switches_position_more_advanced(self):
+        nb_busbar = self._aux_n_bb_per_sub()
+        start_id = (nb_busbar * (nb_busbar - 1) // 2) * type(self.env).n_sub
+        dtd = type(self.env).detailed_topo_desc
+        
+        # if you change the env it will change...
+        sub_id = 1
+        mask_el_this = type(self.env).grid_objects_types[:,0] == sub_id
+        load_this = [0]
+        gen_this = [0]
+        line_or_this = [2, 3, 4]
+        line_ex_this = [0]
+        
+        conn_node_load = dtd.load_to_conn_node_id[load_this]
+        load_id_switch = (type(self.env).detailed_topo_desc.switches_to_topovect_id == type(self.env).load_pos_topo_vect[load_this]).nonzero()[0][0]
+        
+        conn_node_gen = dtd.load_to_conn_node_id[gen_this]
+        gen_id_switch = (type(self.env).detailed_topo_desc.switches_to_topovect_id == type(self.env).gen_pos_topo_vect[gen_this]).nonzero()[0][0]
+        
+        # all connected
+        switches_state = np.ones(dtd.switches.shape[0], dtype=dt_bool)
+        switches_state[:start_id] = False # deactivate all busbar coupler
+        # assign all element to busbar 1
+        switches_state[(start_id + 1)::(nb_busbar + 1)] = True  # busbar 1
+        switches_state[(start_id + 2)::(nb_busbar + 1)] = False  # busbar 2
+        # disconnect the load with the breaker
+        switches_state[load_id_switch] = False
+        topo_vect, shunt_bus = dtd.from_switches_position(switches_state)
+        assert topo_vect[type(self.env).load_pos_topo_vect[load_this]] == -1
+        switches_state[load_id_switch] = True
+        # disconnect the load by disconnecting it of all the busbars
+        switches_state[(load_id_switch + 1):(load_id_switch + nb_busbar +1)] = False
+        topo_vect, shunt_bus = dtd.from_switches_position(switches_state)
+        assert topo_vect[type(self.env).load_pos_topo_vect[load_this]] == -1
+        import pdb
+        pdb.set_trace()
+    
     # TODO detailed topo add more tests
-
-
+    
+    
 class DetailedTopoTester_3bb(DetailedTopoTester):
     def _aux_n_bb_per_sub(self):
         return 3

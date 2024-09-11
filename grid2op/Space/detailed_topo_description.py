@@ -170,12 +170,6 @@ class DetailedTopoDescription(object):
         #: your grid and for each connection node it gives the substation id [0...n_sub] to which
         #: the connection node belongs to.
         self.conn_node_to_subid = None
-        
-        # #: A matrix representing the "switches" between the connection nodes.
-        # #: It counts 2 columns and as many rows as the number of "switches" between
-        # #: the connection nodes. And for each "connection node switches" it gives the id of the
-        # #: connection nodes it can connect / disconnect.
-        # self.conn_node_connectors = None 
     
         #: It is a matrix describing each switches. This matrix has 'n_switches' rows and 4 columns. 
         #: Each column provides an information about the switch:
@@ -185,8 +179,8 @@ class DetailedTopoDescription(object):
         #:       :attr:`DetailedTopoDescription.GEN_ID`, :attr:`DetailedTopoDescription.STORAGE_ID`, 
         #:       :attr:`DetailedTopoDescription.LINE_OR_ID`, :attr:`DetailedTopoDescription.LINE_EX_ID` 
         #:       or :attr:`DetailedTopoDescription.SHUNT_ID` or :attr:`DetailedTopoDescription.OTHER`
-        #:     - col 2 gives the ID of the connection node it connects (number between 0 and n_conn_node-1)
-        #:     - col 3 gives the other ID of the connection node it connects
+        #:     - col 2 TODO detailed topo doc
+        #:     - col 3 TODO detailed topo doc
         self.switches = None
         
         #: This is a vector of integer having the same size as the number of switches in your grid.
@@ -222,6 +216,14 @@ class DetailedTopoDescription(object):
         #: Same as :attr:`DetailedTopoDescription.load_to_conn_node_id` but for shunt
         self.shunt_to_conn_node_id = None
         
+        #: For each busbar section, it gives the connection node id
+        #: that represent this busbar section
+        self.busbar_section_to_conn_node_id = None
+        
+        #: For each busbar section, it gives the substation id to which it
+        #: is connected
+        self.busbar_section_to_subid = None
+        
         #: flag to detect that the detailed topo have been built with the 
         #: :func:`.DetailedTopoDescriptionfrom_ieee_grid`
         #: which enables some feature that will be more generic in the future.
@@ -248,6 +250,9 @@ class DetailedTopoDescription(object):
         # conn node for each busbar
         bb_conn_node = sum([[f"conn_node_sub_{subid}_busbar_{bb_i}" for bb_i in range(n_bb_per_sub)] for subid in range(n_sub)],
                              start=[])
+        res.busbar_section_to_subid = np.repeat(np.arange(n_sub),n_bb_per_sub)
+        res.busbar_section_to_conn_node_id = np.arange(len(bb_conn_node))
+        
         el_conn_node = ([f"conn_node_load_{i}" for i in range(init_grid_cls.n_load)] + 
                         [f"conn_node_gen_{i}" for i in range(init_grid_cls.n_gen)] +
                         [f"conn_node_line_or_{i}" for i in range(init_grid_cls.n_line)] +
@@ -436,11 +441,80 @@ class DetailedTopoDescription(object):
         
         return switches_state
     
-    def from_switches_position(self):
+    def from_switches_position(self, switches_state):
         # TODO detailed topo
         # opposite of `compute_switches_position`
-        topo_vect = None
-        shunt_bus = None
+        topo_vect = np.zeros((self.switches_to_topovect_id != -1).sum(), dtype=dt_int) -1
+        if self.switches_to_shunt_id is not None:
+            shunt_bus = np.zeros((self.switches_to_shunt_id != -1).sum(), dtype=dt_int) -1
+            
+        # TODO detailed topo: find a way to accelarate it
+        for sub_id in range(self.busbar_section_to_subid.max() + 1):
+            bbs_this_sub = self.busbar_section_to_subid == sub_id  # bbs = busbar section
+            bbs_id = bbs_this_sub.nonzero()[0]
+            bbs_id_inv = np.zeros(bbs_id.max() + 1, dtype=dt_int) - 1
+            bbs_id_inv[bbs_id] = np.arange(bbs_id.shape[0])
+            bbs_handled = np.zeros(bbs_id.shape[0], dtype=dt_bool)
+            
+            bbs_id_this_sub = 0
+            bbs_node_id = 1
+            while True:
+                if bbs_handled[bbs_id_this_sub]:
+                    # this busbar section has already been process
+                    bbs_id_this_sub += 1
+                    continue
+                
+                connected_conn_node = np.array([bbs_id[bbs_id_this_sub]])
+                # now find all "connection node" connected to this busbar section
+                while True:
+                    add_conn_2 = np.isin(self.switches[:, type(self).CONN_NODE_1_ID_COL], connected_conn_node) & switches_state
+                    add_conn_1 = np.isin(self.switches[:, type(self).CONN_NODE_2_ID_COL], connected_conn_node) & switches_state
+                    if add_conn_1.any() or add_conn_2.any():
+                        size_bef = connected_conn_node.shape[0] 
+                        connected_conn_node = np.concatenate((connected_conn_node,
+                                                            self.switches[add_conn_2, type(self).CONN_NODE_2_ID_COL]))
+                        connected_conn_node = np.concatenate((connected_conn_node,
+                                                            self.switches[add_conn_1, type(self).CONN_NODE_1_ID_COL]))
+                        connected_conn_node = np.unique(connected_conn_node)
+                        if connected_conn_node.shape[0] == size_bef:
+                            # nothing added
+                            break
+                    else:
+                        break
+                    
+                # now connect all real element link to the connection node to the right bus id
+                all_el_id = (np.isin(self.switches[:, type(self).CONN_NODE_1_ID_COL], connected_conn_node) | 
+                             np.isin(self.switches[:, type(self).CONN_NODE_2_ID_COL], connected_conn_node))
+                all_el_id &= switches_state
+                topo_vect_id = self.switches_to_topovect_id[all_el_id]  # keep only connected "connection node" that are connected to an element
+                topo_vect_id = topo_vect_id[topo_vect_id != -1]  
+                topo_vect_id = topo_vect_id[topo_vect[topo_vect_id] == -1]  # remove element already assigned on a bus
+                topo_vect[topo_vect_id] = bbs_node_id  # assign the current bus bar section id
+                # now handle the shunts
+                shunt_id = self.switches_to_shunt_id[all_el_id]  # keep only connected "connection node" that are connected to an element
+                shunt_id = shunt_id[shunt_id != -1]  
+                shunt_id = shunt_id[shunt_bus[shunt_id] == -1]  # remove element already assigned on a bus
+                shunt_bus[shunt_id] = bbs_node_id  # assign the current bus bar section id
+                
+                # say we go to the next bus id
+                bbs_node_id += 1
+                
+                # now find the next busbar section at this substation not handled
+                bbs_conn_this = connected_conn_node[np.isin(connected_conn_node, bbs_id)]
+                bbs_handled[bbs_id_inv[bbs_conn_this]] = True
+                stop = False
+                while True:
+                    bbs_id_this_sub += 1
+                    if bbs_id_this_sub >= bbs_handled.shape[0]:
+                        stop = True
+                        break
+                    if not bbs_handled[bbs_id_this_sub]:
+                        stop = False
+                        break
+                if stop:
+                    # go to next substation as all the busbar sections to 
+                    # this substation have been processed
+                    break
         return topo_vect, shunt_bus
         
     def check_validity(self):
@@ -477,7 +551,7 @@ class DetailedTopoDescription(object):
         if (arr != np.arange(dim_topo + 1)).any():
             raise Grid2OpException("Inconsistencies in `self.switches_to_topovect_id`: two or more swtiches "
                                    "are pointing to the same element")
-        # TODO detailed topo other tests
+        # TODO detailed topo other tests (especially for res.busbar_section_to_conn_node_id and res.busbar_section_to_subid)
         # TODO detailed topo proper exception class and not Grid2OpException
     
     def save_to_dict(self, res, as_list=True, copy_=True):
@@ -564,6 +638,20 @@ class DetailedTopoDescription(object):
             (lambda arr: [int(el) for el in arr]) if as_list else None,
             copy_,
         )
+        save_to_dict(
+            res,
+            self,
+            "busbar_section_to_conn_node_id",
+            (lambda arr: [int(el) for el in arr]) if as_list else None,
+            copy_,
+        )
+        save_to_dict(
+            res,
+            self,
+            "busbar_section_to_subid",
+            (lambda arr: [int(el) for el in arr]) if as_list else None,
+            copy_,
+        )
         if self.shunt_to_conn_node_id is not None:
             save_to_dict(
                 res,
@@ -628,6 +716,12 @@ class DetailedTopoDescription(object):
         )
         res.storage_to_conn_node_id = extract_from_dict(
             dict_, "storage_to_conn_node_id", lambda x: x
+        )
+        res.busbar_section_to_conn_node_id = extract_from_dict(
+            dict_, "busbar_section_to_conn_node_id", lambda x: x
+        )
+        res.busbar_section_to_subid = extract_from_dict(
+            dict_, "busbar_section_to_subid", lambda x: x
         )
         if "shunt_to_conn_node_id" in dict_:
             res.shunt_to_conn_node_id = extract_from_dict(
