@@ -221,6 +221,11 @@ class DetailedTopoDescription(object):
         
         #: Same as :attr:`DetailedTopoDescription.load_to_conn_node_id` but for shunt
         self.shunt_to_conn_node_id = None
+        
+        #: flag to detect that the detailed topo have been built with the 
+        #: :func:`.DetailedTopoDescriptionfrom_ieee_grid`
+        #: which enables some feature that will be more generic in the future.
+        self._from_ieee_grid = False
     
     @classmethod
     def from_ieee_grid(cls, init_grid : "grid2op.Space.GridObjects.GridObjects"):
@@ -233,6 +238,7 @@ class DetailedTopoDescription(object):
             raise NotImplementedError("This function has not been implemented for less "
                                       "than 2 busbars per subs at the moment.")
         res = cls()
+        res._from_ieee_grid = True
         
         # define the "connection nodes"
         # for ieee grid we model:
@@ -344,9 +350,9 @@ class DetailedTopoDescription(object):
             res.switches[prev_el : next_el : (1 + n_bb_per_sub), cls.CONN_NODE_2_ID_COL] = conn_node_breaker_ids
             
             # TODO detailed topo : fill switches_to_topovect_id and switches_to_shunt_id
-            # res.switches_to_topovect_id[prev_el : (prev_el + 2 * nb_el)] = np.repeat(pos_topo_vect[arr_subid == sub_id], 2)
-            # if init_grid_cls.shunts_data_available and obj_col == cls.SHUNT_ID:
-            #     res.switches_to_shunt_id[prev_el : (prev_el + 2 * nb_el)] = np.repeat(where_el, 2)
+            res.switches_to_topovect_id[prev_el : next_el : (1 + n_bb_per_sub)] = pos_topo_vect
+            if init_grid_cls.shunts_data_available and obj_col == cls.SHUNT_ID:
+                res.switches_to_shunt_id[prev_el : next_el : (1 + n_bb_per_sub)] = np.arange(nb_el)
             prev_el = next_el
             handled += nb_el
         
@@ -362,6 +368,30 @@ class DetailedTopoDescription(object):
         # TODO detailed topo: have a function to compute the switches `sub_id` columns from the `conn_node_to_subid`
         return res
     
+    def _aux_compute_switches_pos_ieee(self, 
+                                       bus_vect,  # topo_vect
+                                       switches_to_bus_vect,  # self.switches_to_topovect_id
+                                       switches_state,  # result
+                                       ):
+        if not self._from_ieee_grid:
+            raise NotImplementedError("This function is only implemented for detailed topology "
+                                      "generated from ieee grids.")
+            
+        # compute the position for the switches of the "topo_vect" elements 
+        # only work for current grid2op modelling !
+        
+        # TODO detailed topo vectorize this ! (or cython maybe ?)
+        for switch_id, switch_topo_vect in enumerate(switches_to_bus_vect):
+            if switch_topo_vect == -1:
+                # this is not a switch for an element
+                continue
+            my_bus = bus_vect[switch_topo_vect]
+            if my_bus == -1:
+                # I init the swith at False, so nothing to do in this case
+                continue
+            switches_state[switch_id] = True  # connector is connected
+            switches_state[switch_id + my_bus] = True  # connector to busbar is connected
+        
     def compute_switches_position(self,
                                   topo_vect: np.ndarray,
                                   shunt_bus: Optional[np.ndarray]=None):
@@ -381,47 +411,29 @@ class DetailedTopoDescription(object):
 
         Returns
         -------
-        Tuple of 2 elements:
-        
-        - `busbar_connectors_state` state of each busbar_connector
-        - `switches_state` state of each switches
+        `switches_state` state (connected, disconnected) of each switches as 
+        a numpy boolean array.
         
         """
         # TODO detailed topo
         # TODO in reality, for more complex environment, this requires a routine to compute it
         # but for now in grid2op as only ficitive grid are modeled then 
         # this is not a problem
+        if not self._from_ieee_grid:
+            raise NotImplementedError("This function is only implemented for detailed topology "
+                                      "generated from ieee grids.")
         switches_state = np.zeros(self.switches.shape[0], dtype=dt_bool)
-        # busbar_connectors_state = np.zeros(self.busbar_connectors.shape[0], dtype=dt_bool)  # we can always say they are opened 
         
-        # compute the position for the switches of the "topo_vect" elements 
-        # only work for current grid2op modelling !
+        # compute the position for the switches of the "topo_vect" elements
+        self._aux_compute_switches_pos_ieee(topo_vect, self.switches_to_topovect_id, switches_state)
+            
+        if self.switches_to_shunt_id is None or shunt_bus is None:
+            # no need to 
+            return switches_state
         
-        # TODO detailed topo vectorize this ! (or cython maybe ?)
-        for el_id, bus_id in enumerate(topo_vect):
-            mask_el = self.switches_to_topovect_id == el_id
-            if mask_el.any():
-                # it's a regular element
-                if bus_id == 1:
-                    mask_el[np.where(mask_el)[0][1]] = False  # I open the switch to busbar 2 in this case
-                    switches_state[mask_el] = True
-                elif bus_id == 2:
-                    mask_el[np.where(mask_el)[0][0]] = False  # I open the switch to busbar 1 in this case
-                    switches_state[mask_el] = True
-                    
-        if self.switches_to_shunt_id is not None:
-            # read the switches associated with the shunts
-            for el_id, bus_id in enumerate(shunt_bus):
-                # it's an element not in the topo_vect (for now only switches)
-                mask_el = self.switches_to_shunt_id == el_id
-                if mask_el.any():
-                    # it's a shunt
-                    if bus_id == 1:
-                        mask_el[np.where(mask_el)[0][1]] = False  # I open the switch to busbar 2 in this case
-                        switches_state[mask_el] = True
-                    elif bus_id == 2:
-                        mask_el[np.where(mask_el)[0][0]] = False  # I open the switch to busbar 1 in this case
-                        switches_state[mask_el] = True
+        # now handle the shunts
+        self._aux_compute_switches_pos_ieee(shunt_bus, self.switches_to_shunt_id, switches_state)
+        
         return switches_state
     
     def from_switches_position(self):
@@ -455,6 +467,16 @@ class DetailedTopoDescription(object):
             self.conn_node_to_subid[self.switches[:,type(self).CONN_NODE_2_ID_COL]]).any():
             raise Grid2OpException("Inconsistencies found in the switches mapping. Some switches are "
                                    "mapping connectivity nodes that belong to different substation id.") 
+            
+        arr = self.switches_to_topovect_id[self.switches_to_topovect_id != -1]
+        dim_topo = arr.max()
+        if arr.shape[0] != dim_topo + 1:
+            raise Grid2OpException("Inconsistencies in `self.switches_to_topovect_id`: some elements of "
+                                   "topo vect are not controlled by any switches.")
+        arr.sort() 
+        if (arr != np.arange(dim_topo + 1)).any():
+            raise Grid2OpException("Inconsistencies in `self.switches_to_topovect_id`: two or more swtiches "
+                                   "are pointing to the same element")
         # TODO detailed topo other tests
         # TODO detailed topo proper exception class and not Grid2OpException
     
@@ -474,6 +496,8 @@ class DetailedTopoDescription(object):
             (lambda arr: [int(el) for el in arr]) if as_list else None,
             copy_,
         )
+        res["_from_ieee_grid"] = self._from_ieee_grid
+        
         # save_to_dict(
         #     res,
         #     self,
@@ -580,6 +604,7 @@ class DetailedTopoDescription(object):
         res.switches_to_topovect_id = extract_from_dict(
             dict_, "switches_to_topovect_id", lambda x: np.array(x).astype(dt_int)
         )
+        res._from_ieee_grid = bool(dict_["_from_ieee_grid"])
         
         if "switches_to_shunt_id" in dict_:
             res.switches_to_shunt_id = extract_from_dict(

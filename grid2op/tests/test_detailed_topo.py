@@ -59,9 +59,6 @@ def _aux_test_correct(detailed_topo_desc : DetailedTopoDescription, gridobj, nb_
     dtd = detailed_topo_desc
     n_bb_per_sub = nb_bb_per_sub
     
-    # TODO make a loop for all elements here :
-    # for el_nm in ["load", "gen", "line_or", "line_ex", "storage", "shunt"]:
-    #     ...
     el_nm = "load"
     nb_el = gridobj.n_load
     prev_el = gridobj.n_sub * (nb_bb_per_sub * (nb_bb_per_sub - 1) // 2)
@@ -157,225 +154,207 @@ class DetailedTopoTester(unittest.TestCase):
         obs_cpy = env_cpy.reset()
         _aux_test_correct(type(obs_cpy).detailed_topo_desc, type(obs_cpy), self._aux_n_bb_per_sub())
     
-    def test_get_loads_bus_switches(self):
-        """test I can acess the loads and also that the results is correctly computed by _backendaction._aux_get_bus_detailed_topo"""
-        obs = self.env.reset()
-        bk_act = self.env._backend_action
-        # nothing modified
-        loads_switches = bk_act.get_loads_bus_switches()
-        assert loads_switches == []
-        
-        # I modified the position of a load
-        bk_act += self.env.action_space({"set_bus": {"loads_id": [(1, 2)]}})
-        loads_switches = bk_act.get_loads_bus_switches()
-        assert loads_switches == [(1, (False, True))]  # modified load 1, first switch is opened (False) second one is closed (True)
-        
-        # I modified the position of a load
-        bk_act += self.env.action_space({"set_bus": {"loads_id": [(1, 1)]}})
-        loads_switches = bk_act.get_loads_bus_switches()
-        assert loads_switches == [(1, (True, False))]  # modified load 1, first switch is closed (True) second one is opened (False) 
-        
-        # I disconnect a load
-        bk_act += self.env.action_space({"set_bus": {"loads_id": [(1, -1)]}})
-        loads_switches = bk_act.get_loads_bus_switches()
-        assert loads_switches == [(1, (False, False))]  # modified load 1, first switch is closed (False) second one is opened (False) 
-    
-    def test_get_xxx_bus_switches(self):
-        """test I can retrieve the switch of all the element types"""
-        
-        # generators
-        obs = self.env.reset()
-        bk_act = self.env._backend_action
-        els_switches = bk_act.get_gens_bus_switches()
-        assert els_switches == []
-        bk_act += self.env.action_space({"set_bus": {"generators_id": [(1, 1)]}})
-        els_switches = bk_act.get_gens_bus_switches()
-        assert els_switches == [(1, (True, False))]  # modified gen 1, first switch is closed (True) second one is opened (False) 
-        
-        # line or
-        obs = self.env.reset()
-        bk_act = self.env._backend_action
-        els_switches = bk_act.get_lines_or_bus_switches()
-        assert els_switches == []
-        bk_act += self.env.action_space({"set_bus": {"lines_or_id": [(1, 1)]}})
-        els_switches = bk_act.get_lines_or_bus_switches()
-        assert els_switches == [(1, (True, False))]  # modified line or 1, first switch is closed (True) second one is opened (False) 
-        
-        # line ex
-        obs = self.env.reset()
-        bk_act = self.env._backend_action
-        els_switches = bk_act.get_lines_ex_bus_switches()
-        assert els_switches == []
-        bk_act += self.env.action_space({"set_bus": {"lines_ex_id": [(1, 1)]}})
-        els_switches = bk_act.get_lines_ex_bus_switches()
-        assert els_switches == [(1, (True, False))]  # modified line ex 1, first switch is closed (True) second one is opened (False) 
-        
-        # storage
-        obs = self.env.reset()
-        bk_act = self.env._backend_action
-        els_switches = bk_act.get_storages_bus_switches()
-        assert els_switches == []
-        bk_act += self.env.action_space({"set_bus": {"storages_id": [(1, 1)]}})
-        els_switches = bk_act.get_storages_bus_switches()
-        assert els_switches == [(1, (True, False))]  # modified storage 1, first switch is closed (True) second one is opened (False) 
-        
-        # shunt
-        obs = self.env.reset()
-        bk_act = self.env._backend_action
-        els_switches = bk_act.get_shunts_bus_switches()
-        assert els_switches == []
-        bk_act += self.env.action_space({"shunt": {"set_bus": [(0, 1)]}})
-        els_switches = bk_act.get_shunts_bus_switches()
-        assert els_switches == [(0, (True, False))]  # modified shunt 0, first switch is closed (True) second one is opened (False) 
-        
     def test_compute_switches_position(self):
+        nb_busbar = self._aux_n_bb_per_sub()
+        start_id = (nb_busbar * (nb_busbar - 1) // 2) * type(self.env).n_sub
+        
         obs = self.env.reset()
         switches_state = type(obs).detailed_topo_desc.compute_switches_position(obs.topo_vect, obs._shunt_bus)
-        assert np.sum(switches_state) == 60
-        assert switches_state[::2].all()  # all on bus 1
-        assert (~switches_state[1::2]).all()  # nothing on busbar 2
+        assert switches_state.sum() == 120
+        assert switches_state[start_id::(nb_busbar + 1)].all()  # all connected
+        assert switches_state[(start_id + 1)::(nb_busbar + 1)].all()  # all on bus 1
+        assert (~switches_state[(start_id + 2)::(nb_busbar + 1)]).all()  # nothing on busbar 2
         
         # move everything to bus 2
         switches_state = type(obs).detailed_topo_desc.compute_switches_position(np.full(obs.topo_vect.shape, fill_value=2),
                                                                                 np.full(obs._shunt_bus.shape, fill_value=2))
-        assert np.sum(switches_state) == 60
-        assert switches_state[1::2].all()
-        assert (~switches_state[::2]).all()
+        assert switches_state.sum() == 120
+        assert switches_state[start_id::(nb_busbar + 1)].all()  # all connected
+        assert switches_state[(start_id + 2)::(nb_busbar + 1)].all()  # all on busbar 2
+        assert (~switches_state[(start_id + 1)::(nb_busbar + 1)]).all()  # nothing on busbar 1
         
-        # now check some disconnected elements (line id 0)
+        # now check some disconnected elements (*eg* line id 0)
         topo_vect = 1 * obs.topo_vect
         topo_vect[type(obs).line_or_pos_topo_vect[0]] = -1
         topo_vect[type(obs).line_ex_pos_topo_vect[0]] = -1
         switches_state = type(obs).detailed_topo_desc.compute_switches_position(topo_vect, obs._shunt_bus)
-        assert np.sum(switches_state) == 58
-        assert switches_state[::2].sum() == 58
-        assert switches_state[1::2].sum() == 0
-        assert (~switches_state[type(obs).detailed_topo_desc.switches_to_topovect_id == type(obs).line_or_pos_topo_vect[0]]).all()
-        assert (~switches_state[type(obs).detailed_topo_desc.switches_to_topovect_id == type(obs).line_ex_pos_topo_vect[0]]).all()
+        # quickly check other elements
+        assert switches_state.sum() == 116
+        assert switches_state[start_id::(nb_busbar + 1)].sum() == 58
+        assert switches_state[(start_id + 1)::(nb_busbar + 1)].sum() == 58  # busbar 1
+        assert switches_state[(start_id + 2)::(nb_busbar + 1)].sum() == 0  # busbar 2
+        id_switch_or = (type(obs).detailed_topo_desc.switches_to_topovect_id == type(obs).line_or_pos_topo_vect[0]).nonzero()[0][0]
+        id_switch_ex = (type(obs).detailed_topo_desc.switches_to_topovect_id == type(obs).line_ex_pos_topo_vect[0]).nonzero()[0][0]
+        assert (~switches_state[id_switch_or:(id_switch_or + nb_busbar + 1)]).all()
+        assert (~switches_state[id_switch_ex:(id_switch_ex + nb_busbar + 1)]).all()
         
         # and now elements per elements
         # load 3 to bus 2
         topo_vect = 1 * obs.topo_vect
         topo_vect[type(obs).load_pos_topo_vect[3]] = 2
         switches_state = type(obs).detailed_topo_desc.compute_switches_position(topo_vect, obs._shunt_bus)
-        assert np.sum(switches_state) == 60
-        assert switches_state[::2].sum() == 59
-        assert switches_state[1::2].sum() == 1
-        assert not switches_state[type(obs).detailed_topo_desc.switches_to_topovect_id == type(obs).load_pos_topo_vect[3]][0]
-        assert switches_state[type(obs).detailed_topo_desc.switches_to_topovect_id == type(obs).load_pos_topo_vect[3]][1]
+        assert switches_state.sum() == 120
+        assert switches_state[start_id::(nb_busbar + 1)].sum() == 60
+        assert switches_state[(start_id + 1)::(nb_busbar + 1)].sum() == 59  # busbar 1
+        assert switches_state[(start_id + 2)::(nb_busbar + 1)].sum() == 1  # busbar 2
+        id_switch = (type(obs).detailed_topo_desc.switches_to_topovect_id == type(obs).load_pos_topo_vect[3]).nonzero()[0][0]
+        assert switches_state[id_switch:(id_switch + nb_busbar + 1)].sum() == 2  # only 2 switches closed
+        assert switches_state[id_switch + 2]  # busbar 2
         
         # gen 1 to bus 2
         topo_vect = 1 * obs.topo_vect
         topo_vect[type(obs).gen_pos_topo_vect[1]] = 2
         switches_state = type(obs).detailed_topo_desc.compute_switches_position(topo_vect, obs._shunt_bus)
-        assert np.sum(switches_state) == 60
-        assert switches_state[::2].sum() == 59
-        assert switches_state[1::2].sum() == 1
-        assert not switches_state[type(obs).detailed_topo_desc.switches_to_topovect_id == type(obs).gen_pos_topo_vect[1]][0]
-        assert switches_state[type(obs).detailed_topo_desc.switches_to_topovect_id == type(obs).gen_pos_topo_vect[1]][1]
+        assert switches_state.sum() == 120
+        assert switches_state[start_id::(nb_busbar + 1)].sum() == 60
+        assert switches_state[(start_id + 1)::(nb_busbar + 1)].sum() == 59  # busbar 1
+        assert switches_state[(start_id + 2)::(nb_busbar + 1)].sum() == 1  # busbar 2
+        id_switch = (type(obs).detailed_topo_desc.switches_to_topovect_id == type(obs).gen_pos_topo_vect[1]).nonzero()[0][0]
+        assert switches_state[id_switch:(id_switch + nb_busbar + 1)].sum() == 2  # only 2 switches closed
+        assert switches_state[id_switch + 2]  # busbar 2
         
         # line or 6 to bus 2
         topo_vect = 1 * obs.topo_vect
         el_id = 6
         topo_vect[type(obs).line_or_pos_topo_vect[el_id]] = 2
         switches_state = type(obs).detailed_topo_desc.compute_switches_position(topo_vect, obs._shunt_bus)
-        assert np.sum(switches_state) == 60
-        assert switches_state[::2].sum() == 59
-        assert switches_state[1::2].sum() == 1
-        assert not switches_state[type(obs).detailed_topo_desc.switches_to_topovect_id == type(obs).line_or_pos_topo_vect[el_id]][0]
-        assert switches_state[type(obs).detailed_topo_desc.switches_to_topovect_id == type(obs).line_or_pos_topo_vect[el_id]][1]
+        assert switches_state.sum() == 120
+        assert switches_state[start_id::(nb_busbar + 1)].sum() == 60
+        assert switches_state[(start_id + 1)::(nb_busbar + 1)].sum() == 59  # busbar 1
+        assert switches_state[(start_id + 2)::(nb_busbar + 1)].sum() == 1  # busbar 2
+        id_switch = (type(obs).detailed_topo_desc.switches_to_topovect_id == type(obs).line_or_pos_topo_vect[el_id]).nonzero()[0][0]
+        assert switches_state[id_switch:(id_switch + nb_busbar + 1)].sum() == 2  # only 2 switches closed
+        assert switches_state[id_switch + 2]  # busbar 2
         
         # line ex 9 to bus 2
         topo_vect = 1 * obs.topo_vect
         el_id = 9
         topo_vect[type(obs).line_ex_pos_topo_vect[el_id]] = 2
         switches_state = type(obs).detailed_topo_desc.compute_switches_position(topo_vect, obs._shunt_bus)
-        assert np.sum(switches_state) == 60
-        assert switches_state[::2].sum() == 59
-        assert switches_state[1::2].sum() == 1
-        assert not switches_state[type(obs).detailed_topo_desc.switches_to_topovect_id == type(obs).line_ex_pos_topo_vect[el_id]][0]
-        assert switches_state[type(obs).detailed_topo_desc.switches_to_topovect_id == type(obs).line_ex_pos_topo_vect[el_id]][1]
+        assert switches_state.sum() == 120
+        assert switches_state[start_id::(nb_busbar + 1)].sum() == 60
+        assert switches_state[(start_id + 1)::(nb_busbar + 1)].sum() == 59  # busbar 1
+        assert switches_state[(start_id + 2)::(nb_busbar + 1)].sum() == 1  # busbar 2
+        id_switch = (type(obs).detailed_topo_desc.switches_to_topovect_id == type(obs).line_ex_pos_topo_vect[el_id]).nonzero()[0][0]
+        assert switches_state[id_switch:(id_switch + nb_busbar + 1)].sum() == 2  # only 2 switches closed
+        assert switches_state[id_switch + 2]  # busbar 2
         
         # storage 0 to bus 2
         topo_vect = 1 * obs.topo_vect
         el_id = 0
         topo_vect[type(obs).storage_pos_topo_vect[el_id]] = 2
         switches_state = type(obs).detailed_topo_desc.compute_switches_position(topo_vect, obs._shunt_bus)
-        assert np.sum(switches_state) == 60
-        assert switches_state[::2].sum() == 59
-        assert switches_state[1::2].sum() == 1
-        assert not switches_state[type(obs).detailed_topo_desc.switches_to_topovect_id == type(obs).storage_pos_topo_vect[el_id]][0]
-        assert switches_state[type(obs).detailed_topo_desc.switches_to_topovect_id == type(obs).storage_pos_topo_vect[el_id]][1]
+        assert switches_state.sum() == 120
+        assert switches_state[start_id::(nb_busbar + 1)].sum() == 60
+        assert switches_state[(start_id + 1)::(nb_busbar + 1)].sum() == 59  # busbar 1
+        assert switches_state[(start_id + 2)::(nb_busbar + 1)].sum() == 1  # busbar 2
+        id_switch = (type(obs).detailed_topo_desc.switches_to_topovect_id == type(obs).storage_pos_topo_vect[el_id]).nonzero()[0][0]
+        assert switches_state[id_switch:(id_switch + nb_busbar + 1)].sum() == 2  # only 2 switches closed
+        assert switches_state[id_switch + 2]  # busbar 2
         
         # shunt 0 to bus 2
         shunt_bus = 1 * obs._shunt_bus
         el_id = 0
         shunt_bus[el_id] = 2
         switches_state = type(obs).detailed_topo_desc.compute_switches_position(obs.topo_vect, shunt_bus)
-        assert np.sum(switches_state) == 60
-        assert switches_state[::2].sum() == 59
-        assert switches_state[1::2].sum() == 1
-        assert not switches_state[type(obs).detailed_topo_desc.switches_to_shunt_id == el_id][0]
-        assert switches_state[type(obs).detailed_topo_desc.switches_to_shunt_id == el_id][1]
+        assert switches_state.sum() == 120
+        assert switches_state[start_id::(nb_busbar + 1)].sum() == 60
+        assert switches_state[(start_id + 1)::(nb_busbar + 1)].sum() == 59  # busbar 1
+        assert switches_state[(start_id + 2)::(nb_busbar + 1)].sum() == 1  # busbar 2
+        id_switch = (type(obs).detailed_topo_desc.switches_to_shunt_id == el_id).nonzero()[0][0]
+        assert switches_state[id_switch:(id_switch + nb_busbar + 1)].sum() == 2  # only 2 switches closed
+        assert switches_state[id_switch + 2]  # busbar 2
     
     def test_get_all_switches(self):
         """test I can use bkact.get_all_switches"""
+        nb_busbar = self._aux_n_bb_per_sub()
+        start_id = (nb_busbar * (nb_busbar - 1) // 2) * type(self.env).n_sub
+        
         obs = self.env.reset()
         bk_act = self.env._backend_action
+        
         # nothing modified
         switches_state = bk_act.get_all_switches()
-        # assert (~busbar_coupler_state).all(), "busbar coupler should all be set to False here"
-        assert switches_state[::2].all()
-        assert (~switches_state[1::2]).all()
+        assert switches_state.sum() == 120
+        assert switches_state[start_id::(nb_busbar + 1)].all()  # all connected
+        assert switches_state[(start_id + 1)::(nb_busbar + 1)].all()  # all on bus 1
+        assert (~switches_state[(start_id + 2)::(nb_busbar + 1)]).all()  # nothing on busbar 2
         
         # I modified the position of a "regular" element load 1 for the sake of the example
         switches_this_loads = bk_act.detailed_topo_desc.switches_to_topovect_id == bk_act.load_pos_topo_vect[1]
         bk_act += self.env.action_space({"set_bus": {"loads_id": [(1, 2)]}})
         switches_state = bk_act.get_all_switches()
-        # assert (~busbar_coupler_state).all(), "busbar coupler should all be set to False here"
-        assert (switches_state[::2] == False).sum() == 1, "only one 'switches to busbar 1' should be opened"
-        assert (switches_state[1::2] == True).sum() == 1, "only one 'switches to busbar 2' should be opened"
-        assert (switches_state[switches_this_loads] == [False, True]).all()
+        assert switches_state.sum() == 120
+        assert switches_state[start_id::(nb_busbar + 1)].sum() == 60
+        assert switches_state[(start_id + 1)::(nb_busbar + 1)].sum() == 59  # busbar 1
+        assert switches_state[(start_id + 2)::(nb_busbar + 1)].sum() == 1  # busbar 2
+        id_switch = (type(obs).detailed_topo_desc.switches_to_topovect_id == type(obs).load_pos_topo_vect[1]).nonzero()[0][0]
+        assert switches_state[id_switch:(id_switch + nb_busbar + 1)].sum() == 2  # only 2 switches closed
+        assert switches_state[id_switch + 2]  # busbar 2
+                
         # I disconnect it
         bk_act += self.env.action_space({"set_bus": {"loads_id": [(1, -1)]}})
         switches_state = bk_act.get_all_switches()
-        # assert (~busbar_coupler_state).all(), "busbar coupler should all be set to False here"
-        assert (switches_state[::2] == False).sum() == 1, "one 'switches to busbar 1' should be opened (the disconnected load)"
-        assert (switches_state[1::2] == False).all(), "no 'switches to busbar 2' should be opened"
-        assert (switches_state[switches_this_loads] == [False, False]).all()
-        # set back it back to its original position
+        assert switches_state.sum() == 118
+        assert switches_state[start_id::(nb_busbar + 1)].sum() == 59
+        assert switches_state[(start_id + 1)::(nb_busbar + 1)].sum() == 59  # busbar 1
+        assert switches_state[(start_id + 2)::(nb_busbar + 1)].sum() == 0  # busbar 2
+        id_switch = (type(obs).detailed_topo_desc.switches_to_topovect_id == type(obs).load_pos_topo_vect[1]).nonzero()[0][0]
+        assert switches_state[id_switch:(id_switch + nb_busbar + 1)].sum() == 0  # only 2 switches closed
         bk_act += self.env.action_space({"set_bus": {"loads_id": [(1, 1)]}})
-        switches_state = bk_act.get_all_switches()
-        # assert (~busbar_coupler_state).all(), "busbar coupler should all be set to False here"
-        assert switches_state[::2].all()
-        assert (~switches_state[1::2]).all()
         
         # I modify the position of a shunt (a bit special)
-        switches_this_shunts = bk_act.detailed_topo_desc.switches_to_shunt_id == 0
         bk_act += self.env.action_space({"shunt": {"set_bus": [(0, 2)]}})
         switches_state = bk_act.get_all_switches()
-        # assert (~busbar_coupler_state).all(), "busbar coupler should all be set to False here"
-        assert (switches_state[::2] == False).sum() == 1, "only one 'switches to busbar 1' should be opened"
-        assert (switches_state[1::2] == True).sum() == 1, "only one 'switches to busbar 2' should be opened"
-        assert (switches_state[switches_this_shunts] == [False, True]).all()
+        assert switches_state.sum() == 120
+        assert switches_state[start_id::(nb_busbar + 1)].sum() == 60
+        assert switches_state[(start_id + 1)::(nb_busbar + 1)].sum() == 59  # busbar 1
+        assert switches_state[(start_id + 2)::(nb_busbar + 1)].sum() == 1  # busbar 2
+        id_switch = (type(obs).detailed_topo_desc.switches_to_shunt_id == 0).nonzero()[0][0]
+        assert switches_state[id_switch:(id_switch + nb_busbar + 1)].sum() == 2  # only 2 switches closed
+        assert switches_state[id_switch + 2]  # busbar 2
+        
         # I disconnect it
         bk_act += self.env.action_space({"shunt": {"set_bus": [(0, -1)]}})
         switches_state = bk_act.get_all_switches()
-        # assert (~busbar_coupler_state).all(), "busbar coupler should all be set to False here"
-        assert (switches_state[::2] == False).sum() == 1, "one 'switches to busbar 1' should be opened (the disconnected load)"
-        assert (switches_state[1::2] == False).all(), "no 'switches to busbar 2' should be opened"
-        assert (switches_state[switches_this_shunts] == [False, False]).all()
+        assert switches_state.sum() == 118
+        assert switches_state[start_id::(nb_busbar + 1)].sum() == 59
+        assert switches_state[(start_id + 1)::(nb_busbar + 1)].sum() == 59  # busbar 1
+        assert switches_state[(start_id + 2)::(nb_busbar + 1)].sum() == 0  # busbar 2
+        id_switch = (type(obs).detailed_topo_desc.switches_to_shunt_id == 0).nonzero()[0][0]
+        assert switches_state[id_switch:(id_switch + nb_busbar + 1)].sum() == 0  # only 2 switches closed
+        
         # set back it back to its original position
         bk_act += self.env.action_space({"shunt": {"set_bus": [(0, 1)]}})
         switches_state = bk_act.get_all_switches()
-        # assert (~busbar_coupler_state).all(), "busbar coupler should all be set to False here"
-        assert switches_state[::2].all()
-        assert (~switches_state[1::2]).all()
+        assert switches_state.sum() == 120
+        assert switches_state[start_id::(nb_busbar + 1)].sum() == 60
+        assert switches_state[(start_id + 1)::(nb_busbar + 1)].sum() == 60  # busbar 1
+        assert switches_state[(start_id + 2)::(nb_busbar + 1)].sum() == 0   # busbar 2
+        id_switch = (type(obs).detailed_topo_desc.switches_to_shunt_id == 0).nonzero()[0][0]
+        assert switches_state[id_switch:(id_switch + nb_busbar + 1)].sum() == 2  # only 2 switches closed
+        assert switches_state[id_switch + 1]  # busbar 1
         
+        # then I disconnect a powerline (check that both ends are disconnected)
+        bk_act += self.env.action_space({"set_bus": {"lines_or_id": [(3, -1)]}})
+        switches_state = bk_act.get_all_switches()
+        assert switches_state.sum() == 116
+        assert switches_state[start_id::(nb_busbar + 1)].sum() == 58
+        assert switches_state[(start_id + 1)::(nb_busbar + 1)].sum() == 58  # busbar 1
+        assert switches_state[(start_id + 2)::(nb_busbar + 1)].sum() == 0  # busbar 2
+        id_switch_or = (type(obs).detailed_topo_desc.switches_to_topovect_id == type(obs).line_or_pos_topo_vect[3]).nonzero()[0][0]
+        id_switch_ex = (type(obs).detailed_topo_desc.switches_to_topovect_id == type(obs).line_ex_pos_topo_vect[3]).nonzero()[0][0]
+        assert (~switches_state[id_switch_or:(id_switch_or + nb_busbar + 1)]).all()
+        assert (~switches_state[id_switch_ex:(id_switch_ex + nb_busbar + 1)]).all()
         
-            
-    # TODO detailed topo
-        
+    # TODO detailed topo add more tests
+
+
+class DetailedTopoTester_3bb(DetailedTopoTester):
+    def _aux_n_bb_per_sub(self):
+        return 3
+    
+    
  # TODO test no shunt too
  # TODO test "_get_full_cls_str"(experimental_read_from_local_dir)
  # TODO test with different n_busbar_per_sub
