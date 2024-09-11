@@ -14,6 +14,7 @@ jobs:
     container: quay.io/pypa/manylinux2014_x86_64
     env:
       ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+      GHA_USE_NODE_20: false
     strategy:
       matrix:
         python:
