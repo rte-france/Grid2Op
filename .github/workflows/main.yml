@@ -80,7 +80,7 @@ jobs:
           ls ./dist/*.whl
 
       - name: Upload wheel
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: grid2op-wheel-${{ matrix.config.name }}-${{ matrix.python.name }}
           path: dist/*.whl
@@ -159,13 +159,13 @@ jobs:
         run: python setup.py sdist
 
       - name: Upload wheel
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: grid2op-wheel-${{ matrix.config.name }}-${{ matrix.python.name }}
           path: dist/*.whl
 
       - name: Upload source archive
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         if: matrix.config.name == 'darwin' && matrix.python.name == 'cp310'
         with:
           name: grid2op-sources
@@ -238,12 +238,12 @@ jobs:
 
     steps:
       - name: Download wheels
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           path: download
 
       - name: Upload wheels
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: grid2op-wheels
           path: |
