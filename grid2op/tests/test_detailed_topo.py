@@ -19,7 +19,7 @@ from grid2op.Runner import Runner
 from grid2op.Backend import PandaPowerBackend
 from grid2op.Space import AddDetailedTopoIEEE, DetailedTopoDescription
 from grid2op.Agent import BaseAgent
-
+from grid2op.Exceptions import AmbiguousAction
 import pdb
 REF_HASH = 'c8296b80b3b920b2971bd82e93f998a043ccb3738f04ca0d3f23f524306da8e95109f5af27e28a85597151b3988840674f4e6ad1efa69dbab1a2174765f330ec'
 
@@ -114,14 +114,19 @@ class DetailedTopoTester(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self.env = grid2op.make(
-            "educ_case14_storage",
-            n_busbar=n_bb_per_sub,
-            test=True,
-            backend=_PPBkForTestDetTopo(),
-            action_class=CompleteAction,
-            _add_to_name=f"DetailedTopoTester_{n_bb_per_sub}",
-        )
-        return super().setUp()
+                        "educ_case14_storage",
+                        n_busbar=n_bb_per_sub,
+                        test=True,
+                        backend=_PPBkForTestDetTopo(),
+                        action_class=CompleteAction,
+                        _add_to_name=f"{type(self).__name__}_{n_bb_per_sub}",
+                    )
+        if isinstance(self, DetailedTopoTester):
+            # weird hack I am doing: I reuse the same method
+            # from another class
+            # to initialize the same env, but by doing so, I cannot
+            # "super"
+            return super().setUp()
     
     def tearDown(self) -> None:
         self.env.close()
@@ -499,6 +504,7 @@ class DetailedTopoTester(unittest.TestCase):
             assert topo_vect[vect_topo_vect[el_this]] == 1, f"error for {tag}"
             assert (topo_vect == 1).sum() == 59, f"error for {tag}"
     
+    # TODO detailed topo : test_from_switches_position_more_advanced_shunt (shunts not tested above)
     # TODO detailed topo add more tests
     
     
@@ -506,10 +512,163 @@ class DetailedTopoTester_3bb(DetailedTopoTester):
     def _aux_n_bb_per_sub(self):
         return 3
     
+
+class DetailedTopoTester_Action(unittest.TestCase):
+    def _aux_n_bb_per_sub(self):
+        return 2
     
- # TODO test no shunt too
- # TODO test "_get_full_cls_str"(experimental_read_from_local_dir)
- # TODO test with different n_busbar_per_sub
+    def setUp(self) -> None:
+        DetailedTopoTester.setUp(self)
+        self.li_flag_nm = [
+            "_modif_inj",
+            "_modif_set_bus",
+            "_modif_change_bus",
+            "_modif_set_status",
+            "_modif_change_status",
+            "_modif_redispatch",
+            "_modif_storage",
+            "_modif_curtailment",
+            "_modif_alarm",
+            "_modif_alert",
+            "_modif_set_switch",
+            "_modif_change_switch",
+        ]
+        type(self.env.action_space._template_obj).ISSUE_WARNING_SWITCH_SET_CHANGE = "never"
+        return super().setUp()    
+    
+    def test_can_do_set(self):
+        act = self.env.action_space({"set_switch": [(0, 1)]})
+        assert act._modif_set_switch
+        for flag_nm in self.li_flag_nm:
+            if flag_nm == "_modif_set_switch":
+                continue
+            assert not getattr(act, flag_nm)
+        assert act._set_switch_status[0] == 1
+        assert (act._set_switch_status[1:] == 0).all()
+        
+        act = self.env.action_space({"set_switch": [(1, -1)]})
+        assert act._modif_set_switch
+        assert act._set_switch_status[1] == -1
+        assert (act._set_switch_status[0] == 0).all()
+        assert (act._set_switch_status[2:] == 0).all()
+        
+        # with the property
+        act = self.env.action_space()
+        act.set_switch = [(0, 1)]
+        assert act._modif_set_switch
+        for flag_nm in self.li_flag_nm:
+            if flag_nm == "_modif_set_switch":
+                continue
+            assert not getattr(act, flag_nm)
+        assert act._set_switch_status[0] == 1
+        assert (act._set_switch_status[1:] == 0).all()
+        
+        act = self.env.action_space()
+        act.set_switch = [(1, -1)]
+        assert act._modif_set_switch
+        assert act._set_switch_status[1] == -1
+        assert (act._set_switch_status[0] == 0).all()
+        assert (act._set_switch_status[2:] == 0).all()
+        
+    def test_can_do_change(self):
+        act = self.env.action_space({"change_switch": [0]})
+        assert act._modif_change_switch
+        for flag_nm in self.li_flag_nm:
+            if flag_nm == "_modif_change_switch":
+                continue
+            assert not getattr(act, flag_nm)
+        assert act._change_switch_status[0]
+        assert (~act._change_switch_status[1:]).all()
+        # with the property
+        act = self.env.action_space()
+        act.change_switch = [0]
+        assert act._modif_change_switch
+        for flag_nm in self.li_flag_nm:
+            if flag_nm == "_modif_change_switch":
+                continue
+            assert not getattr(act, flag_nm)
+        assert act._change_switch_status[0]
+        assert (~act._change_switch_status[1:]).all()
+        
+    def test_ambiguous_set_switch(self):
+        with self.assertRaises(AmbiguousAction):
+            act = self.env.action_space({"set_switch": [(-1, 1)]})
+        with self.assertRaises(AmbiguousAction):
+            act = self.env.action_space({"set_switch": [(type(self.env).detailed_topo_desc.switches.shape[0], 1)]})
+        with self.assertRaises(AmbiguousAction):
+            act = self.env.action_space({"set_switch": [(0, -2)]})
+        with self.assertRaises(AmbiguousAction):
+            act = self.env.action_space({"set_switch": [(0, 2)]})
+            
+        # same sub with set_bus and set switch
+        act = self.env.action_space()
+        nb_bb = self._aux_n_bb_per_sub()
+        act.set_switch = [ (nb_bb * (nb_bb - 1) // 2, + 1)]
+        act.load_set_bus = [(0, 1)]
+        with self.assertRaises(AmbiguousAction):
+            act._check_for_ambiguity()
+            
+        # same sub with change_bus and set switch
+        act = self.env.action_space()
+        nb_bb = self._aux_n_bb_per_sub()
+        act.set_switch = [ (nb_bb * (nb_bb - 1) // 2, + 1)]
+        act.load_change_bus = [0]
+        with self.assertRaises(AmbiguousAction):
+            act._check_for_ambiguity()
+        
+        # set switch and change switch
+        act = self.env.action_space()
+        act.set_switch = [(0, 1)]
+        act.change_switch = [0]
+        with self.assertRaises(AmbiguousAction):
+            act._check_for_ambiguity()
+            
+    def test_ambiguous_change_switch(self):
+        with self.assertRaises(AmbiguousAction):
+            act = self.env.action_space({"change_switch": [-1]})
+        with self.assertRaises(AmbiguousAction):
+            act = self.env.action_space({"change_switch": [type(self.env).detailed_topo_desc.switches.shape[0]]})
+            
+        # same sub with set_bus and set switch
+        act = self.env.action_space()
+        nb_bb = self._aux_n_bb_per_sub()
+        act.change_switch = [nb_bb * (nb_bb - 1) // 2]
+        act.load_set_bus = [(0, 1)]
+        with self.assertRaises(AmbiguousAction):
+            act._check_for_ambiguity()
+            
+        # same sub with change_bus and set switch
+        act = self.env.action_space()
+        nb_bb = self._aux_n_bb_per_sub()
+        act.change_switch = [nb_bb * (nb_bb - 1) // 2]
+        act.load_change_bus = [0]
+        with self.assertRaises(AmbiguousAction):
+            act._check_for_ambiguity()
+        
+        # set switch and change switch
+        act = self.env.action_space()
+        act.set_switch = [(0, 1)]
+        act.change_switch = [0]
+        with self.assertRaises(AmbiguousAction):
+            act._check_for_ambiguity()
+        
+    # TODO test print
+    # TODO test to_dict
+    # TODO test as_serializable_dict
+    # TODO test from_dict
+    # TODO test from_json (? does it exists)
+    
+    # then 
+    # TODO test env.step only switch
+    # TODO test env.step switch and set_bus
+        
+# TODO test no shunt too
+# TODO test "_get_full_cls_str"(experimental_read_from_local_dir)
+# TODO test with different n_busbar_per_sub
+# TODO test action
+# TODO test observation
+# TODO test agent that do both actions on switches and with set_bus / change_bus
+# TODO test agent that act on switches but with an opponent that disconnect lines
  
 if __name__ == "__main__":
     unittest.main()

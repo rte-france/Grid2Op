@@ -71,6 +71,8 @@ Next release
 - [FIXED] an issue in the backend: if the backend failed to be
   created the `_grid` attribute was set to `None` and not set back to
 - [FIXED] the `self.skip_if_needed()` was missing for one of the test suite.
+- [FIXED] the correct `AmbiguousAction` is now raised when grid2op does not understand
+  how an action is made (an incorrect `IllegalAction` used to be sent)
 
 [1.10.3] - 2024-07-12
 -------------------------
@@ -139,7 +141,6 @@ Next release
 - [IMPROVED] the `EpisodeData` have now explicitely a mode where they can be shared accross 
   processes (using `fork` at least), see `ep_data.make_serializable`
 - [IMPROVED] chronix2grid tests are now done independantly on the CI
-
 
 [1.10.2] - 2024-05-27
 -------------------------
@@ -927,7 +928,7 @@ Next release
 - [ADDED]: function to retrieve the maximum duration of the current episode.
 - [ADDED]: a new kind of opponent that is able to attack at "more random" times with "more random" duration.
   See the `GeometricOpponent`.
-- [IMPROVED]: on windows at least, grid2op does not work with gym < 0.17.2 Checks are performed in order to make sure
+- [IMPROVED]: on windows at least, grid2op does not work with `gym < 0.17.2` Checks are performed in order to make sure
   the installed open ai gym package meets this requirement (see issue
   `Issue#185 <https://github.com/rte-france/Grid2Op/issues/185>`_ )
 - [IMPROVED] the seed of openAI gym for composed action space (see issue `https://github.com/openai/gym/issues/2166`):
