@@ -110,6 +110,7 @@ graph.
    modeled_elements
    grid_graph
    topology
+   detailed_topology
 
 Environments
 ---------------

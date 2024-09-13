@@ -2420,7 +2420,7 @@ class GridObjects:
     @classmethod
     def _check_validity_detailed_topo(cls):
         if cls.detailed_topo_desc is not None:
-            cls.detailed_topo_desc.check_validity()
+            cls.detailed_topo_desc.check_validity(cls)
             
     @classmethod
     def _check_validity_alert_data(cls):

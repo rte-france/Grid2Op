@@ -11,6 +11,11 @@ In this page of the documentation we dive into the description of the
 .. warning::
   Work in progress
 
+.. note::
+  You can also find another representation of the topology in grid2op
+  in the page :ref:`detailed-topology-modeling-module` 
+
+
 What do we call topology
 ---------------------------------
 
@@ -130,6 +135,11 @@ With both these information the "nodal topology" can be computed as followed:
 
 Why the "switches" are not modled by default
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+For a grid modeling with switches, you can consult the dedicated 
+page :ref:`detailed-topology-modeling-module` of the grid2op 
+package.
+
 
 .. warning::
   Doc in progress...
