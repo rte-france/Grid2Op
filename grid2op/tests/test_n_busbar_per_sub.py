@@ -18,7 +18,7 @@ from grid2op.Backend import PandaPowerBackend
 from grid2op.Space import DEFAULT_N_BUSBAR_PER_SUB
 from grid2op.Action import ActionSpace, BaseAction, CompleteAction
 from grid2op.Observation import BaseObservation
-from grid2op.Exceptions import Grid2OpException, EnvError, IllegalAction
+from grid2op.Exceptions import Grid2OpException, EnvError, AmbiguousAction
 from grid2op.gym_compat import GymEnv, DiscreteActSpace, BoxGymActSpace, BoxGymObsSpace, MultiDiscreteActSpace
 import pdb
 
@@ -538,7 +538,7 @@ class TestAction_3busbars(unittest.TestCase):
         for bus in range(type(self.env).n_busbar_per_sub):
             self._aux_test_set_bus_onebus("load_set_bus", 0, bus + 1, type(self.env).name_load, 'loads_id')
         act = self.env.action_space()
-        with self.assertRaises(IllegalAction):
+        with self.assertRaises(AmbiguousAction):
             act.load_set_bus = [(0, type(self.env).n_busbar_per_sub + 1)]
             
     def test_set_gen_bus(self):
@@ -546,7 +546,7 @@ class TestAction_3busbars(unittest.TestCase):
         for bus in range(type(self.env).n_busbar_per_sub):
             self._aux_test_set_bus_onebus("gen_set_bus", 0, bus + 1, type(self.env).name_gen, 'generators_id')
         act = self.env.action_space()
-        with self.assertRaises(IllegalAction):
+        with self.assertRaises(AmbiguousAction):
             act.gen_set_bus = [(0, type(self.env).n_busbar_per_sub + 1)]
     
     def test_set_storage_bus(self):
@@ -554,7 +554,7 @@ class TestAction_3busbars(unittest.TestCase):
         for bus in range(type(self.env).n_busbar_per_sub):
             self._aux_test_set_bus_onebus("storage_set_bus", 0, bus + 1, type(self.env).name_storage, 'storages_id')
         act = self.env.action_space()
-        with self.assertRaises(IllegalAction):
+        with self.assertRaises(AmbiguousAction):
             act.storage_set_bus = [(0, type(self.env).n_busbar_per_sub + 1)]
     
     def test_set_lineor_bus(self):
@@ -562,7 +562,7 @@ class TestAction_3busbars(unittest.TestCase):
         for bus in range(type(self.env).n_busbar_per_sub):
             self._aux_test_set_bus_onebus("line_or_set_bus", 0, bus + 1, type(self.env).name_line, 'lines_or_id')
         act = self.env.action_space()
-        with self.assertRaises(IllegalAction):
+        with self.assertRaises(AmbiguousAction):
             act.line_or_set_bus = [(0, type(self.env).n_busbar_per_sub + 1)]
             
     def test_set_lineex_bus(self):
@@ -570,7 +570,7 @@ class TestAction_3busbars(unittest.TestCase):
         for bus in range(type(self.env).n_busbar_per_sub):
             self._aux_test_set_bus_onebus("line_ex_set_bus", 0, bus + 1, type(self.env).name_line, 'lines_ex_id')
         act = self.env.action_space()
-        with self.assertRaises(IllegalAction):
+        with self.assertRaises(AmbiguousAction):
             act.line_ex_set_bus = [(0, type(self.env).n_busbar_per_sub + 1)]
     
     def _aux_test_set_bus_onebus_sub_setbus(self, nm_prop, sub_id, el_id_sub, bus_val, name_xxx, el_nms):
@@ -591,7 +591,7 @@ class TestAction_3busbars(unittest.TestCase):
         for bus in range(type(self.env).n_busbar_per_sub):
             self._aux_test_set_bus_onebus_sub_setbus("sub_set_bus", 1, 0, bus + 1, type(self.env).name_line, 'lines_ex_id')
         act = self.env.action_space()
-        with self.assertRaises(IllegalAction):
+        with self.assertRaises(AmbiguousAction):
             act.line_ex_set_bus = [(0, type(self.env).n_busbar_per_sub + 1)]
             
     def test_change_deactivated(self):
@@ -623,7 +623,7 @@ class TestAction_3busbars(unittest.TestCase):
             self._aux_test_action_shunt(act, el_id, bus_val + 1)
             
         act = self.env.action_space()
-        with self.assertRaises(IllegalAction):
+        with self.assertRaises(AmbiguousAction):
             act = self.env.action_space({"shunt": {"set_bus": [(el_id, type(self.env).n_busbar_per_sub + 1)]}})
 
 

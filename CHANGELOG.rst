@@ -73,6 +73,7 @@ Next release
 - [FIXED] the `self.skip_if_needed()` was missing for one of the test suite.
 - [FIXED] the correct `AmbiguousAction` is now raised when grid2op does not understand
   how an action is made (an incorrect `IllegalAction` used to be sent)
+- [FIXED] a test in test_ActionProperties did not test the correct things
 
 [1.10.3] - 2024-07-12
 -------------------------
