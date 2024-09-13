@@ -47,7 +47,7 @@ jobs:
     steps:
 
       - name: Checkout sources
-        uses: actions/checkout@v1
+        uses: actions/checkout@v3
         with:
           submodules: true
 
@@ -81,7 +81,7 @@ jobs:
           ls ./dist/*.whl
 
       - name: Upload wheel
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: grid2op-wheel-${{ matrix.config.name }}-${{ matrix.python.name }}
           path: dist/*.whl
