@@ -651,24 +651,107 @@ class DetailedTopoTester_Action(unittest.TestCase):
         act.change_switch = [0]
         with self.assertRaises(AmbiguousAction):
             act._check_for_ambiguity()
+            
+    def test_backend_action_set_switch(self):
+        nb_busbar = self._aux_n_bb_per_sub()
+        dtd = type(self.env).detailed_topo_desc
         
-    # TODO test print
-    # TODO test to_dict
-    # TODO test as_serializable_dict
-    # TODO test from_dict
-    # TODO test from_json (? does it exists)
+        # if you change the env it will change...
+        sub_id = 1
+        load_this = [0]
+        gen_this = [0]
+        line_or_this = [2]
+        line_ex_this = [0]
+        
+        s_to_tp_id = type(self.env).detailed_topo_desc.switches_to_topovect_id
+        bbs_switch_bb1_bb2 = sub_id * (nb_busbar * (nb_busbar - 1) // 2)  # switch between busbar 1 and busbar 2 at this substation
+        load_id_switch = (s_to_tp_id == type(self.env).load_pos_topo_vect[load_this]).nonzero()[0][0]
+        gen_id_switch = (s_to_tp_id == type(self.env).gen_pos_topo_vect[gen_this]).nonzero()[0][0]
+        lor_id_switch = (s_to_tp_id == type(self.env).line_or_pos_topo_vect[line_or_this]).nonzero()[0][0]
+        lex_id_switch = (s_to_tp_id == type(self.env).line_ex_pos_topo_vect[line_ex_this]).nonzero()[0][0]
+        
+        el_id_switch = load_id_switch
+        el_this = load_this
+        vect_topo_vect = type(self.env).load_pos_topo_vect
+        for el_id_switch, el_this, vect_topo_vect, tag in zip([load_id_switch, gen_id_switch, lor_id_switch, lex_id_switch],
+                                                              [load_this, gen_this, line_or_this, line_ex_this],
+                                                              [type(self.env).load_pos_topo_vect, 
+                                                               type(self.env).gen_pos_topo_vect,
+                                                               type(self.env).line_or_pos_topo_vect,
+                                                               type(self.env).line_ex_pos_topo_vect],
+                                                              ["load", "gen", "lor", "lex"]):
+            nb_when_disco = 58  # number of unaffected element
+            if tag == "lor" or tag == "lex":
+                # the other extremity is impacted in case I disconnect a line
+                nb_when_disco = 57
+            # disconnect the load with the breaker
+            act = self.env.action_space({"set_switch": [(el_id_switch, -1)]})
+            bk_act = self.env.backend.my_bk_act_class()
+            bk_act += act
+            topo_vect = bk_act()[2].values
+            assert topo_vect[vect_topo_vect[el_this]] == -1, f"error for {tag}"
+            assert (topo_vect == 1).sum() == nb_when_disco, f"error for {tag} : {(topo_vect == 1).sum()} vs {nb_when_disco}"
+            
+            # disconnect the load by disconnecting it of all the busbars
+            act = self.env.action_space({"set_switch": [(el, -1) 
+                                                        for el in range(el_id_switch + 1, el_id_switch + nb_busbar +1)]
+                                         })
+            bk_act = self.env.backend.my_bk_act_class()
+            bk_act += act
+            topo_vect = bk_act()[2].values
+            assert topo_vect[vect_topo_vect[el_this]] == -1, f"error for {tag}"
+            assert (topo_vect == 1).sum() == nb_when_disco, f"error for {tag} : {(topo_vect == 1).sum()} vs {nb_when_disco}"
+            
+            # now connect the load to busbar 2
+            act = self.env.action_space({"set_switch": [(el, -1 if el != el_id_switch + 2 else 1) 
+                                                        for el in range(el_id_switch + 1, el_id_switch + nb_busbar +1)]
+                                         })
+            bk_act = self.env.backend.my_bk_act_class()
+            bk_act += act
+            topo_vect = bk_act()[2].values
+            assert topo_vect[vect_topo_vect[el_this]] == 2, f"error for {tag}"
+            assert (topo_vect == 1).sum() == 58, f"error for {tag} : {(topo_vect == 1).sum()} vs 58"
+            
+            # load still on busbar 2, but disconnected
+            act = self.env.action_space({"set_switch": ([(el, -1 if el != el_id_switch + 2 else 1) 
+                                                        for el in range(el_id_switch + 1, el_id_switch + nb_busbar +1)]+ 
+                                                        [(el_id_switch, -1)])
+                                         })
+            bk_act = self.env.backend.my_bk_act_class()
+            bk_act += act
+            topo_vect = bk_act()[2].values
+            assert topo_vect[vect_topo_vect[el_this]] == -1, f"error for {tag}"
+            assert (topo_vect == 1).sum() == nb_when_disco, f"error for {tag} : {(topo_vect == 1).sum()} vs {nb_when_disco}"
+            
+            # load on busbar 2, but busbars connected
+            act = self.env.action_space({"set_switch": ([(el, -1 if el != el_id_switch + 2 else 1) 
+                                                        for el in range(el_id_switch + 1, el_id_switch + nb_busbar +1)] +
+                                                        [(bbs_switch_bb1_bb2, 1)])
+                                         })
+            bk_act = self.env.backend.my_bk_act_class()
+            bk_act += act
+            topo_vect = bk_act()[2].values
+            assert topo_vect[vect_topo_vect[el_this]] == 1, f"error for {tag}"
+            assert (topo_vect == 1).sum() == 59, f"error for {tag} : {(topo_vect == 1).sum()} vs 59"       
+        
+    # TODO detailed topo test print
+    # TODO detailed topo test to_dict
+    # TODO detailed topo test as_serializable_dict
+    # TODO detailed topo test from_dict
+    # TODO detailed topo test from_json (? does it exists)
     
-    # then 
-    # TODO test env.step only switch
-    # TODO test env.step switch and set_bus
+    # then detailed topo 
+    # TODO detailed topo test from_switches_position when there is a mask in the substation
+    # TODO detailed topo test env.step only switch
+    # TODO detailed topo test env.step switch and set_bus
         
-# TODO test no shunt too
-# TODO test "_get_full_cls_str"(experimental_read_from_local_dir)
-# TODO test with different n_busbar_per_sub
-# TODO test action
-# TODO test observation
-# TODO test agent that do both actions on switches and with set_bus / change_bus
-# TODO test agent that act on switches but with an opponent that disconnect lines
+# TODO detailed topo test no shunt too
+# TODO detailed topo test "_get_full_cls_str"(experimental_read_from_local_dir)
+# TODO detailed topo test with different n_busbar_per_sub
+# TODO detailed topo test action
+# TODO detailed topo test observation
+# TODO detailed topo test agent that do both actions on switches and with set_bus / change_bus
+# TODO detailed topo test agent that act on switches but with an opponent that disconnect lines
  
 if __name__ == "__main__":
     unittest.main()

@@ -6,6 +6,10 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
+from typing import Optional
+import numpy as np
+
+
 from grid2op.Space.detailed_topo_description import DetailedTopoDescription
 
 
@@ -81,3 +85,9 @@ class AddDetailedTopoIEEE:
     def load_grid(self, path=None, filename=None):
         super().load_grid(path, filename)
         self.detailed_topo_desc = DetailedTopoDescription.from_ieee_grid(self)
+        
+    def get_switches_position(self) -> Optional[np.ndarray]:
+      topo_vect = self.get_topo_vect()
+      *_, shunt_bus = self.shunt_info()
+      res = self.detailed_topo_desc.compute_switches_position(topo_vect, shunt_bus)
+      return res

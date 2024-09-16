@@ -3104,7 +3104,8 @@ class BaseAction(GridObjects):
                 if cls.ISSUE_WARNING_SWITCH_SET_CHANGE == "once":
                     # do not issue another warning like that
                     cls.ISSUE_WARNING_SWITCH_SET_CHANGE = "never"
-        
+                    
+        # TODO detailed topo : refacto that with the method get_sub_ids_switch
         subs_aff_c_switch = np.unique(dtd.switches[self._change_switch_status, type(dtd).SUB_COL])
         subs_aff_s_switch = np.unique(dtd.switches[self._set_switch_status !=0, type(dtd).SUB_COL])
         subs_aff_c_bus = np.unique(cls.grid_objects_types[self._change_bus_vect,cls.SUB_COL])
@@ -3129,7 +3130,23 @@ class BaseAction(GridObjects):
         if ((self._set_switch_status != 0) & self._change_switch_status).any():
             raise AmbiguousAction("Trying to both set the status of some switches (with 'set_switch') "
                                   "and change it (with 'change_switch') using the same action.")
-            
+    
+    def get_sub_ids_switch(self) -> np.ndarray:
+        """Return the ids of the substations affected by 
+        an action on switches (either with `set switch` or `change switch`)
+
+        Returns
+        -------
+        np.ndarray
+            _description_
+        """
+        cls = type(self)
+        dtd = cls.detailed_topo_desc
+        res = np.zeros(cls.n_sub, dtype=dt_bool)
+        res[dtd.switches[self._change_switch_status, type(dtd).SUB_COL]] = True
+        res[dtd.switches[self._set_switch_status !=0, type(dtd).SUB_COL]] = True
+        return res
+        
     def _is_storage_ambiguous(self):
         """check if storage actions are ambiguous"""
         cls = type(self)

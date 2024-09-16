@@ -9,6 +9,8 @@
 import copy
 import numpy as np
 from typing import Tuple, Union
+
+
 try:
     from typing import Self
 except ImportError:
@@ -16,8 +18,8 @@ except ImportError:
 
 from grid2op.Action.baseAction import BaseAction
 from grid2op.dtypes import dt_int, dt_bool, dt_float
-from grid2op.Space import GridObjects, DetailedTopoDescription
-from grid2op.Exceptions import Grid2OpException
+from grid2op.Space import GridObjects
+from grid2op.Exceptions import Grid2OpException, AmbiguousAction
 
 ERR_MSG_SWITCH = ("Cannot retrieve switches configuration if the grid does not have "
                   "switches information. Have you set them when loading the grid ?")
@@ -164,6 +166,7 @@ class ValueStore:
         self.last_index = 0
 
     def change_status(self, switch, lineor_id, lineex_id, old_vect):
+        # CAREFULL: swith here is not switch, it's only to say "change" !!!
         if not switch.any():
             # nothing is modified so i stop here
             return
@@ -511,6 +514,7 @@ class _BackendAction(GridObjects):
             self.shunt_p: ValueStore = ValueStore(cls.n_shunt, dtype=dt_float)
             self.shunt_q: ValueStore = ValueStore(cls.n_shunt, dtype=dt_float)
             self.shunt_bus: ValueStore = ValueStore(cls.n_shunt, dtype=dt_int)
+            self.shunt_bus.values[:] = 1
             self.current_shunt_bus: ValueStore = ValueStore(cls.n_shunt, dtype=dt_int)
             self.current_shunt_bus.values[:] = 1
 
@@ -526,7 +530,15 @@ class _BackendAction(GridObjects):
         self._storage_bus = None
         self._shunt_bus = None
         self._detailed_topo = None  # tuple: busbar_connector_state, switches_state
-
+        if cls.detailed_topo_desc is not None:
+            self.last_switch_registered = np.zeros(cls.detailed_topo_desc.switches.shape[0], dtype=dt_bool)
+            self.current_switch = np.zeros(cls.detailed_topo_desc.switches.shape[0], dtype=dt_bool)
+            self.current_switch[:] = cls.detailed_topo_desc.compute_switches_position(
+                self.current_topo.values,
+                self.current_shunt_bus.values
+            )
+            # TODO detailed topo: shunt_bus and last_shunt_bus !
+            
     def __deepcopy__(self, memodict={}) -> Self:
         
         """
@@ -694,7 +706,7 @@ class _BackendAction(GridObjects):
             tmp = dict_injection["prod_v"]
             self.prod_v.set_val(tmp)
     
-    def _aux_iadd_shunt(self, other):
+    def _aux_iadd_shunt(self, other, shunt_tp):
         """
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
             
@@ -706,12 +718,17 @@ class _BackendAction(GridObjects):
             shunts["shunt_p"] = other.shunt_p
             shunts["shunt_q"] = other.shunt_q
             shunts["shunt_bus"] = other.shunt_bus
-
+                
             arr_ = shunts["shunt_p"]
             self.shunt_p.set_val(arr_)
             arr_ = shunts["shunt_q"]
             self.shunt_q.set_val(arr_)
+            
             arr_ = shunts["shunt_bus"]
+            if shunt_tp is not None:
+                # some shunts have been modified with switches
+                mask = shunt_tp != 0
+                arr_[mask] = shunt_tp[mask]
             self.shunt_bus.set_val(arr_)
         self.current_shunt_bus.values[self.shunt_bus.changed] = self.shunt_bus.values[self.shunt_bus.changed]
         
@@ -779,6 +796,9 @@ class _BackendAction(GridObjects):
         switcth_topo_vect = other._change_bus_vect
         redispatching = other._redispatch
         storage_power = other._storage_power
+        modif_switch = False
+        switch_topo_vect = None
+        shunt_tp = None
 
         # I deal with injections
         # Ia set the injection
@@ -792,10 +812,35 @@ class _BackendAction(GridObjects):
         # Ic storage unit
         if other._modif_storage:
             self.storage_power.set_val(storage_power)
-
+        
+        # III 0 before everything
+        # TODO detailed topo: optimize this for staying 
+        # in the "switch" world 
+        if other._modif_change_switch or other._modif_set_switch:
+            # agent modified the switches
+            if type(self).detailed_topo_desc is None:
+                raise AmbiguousAction("Something modified the switches while "
+                                      "no switch information is provided.")
+            new_switch =  True & self.current_switch
+            subid_switch = other.get_sub_ids_switch() 
+            if other._modif_change_switch:
+                # TODO detailed topo method of ValueStore !
+                new_switch[other._change_switch_status] = ~new_switch[other._change_switch_status]
+            if other._modif_set_switch:
+                # TODO detailed topo method of ValueStore
+                mask_set = other._set_switch_status != 0
+                new_switch[mask_set] = other._set_switch_status[mask_set] == 1
+            switch_topo_vect, shunt_tp = self.detailed_topo_desc.from_switches_position(new_switch, subid_switch)
+            modif_switch = True
+            
+            # change the "target topology" for the elements
+            # connected to the impacted substations
+            mask_switch = switch_topo_vect != 0
+            set_topo_vect[mask_switch] = switch_topo_vect[mask_switch]
+        
         # II shunts
         if type(self).shunts_data_available:
-            self._aux_iadd_shunt(other)
+            self._aux_iadd_shunt(other, shunt_tp)
             
         # III line status
         # this need to be done BEFORE the topology, as a connected powerline will be connected to their old bus.
@@ -831,7 +876,7 @@ class _BackendAction(GridObjects):
             self.current_topo.change_val(switcth_topo_vect)
             self._detailed_topo = None
             
-        if other._modif_set_bus:
+        if other._modif_set_bus or modif_switch:
             self.current_topo.set_val(set_topo_vect)
             self._detailed_topo = None
 
@@ -842,7 +887,7 @@ class _BackendAction(GridObjects):
         )
 
         # At least one disconnected extremity
-        if other._modif_change_bus or other._modif_set_bus:
+        if other._modif_change_bus or other._modif_set_bus or modif_switch:
             self._aux_iadd_reconcile_disco_reco()
         return self
 

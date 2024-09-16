@@ -170,14 +170,16 @@ class Backend(GridObjects, ABC):
         #: A flag to indicate whether the :func:`Backend.cannot_handle_more_than_2_busbar`
         #: or the :func:`Backend.cannot_handle_more_than_2_busbar`
         #: has been called when :func:`Backend.load_grid` was called.
-        #: Starting from grid2op 1.10.0 this is a requirement (to 
+        #: Starting from grid2op 1.10.0 calling either of the above method
+        #: is a requirement (to 
         #: ensure backward compatibility)
         self._missing_two_busbars_support_info: bool = True
         
         #: .. versionadded:: 1.10.0
         #: 
         #: There is a difference between this and the class attribute.
-        #: You should not worry about the class attribute of the backend in :func:`Backend.apply_action`
+        #: You should not worry about the class attribute of the backend 
+        #: in :func:`Backend.apply_action`
         self.n_busbar_per_sub: int = DEFAULT_N_BUSBAR_PER_SUB
     
     def can_handle_more_than_2_busbar(self):
@@ -371,11 +373,12 @@ class Backend(GridObjects, ABC):
         """
         pass
 
-    @abstractmethod
-    def get_topo_vect(self) -> np.ndarray:
+    def get_topo_vect(self) -> Optional[np.ndarray]:
         """
         INTERNAL
 
+        TODO detailed topo: change of behaviour !
+        
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
             Prefer using :attr:`grid2op.Observation.BaseObservation.topo_vect`
@@ -409,8 +412,20 @@ class Backend(GridObjects, ABC):
             An array saying to which bus the object is connected.
 
         """
-        pass
+        return None
 
+    def get_switches_position(self) -> Optional[np.ndarray]:
+        """INTERNAL
+
+        TODO detailed topo: change of behaviour !
+        
+        Returns
+        -------
+        np.ndarray
+            _description_
+        """
+        return None
+    
     @abstractmethod
     def generators_info(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
