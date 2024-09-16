@@ -305,6 +305,8 @@ The complete test suit is run on linux with the latest numpy version on python 3
 
 ### Known issues
 
+
+#### Multi processing
 Due to the underlying behaviour of the "multiprocessing" package on windows based python versions,
 the "multiprocessing" of the grid2op "Runner" is not supported on windows. This might change in the future,
 but it is currently not on our priorities.
@@ -315,6 +317,11 @@ environment with `grid2op.make(..., experimental_read_from_local_dir=True)` (see
 Sometimes, on some configuration (python version) we do not recommend to use grid2op with pandas>=2.2
 If you encounter any trouble, please downgrade to pandas<2.2. This behaviour occured in our continuous 
 integration environment for python >=3.9 but could not be reproduced locally.
+
+#### python 3.11
+Some version of grid2op (*eg* 1.6.3) are not compatible with python 3.10 or 3.11.
+
+Either use python version 3.8 or 3.9 or upgrade grid2op (1.6.5 works) if that is the case.
 
 ### Perform tests locally
 

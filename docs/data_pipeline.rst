@@ -55,9 +55,9 @@ Results are reported in the table below:
 ==============================  ================  ===================
 Method used                     memory footprint  time to perform (s)
 ==============================  ================  ===================
-Nothing (see `Basic Usage`_)    low                44.6
-set_chunk (see `Chunk size`_)   ultra low          26.8
-`MultifolderWithCache`_         high               11.0
+Nothing (see Basic Usage )       low                44.6
+set_chunk (see `Chunk size`_ )   ultra low          26.8
+`MultifolderWithCache`_          high               11.0
 ==============================  ================  ===================
 
 As you can see, the default usage uses relatively little memory but takes a while to compute (almost 45s to perform

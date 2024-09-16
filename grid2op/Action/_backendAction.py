@@ -30,14 +30,15 @@ class ValueStore:
         it  but we won't change it (for now at least)
         
     .. warning::
-        Objects from this class should never be created by anyone except by objects of the :class:`grid2op.Action._backendAction._BackendAction`
+        Objects from this class should never be created by anyone except by objects of the 
+        :class:`grid2op.Action._backendAction._BackendAction` 
         when they are created or when instances of `_BackendAction` are process *eg* with :func:`_BackendAction.__call__` or 
         :func:`_BackendAction.get_loads_bus` etc.
     
     There are two correct uses for this class:
     
     #. by iterating manually with the `for xxx in value_stor_instance: `
-    #. by checking which objects have been changed (with :attr:`ValueStore.changed`) and then check the 
+    #. by checking which objects have been changed (with :attr:`ValueStore.changed` ) and then check the 
        new value of the elements **changed** with :attr:`ValueStore.values` [el_id]
 
     .. danger::
@@ -60,6 +61,7 @@ class ValueStore:
     Attributes
     ----------
     
+    TODO
             
     Examples
     ---------
@@ -613,6 +615,7 @@ class _BackendAction(GridObjects):
         self.load_p.reset()
         self.load_q.reset()
         self.storage_power.reset()
+        
         # storage unit have their power reset to 0. each step
         self.storage_power.changed[:] = True
         self.storage_power.values[:] = 0.0
