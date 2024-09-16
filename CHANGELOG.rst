@@ -68,12 +68,13 @@ Next release
 
 [1.10.4] - 2024-xx-yy
 -------------------------
-- [FIXED] an issue in the backend: if the backend failed to be
+- [FIXED] an issue in the backend: if the backend failed to be copied
   created the `_grid` attribute was set to `None` and not set back to
+  its original value in the copied backend.
 - [FIXED] the `self.skip_if_needed()` was missing for one of the test suite.
 - [FIXED] the correct `AmbiguousAction` is now raised when grid2op does not understand
-  how an action is made (an incorrect `IllegalAction` used to be sent)
-- [FIXED] a test in test_ActionProperties did not test the correct things
+  what an action should be doing (an incorrect `IllegalAction` used to be sent)
+- [FIXED] a test in `test_ActionProperties` did not test the correct property
 
 [1.10.3] - 2024-07-12
 -------------------------

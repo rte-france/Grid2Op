@@ -5734,7 +5734,7 @@ class BaseAction(GridObjects):
                 f"Impossible to modify the alert with your input. "
                 f"Please consult the documentation. "
                 f'The error was:\n"{exc_}"'
-            )
+            ) from exc_
 
     def _aux_affect_object_float(
         self,
