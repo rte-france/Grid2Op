@@ -21,7 +21,7 @@ from grid2op.Space import AddDetailedTopoIEEE, DetailedTopoDescription
 from grid2op.Agent import BaseAgent
 from grid2op.Exceptions import AmbiguousAction
 import pdb
-REF_HASH = 'c8296b80b3b920b2971bd82e93f998a043ccb3738f04ca0d3f23f524306da8e95109f5af27e28a85597151b3988840674f4e6ad1efa69dbab1a2174765f330ec'
+REF_HASH = 'e5ccf7cbe54cb567eec33bfd738052f81dc5ac9a1ea2cd391d98f95f804a1273d0efac3d4e00aed9a43abf6ce8bf3fc3487a6c870bd6386dd7a84c3fa8344d99'
 
 
 def _aux_test_correct(detailed_topo_desc : DetailedTopoDescription, gridobj, nb_bb_per_sub):
@@ -33,22 +33,22 @@ def _aux_test_correct(detailed_topo_desc : DetailedTopoDescription, gridobj, nb_
                                                                     56, 57, 58, 59, 60, 61, 62, 63, 64], dtype=np.int32)).all()
         
         # test the switches (but i don't want to copy this huge data here)
-        assert (detailed_topo_desc.switches.sum(axis=0) == np.array([1159, 959, 17732, 8730])).all()
-        ref_1 = np.array([  7,  12,  17,  22,  27,  32,  37,  42,  47,  52,  57,  62,  67,
-                           72, 117,  97,  98, 120, 101, 102, 123, 105, 106, 126, 109, 110,
-                          129, 113, 114, 134, 123, 124, 137, 127, 128, 140, 131, 132, 143,
-                          135, 136, 146, 139, 140, 149, 143, 144, 140, 108, 109, 143, 112,
-                          113, 148, 122, 123, 150, 123, 124, 154, 130, 131, 149, 110, 111,
-                          153, 111, 112, 155, 112, 113, 158, 116, 117, 160, 117, 118, 162,
-                          118, 119, 165, 122, 123, 168, 126, 127, 172, 133, 134, 174, 134,
-                          135, 176, 135, 136, 181, 145, 146, 183, 146, 147, 186, 150, 151,
-                          190, 157, 158, 193, 161, 162, 186, 135, 136, 188, 136, 137, 191,
-                          140, 141, 195, 147, 148, 199, 154, 155, 195, 134, 135, 200, 144,
-                          145, 200, 139, 140, 203, 143, 144, 206, 147, 148, 207, 145, 146,
-                          210, 149, 150, 218, 168, 169, 221, 172, 173, 224, 176, 177, 223,
-                          168, 169, 229, 181, 182, 228, 173, 174, 232, 180, 181, 235, 184,
-                          185, 230, 164, 165, 234, 171, 172, 233, 163, 164, 237, 170, 171,
-                          238, 168, 169, 237, 166, 167, 241, 173, 174, 247, 177, 178])
+        assert (detailed_topo_desc.switches.sum(axis=0) == np.array([1159, 17732, 8730])).all()
+        ref_1 = np.array([  1,   6,  11,  16,  21,  26,  31,  36,  41,  46,  51,  56,  61,
+                           66, 117,  91,  92, 120,  95,  96, 123,  99, 100, 126, 103, 104,
+                          129, 107, 108, 134, 117, 118, 137, 121, 122, 140, 125, 126, 143,
+                          129, 130, 146, 133, 134, 149, 137, 138, 139, 102, 103, 142, 106,
+                          107, 147, 116, 117, 149, 117, 118, 153, 124, 125, 148, 104, 105,
+                          150, 105, 106, 152, 106, 107, 155, 110, 111, 157, 111, 112, 159,
+                          112, 113, 162, 116, 117, 165, 120, 121, 169, 127, 128, 171, 128,
+                          129, 173, 129, 130, 178, 139, 140, 180, 140, 141, 183, 144, 145,
+                          187, 151, 152, 190, 155, 156, 183, 129, 130, 185, 130, 131, 188,
+                          134, 135, 192, 141, 142, 196, 148, 149, 191, 128, 129, 196, 138,
+                          139, 196, 133, 134, 199, 137, 138, 202, 141, 142, 203, 139, 140,
+                          206, 143, 144, 214, 162, 163, 217, 166, 167, 220, 170, 171, 219,
+                          162, 163, 225, 175, 176, 224, 167, 168, 228, 174, 175, 231, 178,
+                          179, 226, 158, 159, 230, 165, 166, 229, 157, 158, 233, 164, 165,
+                          234, 162, 163, 235, 160, 161, 239, 167, 168, 242, 171, 172])
         assert (detailed_topo_desc.switches.sum(axis=1) == ref_1).all()
         hash_ = hashlib.blake2b((detailed_topo_desc.switches.tobytes())).hexdigest()
         assert hash_ == REF_HASH, f"{hash_}"
@@ -165,14 +165,15 @@ class DetailedTopoTester(unittest.TestCase):
         start_id = (nb_busbar * (nb_busbar - 1) // 2) * type(self.env).n_sub
         
         obs = self.env.reset()
-        switches_state = type(obs).detailed_topo_desc.compute_switches_position(obs.topo_vect, obs._shunt_bus)
+        dtd = type(obs).detailed_topo_desc
+        switches_state = dtd.compute_switches_position(obs.topo_vect, obs._shunt_bus)
         assert switches_state.sum() == 120
         assert switches_state[start_id::(nb_busbar + 1)].all()  # all connected
         assert switches_state[(start_id + 1)::(nb_busbar + 1)].all()  # all on bus 1
         assert (~switches_state[(start_id + 2)::(nb_busbar + 1)]).all()  # nothing on busbar 2
         
         # move everything to bus 2
-        switches_state = type(obs).detailed_topo_desc.compute_switches_position(np.full(obs.topo_vect.shape, fill_value=2),
+        switches_state = dtd.compute_switches_position(np.full(obs.topo_vect.shape, fill_value=2),
                                                                                 np.full(obs._shunt_bus.shape, fill_value=2))
         assert switches_state.sum() == 120
         assert switches_state[start_id::(nb_busbar + 1)].all()  # all connected
@@ -183,14 +184,14 @@ class DetailedTopoTester(unittest.TestCase):
         topo_vect = 1 * obs.topo_vect
         topo_vect[type(obs).line_or_pos_topo_vect[0]] = -1
         topo_vect[type(obs).line_ex_pos_topo_vect[0]] = -1
-        switches_state = type(obs).detailed_topo_desc.compute_switches_position(topo_vect, obs._shunt_bus)
+        switches_state = dtd.compute_switches_position(topo_vect, obs._shunt_bus)
         # quickly check other elements
         assert switches_state.sum() == 116
         assert switches_state[start_id::(nb_busbar + 1)].sum() == 58
         assert switches_state[(start_id + 1)::(nb_busbar + 1)].sum() == 58  # busbar 1
         assert switches_state[(start_id + 2)::(nb_busbar + 1)].sum() == 0  # busbar 2
-        id_switch_or = (type(obs).detailed_topo_desc.switches_to_topovect_id == type(obs).line_or_pos_topo_vect[0]).nonzero()[0][0]
-        id_switch_ex = (type(obs).detailed_topo_desc.switches_to_topovect_id == type(obs).line_ex_pos_topo_vect[0]).nonzero()[0][0]
+        id_switch_or = dtd.get_switch_id_ieee(dtd.line_or_to_conn_node_id[0])
+        id_switch_ex = dtd.get_switch_id_ieee(dtd.line_ex_to_conn_node_id[0])
         assert (~switches_state[id_switch_or:(id_switch_or + nb_busbar + 1)]).all()
         assert (~switches_state[id_switch_ex:(id_switch_ex + nb_busbar + 1)]).all()
         
@@ -198,24 +199,24 @@ class DetailedTopoTester(unittest.TestCase):
         # load 3 to bus 2
         topo_vect = 1 * obs.topo_vect
         topo_vect[type(obs).load_pos_topo_vect[3]] = 2
-        switches_state = type(obs).detailed_topo_desc.compute_switches_position(topo_vect, obs._shunt_bus)
+        switches_state = dtd.compute_switches_position(topo_vect, obs._shunt_bus)
         assert switches_state.sum() == 120
         assert switches_state[start_id::(nb_busbar + 1)].sum() == 60
         assert switches_state[(start_id + 1)::(nb_busbar + 1)].sum() == 59  # busbar 1
         assert switches_state[(start_id + 2)::(nb_busbar + 1)].sum() == 1  # busbar 2
-        id_switch = (type(obs).detailed_topo_desc.switches_to_topovect_id == type(obs).load_pos_topo_vect[3]).nonzero()[0][0]
+        id_switch = dtd.get_switch_id_ieee(dtd.load_to_conn_node_id[3])
         assert switches_state[id_switch:(id_switch + nb_busbar + 1)].sum() == 2  # only 2 switches closed
         assert switches_state[id_switch + 2]  # busbar 2
         
         # gen 1 to bus 2
         topo_vect = 1 * obs.topo_vect
         topo_vect[type(obs).gen_pos_topo_vect[1]] = 2
-        switches_state = type(obs).detailed_topo_desc.compute_switches_position(topo_vect, obs._shunt_bus)
+        switches_state = dtd.compute_switches_position(topo_vect, obs._shunt_bus)
         assert switches_state.sum() == 120
         assert switches_state[start_id::(nb_busbar + 1)].sum() == 60
         assert switches_state[(start_id + 1)::(nb_busbar + 1)].sum() == 59  # busbar 1
         assert switches_state[(start_id + 2)::(nb_busbar + 1)].sum() == 1  # busbar 2
-        id_switch = (type(obs).detailed_topo_desc.switches_to_topovect_id == type(obs).gen_pos_topo_vect[1]).nonzero()[0][0]
+        id_switch = dtd.get_switch_id_ieee(dtd.gen_to_conn_node_id[1])
         assert switches_state[id_switch:(id_switch + nb_busbar + 1)].sum() == 2  # only 2 switches closed
         assert switches_state[id_switch + 2]  # busbar 2
         
@@ -223,12 +224,12 @@ class DetailedTopoTester(unittest.TestCase):
         topo_vect = 1 * obs.topo_vect
         el_id = 6
         topo_vect[type(obs).line_or_pos_topo_vect[el_id]] = 2
-        switches_state = type(obs).detailed_topo_desc.compute_switches_position(topo_vect, obs._shunt_bus)
+        switches_state = dtd.compute_switches_position(topo_vect, obs._shunt_bus)
         assert switches_state.sum() == 120
         assert switches_state[start_id::(nb_busbar + 1)].sum() == 60
         assert switches_state[(start_id + 1)::(nb_busbar + 1)].sum() == 59  # busbar 1
         assert switches_state[(start_id + 2)::(nb_busbar + 1)].sum() == 1  # busbar 2
-        id_switch = (type(obs).detailed_topo_desc.switches_to_topovect_id == type(obs).line_or_pos_topo_vect[el_id]).nonzero()[0][0]
+        id_switch = dtd.get_switch_id_ieee(dtd.line_or_to_conn_node_id[el_id])
         assert switches_state[id_switch:(id_switch + nb_busbar + 1)].sum() == 2  # only 2 switches closed
         assert switches_state[id_switch + 2]  # busbar 2
         
@@ -236,12 +237,12 @@ class DetailedTopoTester(unittest.TestCase):
         topo_vect = 1 * obs.topo_vect
         el_id = 9
         topo_vect[type(obs).line_ex_pos_topo_vect[el_id]] = 2
-        switches_state = type(obs).detailed_topo_desc.compute_switches_position(topo_vect, obs._shunt_bus)
+        switches_state = dtd.compute_switches_position(topo_vect, obs._shunt_bus)
         assert switches_state.sum() == 120
         assert switches_state[start_id::(nb_busbar + 1)].sum() == 60
         assert switches_state[(start_id + 1)::(nb_busbar + 1)].sum() == 59  # busbar 1
         assert switches_state[(start_id + 2)::(nb_busbar + 1)].sum() == 1  # busbar 2
-        id_switch = (type(obs).detailed_topo_desc.switches_to_topovect_id == type(obs).line_ex_pos_topo_vect[el_id]).nonzero()[0][0]
+        id_switch = dtd.get_switch_id_ieee(dtd.line_ex_to_conn_node_id[el_id])
         assert switches_state[id_switch:(id_switch + nb_busbar + 1)].sum() == 2  # only 2 switches closed
         assert switches_state[id_switch + 2]  # busbar 2
         
@@ -249,12 +250,12 @@ class DetailedTopoTester(unittest.TestCase):
         topo_vect = 1 * obs.topo_vect
         el_id = 0
         topo_vect[type(obs).storage_pos_topo_vect[el_id]] = 2
-        switches_state = type(obs).detailed_topo_desc.compute_switches_position(topo_vect, obs._shunt_bus)
+        switches_state = dtd.compute_switches_position(topo_vect, obs._shunt_bus)
         assert switches_state.sum() == 120
         assert switches_state[start_id::(nb_busbar + 1)].sum() == 60
         assert switches_state[(start_id + 1)::(nb_busbar + 1)].sum() == 59  # busbar 1
         assert switches_state[(start_id + 2)::(nb_busbar + 1)].sum() == 1  # busbar 2
-        id_switch = (type(obs).detailed_topo_desc.switches_to_topovect_id == type(obs).storage_pos_topo_vect[el_id]).nonzero()[0][0]
+        id_switch = dtd.get_switch_id_ieee(dtd.storage_to_conn_node_id[el_id])
         assert switches_state[id_switch:(id_switch + nb_busbar + 1)].sum() == 2  # only 2 switches closed
         assert switches_state[id_switch + 2]  # busbar 2
         
@@ -262,12 +263,12 @@ class DetailedTopoTester(unittest.TestCase):
         shunt_bus = 1 * obs._shunt_bus
         el_id = 0
         shunt_bus[el_id] = 2
-        switches_state = type(obs).detailed_topo_desc.compute_switches_position(obs.topo_vect, shunt_bus)
+        switches_state = dtd.compute_switches_position(obs.topo_vect, shunt_bus)
         assert switches_state.sum() == 120
         assert switches_state[start_id::(nb_busbar + 1)].sum() == 60
         assert switches_state[(start_id + 1)::(nb_busbar + 1)].sum() == 59  # busbar 1
         assert switches_state[(start_id + 2)::(nb_busbar + 1)].sum() == 1  # busbar 2
-        id_switch = (type(obs).detailed_topo_desc.switches_to_shunt_id == el_id).nonzero()[0][0]
+        id_switch = dtd.get_switch_id_ieee(dtd.shunt_to_conn_node_id[el_id])
         assert switches_state[id_switch:(id_switch + nb_busbar + 1)].sum() == 2  # only 2 switches closed
         assert switches_state[id_switch + 2]  # busbar 2
     
@@ -278,6 +279,7 @@ class DetailedTopoTester(unittest.TestCase):
         
         obs = self.env.reset()
         bk_act = self.env._backend_action
+        dtd = type(obs).detailed_topo_desc
         
         # nothing modified
         switches_state = bk_act.get_all_switches()
@@ -287,14 +289,13 @@ class DetailedTopoTester(unittest.TestCase):
         assert (~switches_state[(start_id + 2)::(nb_busbar + 1)]).all()  # nothing on busbar 2
         
         # I modified the position of a "regular" element load 1 for the sake of the example
-        switches_this_loads = bk_act.detailed_topo_desc.switches_to_topovect_id == bk_act.load_pos_topo_vect[1]
         bk_act += self.env.action_space({"set_bus": {"loads_id": [(1, 2)]}})
         switches_state = bk_act.get_all_switches()
         assert switches_state.sum() == 120
         assert switches_state[start_id::(nb_busbar + 1)].sum() == 60
         assert switches_state[(start_id + 1)::(nb_busbar + 1)].sum() == 59  # busbar 1
         assert switches_state[(start_id + 2)::(nb_busbar + 1)].sum() == 1  # busbar 2
-        id_switch = (type(obs).detailed_topo_desc.switches_to_topovect_id == type(obs).load_pos_topo_vect[1]).nonzero()[0][0]
+        id_switch = dtd.get_switch_id_ieee(dtd.load_to_conn_node_id[1])
         assert switches_state[id_switch:(id_switch + nb_busbar + 1)].sum() == 2  # only 2 switches closed
         assert switches_state[id_switch + 2]  # busbar 2
                 
@@ -305,7 +306,7 @@ class DetailedTopoTester(unittest.TestCase):
         assert switches_state[start_id::(nb_busbar + 1)].sum() == 59
         assert switches_state[(start_id + 1)::(nb_busbar + 1)].sum() == 59  # busbar 1
         assert switches_state[(start_id + 2)::(nb_busbar + 1)].sum() == 0  # busbar 2
-        id_switch = (type(obs).detailed_topo_desc.switches_to_topovect_id == type(obs).load_pos_topo_vect[1]).nonzero()[0][0]
+        id_switch = dtd.get_switch_id_ieee(dtd.load_to_conn_node_id[1])
         assert switches_state[id_switch:(id_switch + nb_busbar + 1)].sum() == 0  # only 2 switches closed
         bk_act += self.env.action_space({"set_bus": {"loads_id": [(1, 1)]}})
         
@@ -316,7 +317,7 @@ class DetailedTopoTester(unittest.TestCase):
         assert switches_state[start_id::(nb_busbar + 1)].sum() == 60
         assert switches_state[(start_id + 1)::(nb_busbar + 1)].sum() == 59  # busbar 1
         assert switches_state[(start_id + 2)::(nb_busbar + 1)].sum() == 1  # busbar 2
-        id_switch = (type(obs).detailed_topo_desc.switches_to_shunt_id == 0).nonzero()[0][0]
+        id_switch = dtd.get_switch_id_ieee(dtd.shunt_to_conn_node_id[0])
         assert switches_state[id_switch:(id_switch + nb_busbar + 1)].sum() == 2  # only 2 switches closed
         assert switches_state[id_switch + 2]  # busbar 2
         
@@ -327,7 +328,7 @@ class DetailedTopoTester(unittest.TestCase):
         assert switches_state[start_id::(nb_busbar + 1)].sum() == 59
         assert switches_state[(start_id + 1)::(nb_busbar + 1)].sum() == 59  # busbar 1
         assert switches_state[(start_id + 2)::(nb_busbar + 1)].sum() == 0  # busbar 2
-        id_switch = (type(obs).detailed_topo_desc.switches_to_shunt_id == 0).nonzero()[0][0]
+        id_switch = dtd.get_switch_id_ieee(dtd.shunt_to_conn_node_id[0])
         assert switches_state[id_switch:(id_switch + nb_busbar + 1)].sum() == 0  # only 2 switches closed
         
         # set back it back to its original position
@@ -337,7 +338,7 @@ class DetailedTopoTester(unittest.TestCase):
         assert switches_state[start_id::(nb_busbar + 1)].sum() == 60
         assert switches_state[(start_id + 1)::(nb_busbar + 1)].sum() == 60  # busbar 1
         assert switches_state[(start_id + 2)::(nb_busbar + 1)].sum() == 0   # busbar 2
-        id_switch = (type(obs).detailed_topo_desc.switches_to_shunt_id == 0).nonzero()[0][0]
+        id_switch = dtd.get_switch_id_ieee(dtd.shunt_to_conn_node_id[0])
         assert switches_state[id_switch:(id_switch + nb_busbar + 1)].sum() == 2  # only 2 switches closed
         assert switches_state[id_switch + 1]  # busbar 1
         
@@ -348,8 +349,8 @@ class DetailedTopoTester(unittest.TestCase):
         assert switches_state[start_id::(nb_busbar + 1)].sum() == 58
         assert switches_state[(start_id + 1)::(nb_busbar + 1)].sum() == 58  # busbar 1
         assert switches_state[(start_id + 2)::(nb_busbar + 1)].sum() == 0  # busbar 2
-        id_switch_or = (type(obs).detailed_topo_desc.switches_to_topovect_id == type(obs).line_or_pos_topo_vect[3]).nonzero()[0][0]
-        id_switch_ex = (type(obs).detailed_topo_desc.switches_to_topovect_id == type(obs).line_ex_pos_topo_vect[3]).nonzero()[0][0]
+        id_switch_or = dtd.get_switch_id_ieee(dtd.line_or_to_conn_node_id[3])
+        id_switch_ex = dtd.get_switch_id_ieee(dtd.line_ex_to_conn_node_id[3])
         assert (~switches_state[id_switch_or:(id_switch_or + nb_busbar + 1)]).all()
         assert (~switches_state[id_switch_ex:(id_switch_ex + nb_busbar + 1)]).all()
         
@@ -434,14 +435,11 @@ class DetailedTopoTester(unittest.TestCase):
         line_or_this = [2]  # , 3, 4]
         line_ex_this = [0]
         
-        conn_node_load = dtd.load_to_conn_node_id[load_this]
-        conn_node_gen = dtd.load_to_conn_node_id[gen_this]
-        
         bbs_switch_bb1_bb2 = sub_id * (nb_busbar * (nb_busbar - 1) // 2)  # switch between busbar 1 and busbar 2 at this substation
-        load_id_switch = (type(self.env).detailed_topo_desc.switches_to_topovect_id == type(self.env).load_pos_topo_vect[load_this]).nonzero()[0][0]
-        gen_id_switch = (type(self.env).detailed_topo_desc.switches_to_topovect_id == type(self.env).gen_pos_topo_vect[gen_this]).nonzero()[0][0]
-        lor_id_switch = (type(self.env).detailed_topo_desc.switches_to_topovect_id == type(self.env).line_or_pos_topo_vect[line_or_this]).nonzero()[0][0]
-        lex_id_switch = (type(self.env).detailed_topo_desc.switches_to_topovect_id == type(self.env).line_ex_pos_topo_vect[line_ex_this]).nonzero()[0][0]
+        load_id_switch = dtd.get_switch_id_ieee(dtd.load_to_conn_node_id[load_this[0]])
+        gen_id_switch = dtd.get_switch_id_ieee(dtd.gen_to_conn_node_id[gen_this[0]])
+        lor_id_switch = dtd.get_switch_id_ieee(dtd.line_or_to_conn_node_id[line_or_this[0]])
+        lex_id_switch = dtd.get_switch_id_ieee(dtd.line_ex_to_conn_node_id[line_ex_this[0]])
         
         el_id_switch = load_id_switch
         el_this = load_this
@@ -663,12 +661,11 @@ class DetailedTopoTester_Action(unittest.TestCase):
         line_or_this = [2]
         line_ex_this = [0]
         
-        s_to_tp_id = type(self.env).detailed_topo_desc.switches_to_topovect_id
         bbs_switch_bb1_bb2 = sub_id * (nb_busbar * (nb_busbar - 1) // 2)  # switch between busbar 1 and busbar 2 at this substation
-        load_id_switch = (s_to_tp_id == type(self.env).load_pos_topo_vect[load_this]).nonzero()[0][0]
-        gen_id_switch = (s_to_tp_id == type(self.env).gen_pos_topo_vect[gen_this]).nonzero()[0][0]
-        lor_id_switch = (s_to_tp_id == type(self.env).line_or_pos_topo_vect[line_or_this]).nonzero()[0][0]
-        lex_id_switch = (s_to_tp_id == type(self.env).line_ex_pos_topo_vect[line_ex_this]).nonzero()[0][0]
+        load_id_switch = dtd.get_switch_id_ieee(dtd.load_to_conn_node_id[load_this[0]])
+        gen_id_switch = dtd.get_switch_id_ieee(dtd.gen_to_conn_node_id[gen_this[0]])
+        lor_id_switch = dtd.get_switch_id_ieee(dtd.line_or_to_conn_node_id[line_or_this[0]])
+        lex_id_switch = dtd.get_switch_id_ieee(dtd.line_ex_to_conn_node_id[line_ex_this[0]])
         
         el_id_switch = load_id_switch
         el_this = load_this

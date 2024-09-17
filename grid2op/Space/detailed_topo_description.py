@@ -32,6 +32,10 @@ class DetailedTopoDescription(object):
     It is a const member of the main grid2op classes (not the object, the class !), just like the `n_sub` or 
     `lines_or_pos_topo_vect` property for example.
     
+    # TODO detailed topo: remove the switches to topo_vect id and make a "conn node id to topo_vect id"
+    # TODO detailed topo: remove in the doc the requirement of conn_node_1 and conn_node_2
+    # TODO detailed topo: remove the element types from the switch matrix
+    
     In order to fill a :class:`DetailedTopoDescription` you need to fill the 
     following attributes :
     
@@ -51,14 +55,15 @@ class DetailedTopoDescription(object):
         - the third one is the ID of one of the connectivity node this switch is attached to
         - the fourth one is the ID of the other connectivity node this switch is attached to
         
-    - :attr:`DetailedTopoDescription.switches_to_topovect_id` : for each switches, it gives the index in the 
-      topo_vect vector to which this switch is connected. Put -1 for switches not represented in the "topo_vect" vector
+    - :attr:`DetailedTopoDescription.conn_node_to_topovect_id` : for each connectivity node, it gives the index in the 
+      topo_vect vector to which this connectivity node is connected. Put -1 for conn node not represented in 
+      the "topo_vect" vector
       otherwise the id of the topo_vect converned by this switch (should be -1 for everything except for
       switch whose conn_node_id_1 represents element modeled in the topo_vect eg load, generator or side of powerline)
       (TODO detailed topo: something again that for now you should manually process but that will
       be automatically processed by grid2op in the near future).
-    - :attr:`DetailedTopoDescription.switches_to_shunt_id` : for each switches, it gives the index of the shunt it
-      concerns (should be -1 except for switches that concerns shunts)
+    - :attr:`DetailedTopoDescription.conn_node_to_shunt_id` : for each connectivity node, it gives the index of the shunt it
+      concerns (should be -1 except for connectivity node that concerns shunts)
       (TODO detailed topo: something again that for now you should manually process but that will
       be automatically processed by grid2op in the near future).
     - :attr:`DetailedTopoDescription.load_to_conn_node_id` : for each load, it gives by which connectivity
@@ -142,8 +147,8 @@ class DetailedTopoDescription(object):
                 dtd.conn_node_name = ...
                 dtd.conn_node_to_subid = ...
                 dtd.switches = ...
-                dtd.switches_to_topovect_id = ...
-                dtd.switches_to_shunt_id = ...
+                dtd.conn_node_to_topovect_id = ...
+                dtd.conn_node_to_shunt_id = ...
                 dtd.load_to_conn_node_id = ...
                 dtd.gen_to_conn_node_id = ...
                 dtd.line_or_to_conn_node_id = ...
@@ -187,46 +192,33 @@ class DetailedTopoDescription(object):
     #: concerns the substation
     SUB_COL = 0 
     
-    #: In the :attr:`DetailedTopoDescription.switches` table, tells that column 1
-    #: concerns the type of object (0 for Load, see the `xxx_ID` (*eg* :attr:`DetailedTopoDescription.LOAD_ID`))
-    OBJ_TYPE_COL = 1
-    
     #: In the :attr:`DetailedTopoDescription.switches` table, tells that column 2
     #: concerns the id of object that this switches connects / disconnects
-    CONN_NODE_1_ID_COL = 2
+    CONN_NODE_1_ID_COL = 1
     
     #: In the :attr:`DetailedTopoDescription.switches` table, tells that column 2
     #: concerns the id of the connection node that this switches connects / disconnects
-    CONN_NODE_2_ID_COL = 3
+    CONN_NODE_2_ID_COL = 2
     
-    #: In the :attr:`DetailedTopoDescription.switches` table, column 2
-    #: if a 0 is present, then this switch will connect a load to a connection node
+    #: TODO detailed topo doc
     LOAD_ID = 0
     
-    #: In the :attr:`DetailedTopoDescription.switches` table, column 2
-    #: if a 1 is present, then this switch will connect a generator to a connection node
+    #: TODO detailed topo doc
     GEN_ID = 1
     
-    #: In the :attr:`DetailedTopoDescription.switches` table, column 2
-    #: if a 2 is present, then this switch will connect a storage unit to a connection node
+    #: TODO detailed topo doc
     STORAGE_ID = 2
     
-    #: In the :attr:`DetailedTopoDescription.switches` table, column 2
-    #: if a 3 is present, then this switch will connect a line (origin side) to a connection node
+    #: TODO detailed topo doc
     LINE_OR_ID = 3
     
-    #: In the :attr:`DetailedTopoDescription.switches` table, column 2
-    #: if a 4 is present, then this switch will connect a line (extremity side) to a connection node
+    #: TODO detailed topo doc
     LINE_EX_ID = 4
     
-    #: In the :attr:`DetailedTopoDescription.switches` table, column 2
-    #: if a 5 is present, then this switch will connect a shunt to a connection node
+    #: TODO detailed topo doc
     SHUNT_ID = 5
     
-    #: In the :attr:`DetailedTopoDescription.switches` table, column 2
-    #: if a 5 is present, then this switch will connect a standard "connection node"
-    #: to another connection node. There isn't anything special about any
-    #: of the "connection node".
+    #: TODO detailed topo doc
     OTHER = 6
     
     def __init__(self):        
@@ -243,24 +235,15 @@ class DetailedTopoDescription(object):
         #: Each column provides an information about the switch:
         #:     
         #:     - col 0 gives the substation id
-        #:     - col 1 gives the object type it connects (0 = LOAD, etc.) see :attr:`DetailedTopoDescription.LOAD_ID`, 
-        #:       :attr:`DetailedTopoDescription.GEN_ID`, :attr:`DetailedTopoDescription.STORAGE_ID`, 
-        #:       :attr:`DetailedTopoDescription.LINE_OR_ID`, :attr:`DetailedTopoDescription.LINE_EX_ID` 
-        #:       or :attr:`DetailedTopoDescription.SHUNT_ID` or :attr:`DetailedTopoDescription.OTHER`
+        #:     - col 1 TODO detailed topo doc
         #:     - col 2 TODO detailed topo doc
-        #:     - col 3 TODO detailed topo doc
         self.switches = None
         
-        #: This is a vector of integer having the same size as the number of switches in your grid.
-        #: For each switches it gives the ID of the element this switch controls in the `topo_vect` vector
-        #: When `-1` it means the element is not reprensented in the `topo_vect` (for example it's a shunt
-        #: or a standard "connection node")
-        self.switches_to_topovect_id = None
+        #: TODO
+        self.conn_node_to_topovect_id = None
         
-        #: This is a vector of integer having the same size as the number of switches in your grid.
-        #: For each switches it says "-1" if the switch does not control a shunt or the shunt id (=>0)
-        #: if the switch does control a shunt.
-        self.switches_to_shunt_id = None
+        #: TODO
+        self.conn_node_to_shunt_id = None
         
         #: A list of tuple that has the same size as the number of loads on the grid.
         #: For each loads, it gives the connection node ids to which (thanks to a switch) a load can be
@@ -301,6 +284,16 @@ class DetailedTopoDescription(object):
         #: this is automatically set when the detailed topo description
         #: is processed
         self._n_sub : int = -1
+        
+        #: dimension of the "topology vector" (in grid2op)
+        #: this is automatically set when the detailed topo description
+        #: is processed
+        self._dim_topo : int = -1
+        
+        #: number of shunt in the grid
+        #: this is automatically set when the detailed topo description
+        #: is processed
+        self._n_shunt : int = -1
     
     @classmethod
     def from_ieee_grid(cls, init_grid : "grid2op.Space.GridObjects.GridObjects"):
@@ -319,6 +312,8 @@ class DetailedTopoDescription(object):
         res = cls()
         res._from_ieee_grid = True
         res._n_sub = n_sub
+        res._dim_topo = init_grid_cls.dim_topo
+        res._n_shunt = init_grid_cls.n_shunt
         
         # define the "connection nodes"
         # for ieee grid we model:
@@ -357,6 +352,7 @@ class DetailedTopoDescription(object):
                                               init_grid_cls.shunt_to_subid.tolist() if init_grid_cls.shunts_data_available else []
                                               )
                                           )
+        n_conn_nodes = res.conn_node_name.shape[0]
         
         # add the switches : there are 1 switches that connects all pairs
         # of busbars in the substation, plus for each element:
@@ -366,7 +362,7 @@ class DetailedTopoDescription(object):
         nb_switch_bb_per_sub = (n_bb_per_sub * (n_bb_per_sub - 1)) // 2  #  switches between busbars
         nb_switch_busbars = n_sub * nb_switch_bb_per_sub # switches between busbars at each substation
         nb_switch_total = nb_switch_busbars + (init_grid_cls.dim_topo + n_shunt) * (1 + n_bb_per_sub)
-        res.switches = np.zeros((nb_switch_total, 4), dtype=dt_int)
+        res.switches = np.zeros((nb_switch_total, 3), dtype=dt_int)
         
         # add the shunts in the "sub_info" (considered as element here !)
         sub_info = 1 * init_grid_cls.sub_info
@@ -376,7 +372,7 @@ class DetailedTopoDescription(object):
         # now fill the switches matrix
         # fill with the switches between busbars
         res.switches[:nb_switch_busbars, cls.SUB_COL] = np.repeat(np.arange(n_sub), nb_switch_bb_per_sub)
-        res.switches[:nb_switch_busbars, cls.OBJ_TYPE_COL] = cls.OTHER
+        
         li_or_bb_switch = sum([[j for i in range(j+1, n_bb_per_sub)] for j in range(n_bb_per_sub - 1)], start=[])  # order relative to the substation
         li_ex_bb_switch = sum([[i for i in range(j+1, n_bb_per_sub)] for j in range(n_bb_per_sub - 1)], start=[])  # order relative to the substation
         add_sub_id_unique_id = np.repeat(np.arange(n_sub), nb_switch_bb_per_sub) * n_bb_per_sub  # make it a unique substation labelling
@@ -384,9 +380,9 @@ class DetailedTopoDescription(object):
         res.switches[:nb_switch_busbars, cls.CONN_NODE_2_ID_COL] = np.array(n_sub * li_ex_bb_switch) + add_sub_id_unique_id
         
         # and now fill the switches for all elements
-        res.switches_to_topovect_id = np.zeros(nb_switch_total, dtype=dt_int) - 1
+        res.conn_node_to_topovect_id = np.zeros(n_conn_nodes, dtype=dt_int) - 1
         if init_grid_cls.shunts_data_available:
-            res.switches_to_shunt_id = np.zeros(nb_switch_total, dtype=dt_int) - 1
+            res.conn_node_to_shunt_id = np.zeros(n_conn_nodes, dtype=dt_int) - 1
         
         arrs_subid = [init_grid_cls.load_to_subid,
                       init_grid_cls.gen_to_subid,
@@ -413,9 +409,21 @@ class DetailedTopoDescription(object):
             next_el = prev_el + (1 + n_bb_per_sub) * nb_el
             
             # fill the object type
-            res.switches[prev_el : next_el, cls.OBJ_TYPE_COL] = cls.OTHER
-            res.switches[prev_el : next_el : (1 + n_bb_per_sub), cls.OBJ_TYPE_COL] = obj_col
-            
+            this_conn_nodes = np.arange(len(bb_conn_node) + handled,
+                                        len(bb_conn_node) + handled + nb_el)
+            if obj_col == cls.LOAD_ID:
+                res.load_to_conn_node_id = this_conn_nodes
+            elif obj_col == cls.GEN_ID:
+                res.gen_to_conn_node_id = this_conn_nodes
+            elif obj_col == cls.LINE_OR_ID:
+                res.line_or_to_conn_node_id = this_conn_nodes
+            elif obj_col == cls.LINE_EX_ID:
+                res.line_ex_to_conn_node_id = this_conn_nodes
+            elif obj_col == cls.STORAGE_ID:
+                res.storage_to_conn_node_id = this_conn_nodes
+            elif obj_col == cls.SHUNT_ID and init_grid_cls.shunts_data_available:
+                res.shunt_to_conn_node_id = this_conn_nodes
+    
             # fill the substation id
             res.switches[prev_el : next_el, cls.SUB_COL] = np.repeat(arr_subid, (1 + n_bb_per_sub))
             
@@ -432,44 +440,73 @@ class DetailedTopoDescription(object):
             res.switches[prev_el : next_el : (1 + n_bb_per_sub), cls.CONN_NODE_1_ID_COL] = len(bb_conn_node) + handled + np.arange(nb_el)
             res.switches[prev_el : next_el : (1 + n_bb_per_sub), cls.CONN_NODE_2_ID_COL] = conn_node_breaker_ids
             
-            # TODO detailed topo : fill switches_to_topovect_id and switches_to_shunt_id
-            res.switches_to_topovect_id[prev_el : next_el : (1 + n_bb_per_sub)] = pos_topo_vect
+            if obj_col != cls.SHUNT_ID:
+                res.conn_node_to_topovect_id[this_conn_nodes] = pos_topo_vect
             if init_grid_cls.shunts_data_available and obj_col == cls.SHUNT_ID:
-                res.switches_to_shunt_id[prev_el : next_el : (1 + n_bb_per_sub)] = np.arange(nb_el)
+                res.conn_node_to_shunt_id[this_conn_nodes] = np.arange(nb_el)
             prev_el = next_el
             handled += nb_el
         
-        # and also fill some extra information
-        res.load_to_conn_node_id = 1 * res.switches[res.switches[:,cls.OBJ_TYPE_COL] == cls.LOAD_ID, cls.CONN_NODE_1_ID_COL]
-        res.gen_to_conn_node_id = 1 * res.switches[res.switches[:,cls.OBJ_TYPE_COL] == cls.GEN_ID, cls.CONN_NODE_1_ID_COL]
-        res.line_or_to_conn_node_id = 1 * res.switches[res.switches[:,cls.OBJ_TYPE_COL] == cls.LINE_OR_ID, cls.CONN_NODE_1_ID_COL]
-        res.line_ex_to_conn_node_id = 1 * res.switches[res.switches[:,cls.OBJ_TYPE_COL] == cls.LINE_EX_ID, cls.CONN_NODE_1_ID_COL]
-        res.storage_to_conn_node_id = 1 * res.switches[res.switches[:,cls.OBJ_TYPE_COL] == cls.STORAGE_ID, cls.CONN_NODE_1_ID_COL]
-        if init_grid_cls.shunts_data_available:
-            res.shunt_to_conn_node_id = 1 * res.switches[res.switches[:,cls.OBJ_TYPE_COL] == cls.SHUNT_ID, cls.CONN_NODE_1_ID_COL]
-        # TODO detailed topo: have a function to compute the above things
         # TODO detailed topo: have a function to compute the switches `sub_id` columns from the `conn_node_to_subid`
-        # TODO detailed topo: have a function for the "switches_to_topovect_id" and  "switches_to_shunt_id"
+        # TODO detailed topo: have a function for the "conn_node_to_topovect_id" and  "switches_to_shunt_id"
         return res
+    
+    def _aux_compute_busbars_sections(self):
+        cls = type(self)
+        # bbs = (np.isin(self.switches[:, cls.CONN_NODE_1_ID_COL], self.busbar_section_to_conn_node_id) & 
+        #        np.isin(self.switches[:, cls.CONN_NODE_2_ID_COL], self.busbar_section_to_conn_node_id))
+        # switches = self.switches[~bbs,:]
+        import networkx as nx
+        graph = nx.Graph()
+        graph.add_edges_from([(el[1], el[2]) for el in self.switches])
+        
+        # NON !
+        # d_shortest_path = nx.shortest_path(graph)
+        # top_vect_cn = (self.conn_node_to_topovect_id != -1).nonzero()[0]
+        # bbs_cn = (self.busbar_section_to_conn_node_id)
+        # for tp_el in top_vect_cn:  
+        #     for bb_id in bbs_cn:
+        #         sh_p = d_shortest_path[tp_el][bb_id]
+        #         pass  
+        
+        # je veux isoler les elements qui, si on enleve les busbar, peuvent atteindre les autres busbars
+        import pdb
+        pdb.set_trace()
+        
+    def get_switch_id_ieee(self, conn_node_id: int):
+        """TODO detailed topo
+
+        Parameters
+        ----------
+        conn_node_id : int
+            _description_
+        """
+        switch_id = (self.switches[:, type(self).CONN_NODE_1_ID_COL] == conn_node_id).nonzero()[0]
+        if switch_id.shape[0] == 0:
+            raise Grid2OpException(f"Cannot find a switch for connectivity node {conn_node_id}")
+        if switch_id.shape[0] > 1:
+            raise Grid2OpException(f"Found multiple switch for connectivity node {conn_node_id}")
+        switch_id = switch_id[0]
+        return switch_id
     
     def _aux_compute_switches_pos_ieee(self, 
                                        bus_vect,  # topo_vect
-                                       switches_to_bus_vect,  # self.switches_to_topovect_id
+                                       el_to_conn_node_id,   # load_to_conn_node_id
+                                       conn_node_to_bus_id,  # conn_node_to_topo_vect_id
                                        switches_state,  # result
                                        ):
         if not self._from_ieee_grid:
             raise NotImplementedError("This function is only implemented for detailed topology "
-                                      "generated from ieee grids.")
+                                      "generated from ieee grids. You can use `compute_switches_position` "
+                                      "for a more generic function")
             
         # compute the position for the switches of the "topo_vect" elements 
         # only work for current grid2op modelling !
         
         # TODO detailed topo vectorize this ! (or cython maybe ?)
-        for switch_id, switch_topo_vect in enumerate(switches_to_bus_vect):
-            if switch_topo_vect == -1:
-                # this is not a switch for an element
-                continue
-            my_bus = bus_vect[switch_topo_vect]
+        for conn_node in el_to_conn_node_id:
+            switch_id = self.get_switch_id_ieee(conn_node)
+            my_bus = bus_vect[conn_node_to_bus_id[conn_node]]
             if my_bus == -1:
                 # I init the swith at False, so nothing to do in this case
                 continue
@@ -479,20 +516,23 @@ class DetailedTopoDescription(object):
     def compute_switches_position_ieee(self, topo_vect, shunt_bus):
         if not self._from_ieee_grid:
             raise NotImplementedError("This function is only implemented for detailed topology "
-                                      "generated from ieee grids.")
+                                      "generated from ieee grids. You can use `compute_switches_position` "
+                                      "for a more generic function.")
         switches_state = np.zeros(self.switches.shape[0], dtype=dt_bool)
         
         # compute the position for the switches of the "topo_vect" elements
-        self._aux_compute_switches_pos_ieee(topo_vect, self.switches_to_topovect_id, switches_state)
+        self._aux_compute_switches_pos_ieee(topo_vect, self.load_to_conn_node_id, self.conn_node_to_topovect_id, switches_state)
+        self._aux_compute_switches_pos_ieee(topo_vect, self.gen_to_conn_node_id, self.conn_node_to_topovect_id, switches_state)
+        self._aux_compute_switches_pos_ieee(topo_vect, self.line_or_to_conn_node_id, self.conn_node_to_topovect_id, switches_state)
+        self._aux_compute_switches_pos_ieee(topo_vect, self.line_ex_to_conn_node_id, self.conn_node_to_topovect_id, switches_state)
+        self._aux_compute_switches_pos_ieee(topo_vect, self.storage_to_conn_node_id, self.conn_node_to_topovect_id, switches_state)
             
-        if self.switches_to_shunt_id is None or shunt_bus is None:
-            # no need to 
+        if self.conn_node_to_shunt_id is None or shunt_bus is None or self._n_shunt == 0:
+            # no need to process the shunts in these cases
             return switches_state
         
-        # now handle the shunts
-        self._aux_compute_switches_pos_ieee(shunt_bus,
-                                            self.switches_to_shunt_id,
-                                            switches_state)
+        # compute the position for the switches of the "shunts" elements
+        self._aux_compute_switches_pos_ieee(shunt_bus, self.shunt_to_conn_node_id, self.conn_node_to_shunt_id, switches_state)
         return switches_state
             
     def compute_switches_position(self,
@@ -500,10 +540,6 @@ class DetailedTopoDescription(object):
                                   shunt_bus: Optional[np.ndarray]=None):
         """This function compute a plausible switches configuration
         from a given `topo_vect` representation.
-        
-        .. danger::
-            At time of writing, it only works if the detailed topology has been generated
-            from :func:`DetailedTopoDescription.from_ieee_grid`
 
         Parameters
         ----------
@@ -514,21 +550,46 @@ class DetailedTopoDescription(object):
 
         Returns
         -------
-        `switches_state` state (connected, disconnected) of each switches as 
+        `switches_state` state (connected = ``True`` or disconnected = ``False``) of each switches as 
         a numpy boolean array.
         
         """
+        if topo_vect.shape[0] != self._dim_topo:
+            raise Grid2OpException("Incorrect input size for the topology vector.")
+        if shunt_bus is not None and shunt_bus.shape[0] != self._n_shunt:
+            raise Grid2OpException("Incorrect size for the shunt bus vector.")
+        # TODO detailed topo: input a substation mask for example
+        # TODO detailed topo: check that the nodes id are consistent (starts at 1 mainly)
+        
         # TODO detailed topo
-        # TODO in reality, for more complex environment, this requires a routine to compute it
-        # but for now in grid2op as only ficitive grid are modeled then 
-        # this is not a problem
         if self._from_ieee_grid:
             # specific case for IEEE grid, consistent with the AddDetailedTopoIEEE
             # class
             return self.compute_switches_position_ieee(topo_vect, shunt_bus)
         
-        switches_state = np.zeros(self.switches.shape[0], dtype=dt_bool)
+        if shunt_bus is not None:
+            raise NotImplementedError("TODO detailed topo: shunts are not handled right now")
+        if (topo_vect == -1).any():
+            raise NotImplementedError("TODO detailed topo: cannot disconnect elements right now")
+            
+        # by default they are False
+        nb_switch = self.switches.shape[0]
+        nb_conn_node = self.conn_node_name.shape[0]
+        switches_state = np.zeros(nb_switch, dtype=dt_bool)
         
+        # whether the switch is already assigned to a bus
+        switch_visited = np.zeros(nb_switch, dtype=dt_bool)
+        # to which buses a connection node belongs to
+        conn_node_to_buses = np.zeros(nb_conn_node, dtype=dt_int) - 2
+        # whether the connection node is assigned to a bus
+        conn_node_visited = np.zeros(nb_conn_node, dtype=dt_int) - 1
+        while True:
+            import pdb
+            pdb.set_trace()
+            this_bus = 1
+            
+            topo_this_bus = topo_vect == this_bus
+            
         return switches_state
     
     def from_switches_position(self,
@@ -551,9 +612,9 @@ class DetailedTopoDescription(object):
         
         # TODO detailed topo
         # opposite of `compute_switches_position`
-        topo_vect = np.zeros((self.switches_to_topovect_id != -1).sum(), dtype=dt_int)
-        if self.switches_to_shunt_id is not None:
-            shunt_bus = np.zeros((self.switches_to_shunt_id != -1).sum(), dtype=dt_int)
+        topo_vect = np.zeros(self._dim_topo, dtype=dt_int)
+        if self.conn_node_to_shunt_id is not None:
+            shunt_bus = np.zeros(self._n_shunt, dtype=dt_int)
         else:
             shunt_bus = None
             
@@ -570,14 +631,15 @@ class DetailedTopoDescription(object):
             mask_s_this_sub = self.switches[:, type(self).SUB_COL] == sub_id
             switches_this_sub = self.switches[mask_s_this_sub,:]
             switches_state_this_sub = switches_state[mask_s_this_sub]
-            s_to_tv_id = self.switches_to_topovect_id[mask_s_this_sub]
+            mask_cn_this_sub = self.conn_node_to_subid == sub_id
+            cn_to_tv_id = self.conn_node_to_topovect_id[mask_cn_this_sub]
             # by default elements of this subs are disconnected
-            topo_vect[s_to_tv_id[s_to_tv_id != -1]] = -1
+            topo_vect[cn_to_tv_id[cn_to_tv_id != -1]] = -1
             
-            if self.switches_to_shunt_id is not None:
-                s_to_sh_id = self.switches_to_shunt_id[mask_s_this_sub]
+            if self.conn_node_to_shunt_id is not None:
+                cn_to_sh_id = self.conn_node_to_shunt_id[mask_cn_this_sub]
                 # by default all shunts are connected
-                shunt_bus[s_to_sh_id[s_to_sh_id != -1]] = -1
+                shunt_bus[cn_to_sh_id[cn_to_sh_id != -1]] = -1
             bbs_id_this_sub = 0
             bbs_node_id = 1
             while True:
@@ -605,16 +667,13 @@ class DetailedTopoDescription(object):
                         break
                     
                 # now connect all real element link to the connection node to the right bus id
-                all_el_id = (np.isin(switches_this_sub[:, type(self).CONN_NODE_1_ID_COL], connected_conn_node) | 
-                             np.isin(switches_this_sub[:, type(self).CONN_NODE_2_ID_COL], connected_conn_node))
-                all_el_id &= switches_state_this_sub
-                topo_vect_id = s_to_tv_id[all_el_id]  # keep only connected "connection node" that are connected to an element
+                topo_vect_id = self.conn_node_to_topovect_id[connected_conn_node]  # keep only connected "connection node" that are connected to an element
                 topo_vect_id = topo_vect_id[topo_vect_id != -1]  
                 topo_vect_id = topo_vect_id[topo_vect[topo_vect_id] == -1]  # remove element already assigned on a bus
                 topo_vect[topo_vect_id] = bbs_node_id  # assign the current bus bar section id
                 # now handle the shunts
-                if self.switches_to_shunt_id is not None:
-                    shunt_id = s_to_sh_id[all_el_id]  # keep only connected "connection node" that are connected to an element
+                if self.conn_node_to_shunt_id is not None:
+                    shunt_id = self.conn_node_to_shunt_id[connected_conn_node]  # keep only connected "connection node" that are connected to an element
                     shunt_id = shunt_id[shunt_id != -1]  
                     shunt_id = shunt_id[shunt_bus[shunt_id] == -1]  # remove element already assigned on a bus
                     shunt_bus[shunt_id] = bbs_node_id  # assign the current bus bar section id
@@ -641,23 +700,32 @@ class DetailedTopoDescription(object):
         return topo_vect, shunt_bus
     
     def _aux_check_pos_topo_vect(self,
-                                 el_id,  # eg cls.LOAD_ID
+                                 el_ids,  # eg load_to_conn_node_id
                                  vect_pos_tv, # eg gridobj_cls.load_pos_topo_vect
                                  el_nm, # eg "load"
                                  ):
-        mask_el = self.switches[:, type(self).OBJ_TYPE_COL] == el_id
-        el_tv_id = self.switches_to_topovect_id[mask_el]
+        el_tv_id = self.conn_node_to_topovect_id[el_ids]
         if (vect_pos_tv != el_tv_id).any():
-            raise Grid2OpException(f"Inconsistency in `switches_to_topovect_id` and `switch` for {el_nm}: "
+            raise Grid2OpException(f"Inconsistency in `conn_node_to_topovect_id` and `switch` for {el_nm}: "
                                    f"Some switch representing {el_nm} do not have the same "
-                                   f"`switches_to_topovect_id` and `gridobj_cls.{el_nm}_pos_topo_vect`")
+                                   f"`conn_node_to_topovect_id` and `gridobj_cls.{el_nm}_pos_topo_vect`")
         
-    def check_validity(self, gridobj_cls):
+    def check_validity(self, gridobj_cls: "grid2op.Space.GridObjects.GridObjects"):
         cls = type(self)
         if self._n_sub is None or self._n_sub == -1:
             self._n_sub = gridobj_cls.n_sub
         if self._n_sub != gridobj_cls.n_sub:
             raise Grid2OpException("Incorrect number of susbtation registered "
+                                   "in the detailed topology description")
+        if self._dim_topo is None or self._dim_topo == -1:
+            self._dim_topo = gridobj_cls.dim_topo
+        if self._dim_topo != gridobj_cls.dim_topo:
+            raise Grid2OpException("Incorrect size for the topology vector registered "
+                                   "in the detailed topology description")
+        if self._n_shunt is None or self._n_shunt == -1:
+            self._n_shunt = gridobj_cls.n_shunt
+        if self._n_shunt != gridobj_cls.n_shunt:
+            raise Grid2OpException("Incorrect number of shunts registered "
                                    "in the detailed topology description")
             
         if self.conn_node_to_subid.max() != gridobj_cls.n_sub - 1:
@@ -723,23 +791,23 @@ class DetailedTopoDescription(object):
                                    f"`conn_node_to_subid[switches[:,{cls.CONN_NODE_2_ID_COL}]]`")
         
         # check topo vect is consistent
-        arr = self.switches_to_topovect_id[self.switches_to_topovect_id != -1]
+        arr = self.conn_node_to_topovect_id[self.conn_node_to_topovect_id != -1]
         dim_topo = gridobj_cls.dim_topo
         if arr.max() != dim_topo - 1:
-            raise Grid2OpException("Inconsistency in `self.switches_to_topovect_id`: some objects in the "
+            raise Grid2OpException("Inconsistency in `self.conn_node_to_topovect_id`: some objects in the "
                                    "topo_vect are not connected to any switch")
         if arr.shape[0] != dim_topo:
-            raise Grid2OpException("Inconsistencies in `self.switches_to_topovect_id`: some elements of "
+            raise Grid2OpException("Inconsistencies in `self.conn_node_to_topovect_id`: some elements of "
                                    "topo vect are not controlled by any switches.")
         arr.sort() 
         if (arr != np.arange(dim_topo)).any():
-            raise Grid2OpException("Inconsistencies in `self.switches_to_topovect_id`: two or more swtiches "
+            raise Grid2OpException("Inconsistencies in `self.conn_node_to_topovect_id`: two or more swtiches "
                                    "are pointing to the same element")
-        self._aux_check_pos_topo_vect(cls.LOAD_ID, gridobj_cls.load_pos_topo_vect, "load")
-        self._aux_check_pos_topo_vect(cls.GEN_ID, gridobj_cls.gen_pos_topo_vect, "gen")
-        self._aux_check_pos_topo_vect(cls.LINE_OR_ID, gridobj_cls.line_or_pos_topo_vect, "line_or")
-        self._aux_check_pos_topo_vect(cls.LINE_EX_ID, gridobj_cls.line_ex_pos_topo_vect, "line_ex")
-        self._aux_check_pos_topo_vect(cls.STORAGE_ID, gridobj_cls.storage_pos_topo_vect, "storage")
+        self._aux_check_pos_topo_vect(self.load_to_conn_node_id, gridobj_cls.load_pos_topo_vect, "load")
+        self._aux_check_pos_topo_vect(self.gen_to_conn_node_id, gridobj_cls.gen_pos_topo_vect, "gen")
+        self._aux_check_pos_topo_vect(self.line_or_to_conn_node_id, gridobj_cls.line_or_pos_topo_vect, "line_or")
+        self._aux_check_pos_topo_vect(self.line_ex_to_conn_node_id, gridobj_cls.line_ex_pos_topo_vect, "line_ex")
+        self._aux_check_pos_topo_vect(self.storage_to_conn_node_id, gridobj_cls.storage_pos_topo_vect, "storage")
             
         # check "el to connectivity nodes" are consistent
         if self.load_to_conn_node_id.shape[0] != gridobj_cls.n_load:
@@ -752,23 +820,23 @@ class DetailedTopoDescription(object):
             raise Grid2OpException("line_ex_to_conn_node_id is not with a size of n_line")
         if self.storage_to_conn_node_id.shape[0] != gridobj_cls.n_storage:
             raise Grid2OpException("storage_to_conn_node_id is not with a size of n_storage")
-        if self.switches_to_shunt_id is not None:
+        if self.shunt_to_conn_node_id is not None:
             if self.shunt_to_conn_node_id.shape[0] != gridobj_cls.n_shunt:
                 raise Grid2OpException("storage_to_conn_node_id is not with a size of n_shunt")
             
-        if (self.load_to_conn_node_id != self.switches[self.switches[:,cls.OBJ_TYPE_COL] == cls.LOAD_ID, cls.CONN_NODE_1_ID_COL]).any():
-            raise Grid2OpException("load_to_conn_node_id does not match info on the switches")
-        if (self.gen_to_conn_node_id != self.switches[self.switches[:,cls.OBJ_TYPE_COL] == cls.GEN_ID, cls.CONN_NODE_1_ID_COL]).any():
-            raise Grid2OpException("gen_to_conn_node_id does not match info on the switches")
-        if (self.line_or_to_conn_node_id != self.switches[self.switches[:,cls.OBJ_TYPE_COL] == cls.LINE_OR_ID, cls.CONN_NODE_1_ID_COL]).any():
-            raise Grid2OpException("line_or_to_conn_node_id does not match info on the switches")
-        if (self.line_ex_to_conn_node_id != self.switches[self.switches[:,cls.OBJ_TYPE_COL] == cls.LINE_EX_ID, cls.CONN_NODE_1_ID_COL]).any():
-            raise Grid2OpException("line_ex_to_conn_node_id does not match info on the switches")
-        if (self.storage_to_conn_node_id != self.switches[self.switches[:,cls.OBJ_TYPE_COL] == cls.STORAGE_ID, cls.CONN_NODE_1_ID_COL]).any():
-            raise Grid2OpException("storage_to_conn_node_id does not match info on the switches")
-        if gridobj_cls.shunts_data_available:
-            if (self.shunt_to_conn_node_id != self.switches[self.switches[:,cls.OBJ_TYPE_COL] == cls.SHUNT_ID, cls.CONN_NODE_1_ID_COL]).any():
-                raise Grid2OpException("shunt_to_conn_node_id does not match info on the switches")
+        # if (self.load_to_conn_node_id != self.switches[self.switches[:,cls.OBJ_TYPE_COL] == cls.LOAD_ID, cls.CONN_NODE_1_ID_COL]).any():
+        #     raise Grid2OpException("load_to_conn_node_id does not match info on the switches")
+        # if (self.gen_to_conn_node_id != self.switches[self.switches[:,cls.OBJ_TYPE_COL] == cls.GEN_ID, cls.CONN_NODE_1_ID_COL]).any():
+        #     raise Grid2OpException("gen_to_conn_node_id does not match info on the switches")
+        # if (self.line_or_to_conn_node_id != self.switches[self.switches[:,cls.OBJ_TYPE_COL] == cls.LINE_OR_ID, cls.CONN_NODE_1_ID_COL]).any():
+        #     raise Grid2OpException("line_or_to_conn_node_id does not match info on the switches")
+        # if (self.line_ex_to_conn_node_id != self.switches[self.switches[:,cls.OBJ_TYPE_COL] == cls.LINE_EX_ID, cls.CONN_NODE_1_ID_COL]).any():
+        #     raise Grid2OpException("line_ex_to_conn_node_id does not match info on the switches")
+        # if (self.storage_to_conn_node_id != self.switches[self.switches[:,cls.OBJ_TYPE_COL] == cls.STORAGE_ID, cls.CONN_NODE_1_ID_COL]).any():
+        #     raise Grid2OpException("storage_to_conn_node_id does not match info on the switches")
+        # if gridobj_cls.shunts_data_available:
+        #     if (self.shunt_to_conn_node_id != self.switches[self.switches[:,cls.OBJ_TYPE_COL] == cls.SHUNT_ID, cls.CONN_NODE_1_ID_COL]).any():
+        #         raise Grid2OpException("shunt_to_conn_node_id does not match info on the switches")
         
         # check some info about the busbars
         if self.busbar_section_to_subid.max() != gridobj_cls.n_sub - 1:
@@ -778,7 +846,32 @@ class DetailedTopoDescription(object):
         arr.sort()
         if (np.unique(arr) != np.arange(gridobj_cls.n_sub)).any():
             raise Grid2OpException("There are no 'busbar section' on some substation, check busbar_section_to_subid")
+        if self.busbar_section_to_subid.shape[0] != self.busbar_section_to_conn_node_id.shape[0]:
+            raise Grid2OpException("Wrong size detected for busbar_section_to_subid or busbar_section_to_conn_node_id")
         
+        # test "unicity" of connectivity node
+        # eg. 1 connectivity nodes cannot represent 2 different objects
+        tup =(self.load_to_conn_node_id,
+              self.gen_to_conn_node_id,
+              self.line_or_to_conn_node_id,
+              self.line_ex_to_conn_node_id,
+              self.storage_to_conn_node_id,
+              self.busbar_section_to_conn_node_id)
+        shape_th = (gridobj_cls.n_load + 
+                    gridobj_cls.n_gen +
+                    2 * gridobj_cls.n_line +
+                    gridobj_cls.n_storage +
+                    self.busbar_section_to_conn_node_id.shape[0])
+        if self.shunt_to_conn_node_id is not None:
+            tup = tup + (self.shunt_to_conn_node_id,)
+            shape_th += self._n_shunt
+        conn_nodes = np.concatenate(tup)
+        if np.unique(conn_nodes).shape[0] != shape_th:
+            raise Grid2OpException("It appears the same connectivity node represent "
+                                   "different element (for example it could represent "
+                                   "at the same time a load and a busbar section or "
+                                   "a generator and the origin side of a powerline)")
+            
         # TODO detailed topo proper exception class and not Grid2OpException
     
     def save_to_dict(self, res, as_list=True, copy_=True):
@@ -799,6 +892,8 @@ class DetailedTopoDescription(object):
         )
         res["_from_ieee_grid"] = self._from_ieee_grid
         res["_n_sub"] = int(self._n_sub)
+        res["_dim_topo"] = int(self._dim_topo)
+        res["_n_shunt"] = int(self._n_shunt)
         
         save_to_dict(
             res,
@@ -810,15 +905,15 @@ class DetailedTopoDescription(object):
         save_to_dict(
             res,
             self,
-            "switches_to_topovect_id",
+            "conn_node_to_topovect_id",
             (lambda arr: [int(el) for el in arr]) if as_list else lambda arr: arr.flatten(),
             copy_,
         )
-        if self.switches_to_topovect_id is not None:
+        if self.conn_node_to_shunt_id is not None:
             save_to_dict(
                 res,
                 self,
-                "switches_to_shunt_id",
+                "conn_node_to_shunt_id",
                 (lambda arr: [int(el) for el in arr]) if as_list else lambda arr: arr.flatten(),
                 copy_,
             )
@@ -904,21 +999,23 @@ class DetailedTopoDescription(object):
         res.switches = extract_from_dict(
             dict_, "switches", lambda x: np.array(x).astype(dt_int)
         )
-        res.switches = res.switches.reshape((-1, 4))
+        res.switches = res.switches.reshape((-1, 3))
         
-        res.switches_to_topovect_id = extract_from_dict(
-            dict_, "switches_to_topovect_id", lambda x: np.array(x).astype(dt_int)
+        res.conn_node_to_topovect_id = extract_from_dict(
+            dict_, "conn_node_to_topovect_id", lambda x: np.array(x).astype(dt_int)
         )
         res._from_ieee_grid = bool(dict_["_from_ieee_grid"])
         res._n_sub = int(dict_["_n_sub"])
+        res._dim_topo = int(dict_["_dim_topo"])
+        res._n_shunt = int(dict_["_n_shunt"])
         
-        if "switches_to_shunt_id" in dict_:
-            res.switches_to_shunt_id = extract_from_dict(
-                dict_, "switches_to_shunt_id", lambda x: np.array(x).astype(dt_int)
+        if "conn_node_to_shunt_id" in dict_:
+            res.conn_node_to_shunt_id = extract_from_dict(
+                dict_, "conn_node_to_shunt_id", lambda x: np.array(x).astype(dt_int)
             )
         else:
             # shunts are not supported
-            res.switches_to_shunt_id = None
+            res.conn_node_to_shunt_id = None
         
         res.load_to_conn_node_id = extract_from_dict(
             dict_, "load_to_conn_node_id", lambda x: x
