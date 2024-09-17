@@ -5009,7 +5009,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         Whether the classes created when this environment has been made are
         store on the hard drive (will return `True`) or not.
         
-        .. info::
+        .. note::
             This will become the default behaviour in future grid2op versions.
                 
         See :ref:`troubleshoot_pickle` for more information.

@@ -2020,10 +2020,12 @@ class GridObjects:
             try:
                 arr2 = np.array(arr).astype(tp)
             except ValueError as exc_:
-                raise Grid2OpException(f"Impossible to convert attribute name {el} to {tp_nm}.") from exc_
+                raise Grid2OpException(f"Impossible to convert attribute name {el} to {tp_nm} for attr {el}") from exc_
+            if len(arr) != len(arr2):
+                raise Grid2OpException(f"During the conversion to {tp} for attr {el} an error occured (results have not the proper size {len(arr2)} vs {len(arr)})")
             if (arr != arr2).any():
                 mask = arr != arr2
-                raise Grid2OpException(f"Impossible to safely convert attribute name {el} to {tp_nm}: {arr[mask]} vs {arr2[mask]}.")
+                raise Grid2OpException(f"Impossible to safely convert attribute name {el} to {tp_nm} for attr {el}: {arr[mask]} vs {arr2[mask]}.")
             setattr(cls, el, arr2)
         
     @classmethod

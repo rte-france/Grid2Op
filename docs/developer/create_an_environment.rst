@@ -1,8 +1,8 @@
-.. |l2rpn_case14_sandbox_layout| image:: ./img/l2rpn_case14_sandbox_layout.png
-.. |R2_full_grid| image:: ./img/R2_full_grid.png
-.. |l2rpn_neurips_2020_track1_layout| image:: ./img/l2rpn_neurips_2020_track1_layout.png
-.. |l2rpn_neurips_2020_track2_layout| image:: ./img/l2rpn_neurips_2020_track2_layout.png
-.. |l2rpn_wcci_2022_layout| image:: ./img/l2rpn_wcci_2022_layout.png
+.. |l2rpn_case14_sandbox_layout| image:: ../img/l2rpn_case14_sandbox_layout.png
+.. |R2_full_grid| image:: ../img/R2_full_grid.png
+.. |l2rpn_neurips_2020_track1_layout| image:: ../img/l2rpn_neurips_2020_track1_layout.png
+.. |l2rpn_neurips_2020_track2_layout| image:: ../img/l2rpn_neurips_2020_track2_layout.png
+.. |l2rpn_wcci_2022_layout| image:: ../img/l2rpn_wcci_2022_layout.png
 
 
 Possible workflow to create an environment from existing time series

@@ -611,11 +611,13 @@ class Backend(GridObjects, ABC):
 
         start_grid = self._grid
         self._grid = None
-        res = copy.deepcopy(self)
-        res.__class__ = type(self)  # somehow deepcopy forget the init class... weird
-        res._grid = copy.deepcopy(start_grid)
-        self._grid = start_grid
-        res._is_loaded = False  # i can reload a copy of an environment
+        try:
+            res = copy.deepcopy(self)
+            res.__class__ = type(self)  # somehow deepcopy forget the init class... weird
+            res._grid = copy.deepcopy(start_grid)
+        finally:
+            self._grid = start_grid
+            res._is_loaded = False  # i can reload a copy of an environment
         return res
 
     def save_file(self, full_path: Union[os.PathLike, str]) -> None:

@@ -2286,11 +2286,13 @@ class BaseAction(GridObjects):
                 - -1: You can use this method to disconnect an object by setting the value to -1.
 
             - "change_bus": (numpy bool vector or dictionary) will change the bus to which the object is connected.
-              True will
+              ``True`` will
               change it (eg switch it from bus 1 to bus 2 or from bus 2 to bus 1). NB this is only active if the system
               has only 2 buses per substation.
-              .. versionchanged:: 1.10.0
-                This feature is deactivated if `act.n_busbar_per_sub >= 3` or `act.n_busbar_per_sub == 1`
+              
+              .. note::
+                Change in version: 1.10.0 This feature is deactivated if `act.n_busbar_per_sub >= 3` 
+                or `act.n_busbar_per_sub == 1`
 
             - "redispatch": the best use of this is to specify either the numpy array of the redispatch vector you want
               to apply (that should have the size of the number of generators on the grid) or to specify a list of
@@ -2326,7 +2328,7 @@ class BaseAction(GridObjects):
 
             **NB**: if for a given powerline, both switch_line_status and set_line_status is set, the action will not
             be usable.
-            This will lead to an :class:`grid2op.Exception.AmbiguousAction` exception.
+            This will lead to an :class:`grid2op.Exceptions.AmbiguousAction` exception.
 
             **NB**: The length of vectors provided here is NOT check in this function. This method can be "chained" and
             only on the final action, when used, eg. in the Backend, is checked.
