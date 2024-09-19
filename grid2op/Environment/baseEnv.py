@@ -1994,15 +1994,16 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         redisp_act_orig = 1.0 * action._redispatch
         flex_act_orig = 1.0 * action._flexibility
 
+        disp_cond = (np.all(np.abs(redisp_act_orig) <= 1e-7)
+                    and np.all(np.abs(self._target_dispatch) <= 1e-7)
+                    and np.all(np.abs(self._actual_dispatch) <= 1e-7))
+        flex_cond = (np.all(np.abs(flex_act_orig) <= 1e-7)
+                    and np.all(np.abs(self._target_flex) <= 1e-7)
+                    and np.all(np.abs(self._actual_flex) <= 1e-7))
         # If no redispatching / flexibility is active, return
-        if (
-            np.all(np.abs(redisp_act_orig) <= 1e-7)
-            and np.all(np.abs(self._target_dispatch) <= 1e-7)
-            and np.all(np.abs(self._actual_dispatch) <= 1e-7)
-            and np.all(np.abs(flex_act_orig) <= 1e-7)
-            and np.all(np.abs(self._target_flex) <= 1e-7)
-            and np.all(np.abs(self._actual_flex) <= 1e-7)
-        ):
+        if disp_cond and not self.flexible_load_available:
+            return valid, except_, info_
+        if disp_cond and flex_cond and self.flexible_load_available:
             return valid, except_, info_
         
         # Check that generator redispatching is consistent with pmin, pmax:
@@ -2018,20 +2019,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             )
             self._target_dispatch -= redisp_act_orig
             return valid, except_, info_
-        
-        # Check that flexible load adjustments are consistent with their size (max consumption):
-        if (self._target_flex > self.load_size).any():
-            # action is invalid, the target redispatching would be above pmax for at least a generator
-            cond_invalid = self._target_dispatch > self.load_size
-            except_ = InvalidFlexibility(
-                "You cannot ask for flexibility greater than load_size [it would be always "
-                "invalid because, even if the setpoint is 0, this dispatch would set it "
-                "to a number higher than the size of the load, which is impossible]. Invalid flexibility for "
-                "loads(s): "
-                "{}".format((cond_invalid).nonzero()[0])
-            )
-            self._target_flex -= flex_act_orig
-            return valid, except_, info_
 
         if (self._target_dispatch < self.gen_pmin - self.gen_pmax).any():
             # action is invalid, the target redispatching would be below pmin for at least a generator
@@ -2045,32 +2032,12 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             )
             self._target_dispatch -= redisp_act_orig
             return valid, except_, info_
-        
-        # Check that flexible load adjustments are consistent with their size (max consumption):
-        if (self._target_flex < -self.load_size).any():
-            # Action is invalid, the target redispatching would be above pmax for at least a generator
-            cond_invalid = self._target_dispatch < -self.load_size
-            except_ = InvalidFlexibility(
-                "You cannot ask for flexibility greater than load_size [it would be always "
-                "invalid because, even if the setpoint is 0, this dispatch would set it "
-                "to a number lower than the size of the load, which is impossible]. Invalid flexibility for "
-                "loads(s): "
-                "{}".format((cond_invalid).nonzero()[0])
-            )
-            self._target_flex -= flex_act_orig
-            return valid, except_, info_
 
         # Can't redispatch turned off generators [turned off generators need to be turned on before redispatching]
         if (redisp_act_orig[np.abs(new_gen_p) <= 1e-7]).any() and self._forbid_dispatch_off:
             # Action is invalid, a generator has been redispatched, but it's turned off
             except_ = InvalidRedispatching("Impossible to dispatch a turned off generator")
             self._target_dispatch -= redisp_act_orig
-            return valid, except_, info_
-        # Can't adjust turned off loads [turned off loads need to be turned on before using their flexibility]
-        if (flex_act_orig[np.abs(new_load_p) <= 1e-7]).any() and self._forbid_flex_off:
-            # Action is invalid, a flexible load has been adjusted, but it's turned off
-            except_ = InvalidFlexibility("Impossible to change a turned off flexible load")
-            self._target_flex -= flex_act_orig
             return valid, except_, info_
         
         if self._forbid_dispatch_off is True:
@@ -2081,14 +2048,51 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                     "INFO: Redispatching of generator canceled because it is off":
                     (redisp_act_orig_cut != redisp_act_orig).nonzero()[0]
                 })
-        if self._forbid_flex_off is True:
-            flex_act_orig_cut = 1.0 * flex_act_orig
-            flex_act_orig_cut[np.abs(new_load_p) <= 1e-7] = 0.0
-            if (flex_act_orig_cut != flex_act_orig).any():
-                info_.append({
-                    "INFO: Use of Flexibility in load cancelled because it is off":
-                    (flex_act_orig_cut != flex_act_orig).nonzero()[0]
-                })
+        
+        # Check that flexible load adjustments are consistent with their size (max consumption):
+        if self.flexible_load_available:
+            if (self._target_flex > self.load_size).any():
+                # Action is invalid, the target flexibility would be above the size of at least one flexible load
+                cond_invalid = self._target_dispatch > self.load_size
+                except_ = InvalidFlexibility(
+                    "You cannot ask for flexibility greater than load_size [it would be always "
+                    "invalid because, even if the setpoint is 0, this dispatch would set it "
+                    "to a number higher than the size of the load, which is impossible]. Invalid flexibility for "
+                    "loads(s): "
+                    "{}".format((cond_invalid).nonzero()[0])
+                )
+                self._target_flex -= flex_act_orig
+                return valid, except_, info_
+            
+            # Check that flexible load adjustments are consistent with their size (max consumption):
+            if (self._target_flex < -self.load_size).any():
+                # Action is invalid, the target redispatching would be above pmax for at least a generator
+                cond_invalid = self._target_dispatch < -self.load_size
+                except_ = InvalidFlexibility(
+                    "You cannot ask for flexibility greater than load_size [it would be always "
+                    "invalid because, even if the setpoint is load_size, this dispatch would set it "
+                    "to a number lower than 0, which is impossible]. Invalid flexibility for "
+                    "loads(s): "
+                    "{}".format((cond_invalid).nonzero()[0])
+                )
+                self._target_flex -= flex_act_orig
+                return valid, except_, info_
+            
+            # Can't adjust turned off loads [turned off loads need to be turned on before using their flexibility]
+            if (flex_act_orig[np.abs(new_load_p) <= 1e-7]).any() and self._forbid_flex_off:
+                # Action is invalid, a flexible load has been adjusted, but it's turned off
+                except_ = InvalidFlexibility("Impossible to change a turned off flexible load")
+                self._target_flex -= flex_act_orig
+                return valid, except_, info_
+            
+            if self._forbid_flex_off is True:
+                flex_act_orig_cut = 1.0 * flex_act_orig
+                flex_act_orig_cut[np.abs(new_load_p) <= 1e-7] = 0.0
+                if (flex_act_orig_cut != flex_act_orig).any():
+                    info_.append({
+                        "INFO: Use of Flexibility in load cancelled because it is off":
+                        (flex_act_orig_cut != flex_act_orig).nonzero()[0]
+                    })
         return valid, except_, info_
 
     def _make_redisp(self, already_modified_gen:np.ndarray, new_gen_p:np.ndarray,
@@ -2103,14 +2107,15 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         valid = True
         redisp_mismatch = np.abs(self._actual_dispatch - self._target_dispatch)
         flex_mismatch = np.abs(self._actual_flex - self._target_flex)
-        if (
-            np.abs((self._actual_dispatch).sum()) >= self._tol_poly
-            or np.abs((self._actual_flex).sum()) >= self._tol_poly
-            or np.max(redisp_mismatch) >= self._tol_poly
-            or np.max(flex_mismatch) >= self._tol_poly
-            or np.abs(self._amount_storage) >= self._tol_poly
-            or np.abs(self._sum_curtailment_mw) >= self._tol_poly
-        ):
+
+        disp_cond = (np.abs((self._actual_dispatch).sum()) >= self._tol_poly or
+                     np.max(redisp_mismatch) >= self._tol_poly or 
+                     np.abs(self._amount_storage) >= self._tol_poly or
+                     np.abs(self._sum_curtailment_mw) >= self._tol_poly)
+        flex_cond = self.flexible_load_available and ((np.abs((self._actual_flex).sum()) >= self._tol_poly or
+                                                       np.max(flex_mismatch) >= self._tol_poly))
+        
+        if (disp_cond or flex_cond):
             except_ = self._compute_dispatch_vect(already_modified_gen, new_gen_p,
                                                   already_modified_load, new_load_p)
             valid = except_ is None
@@ -2393,7 +2398,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         # actions or curtailment actions on the "init state" of the grid
         if self.nb_time_step == 0:
             self._gen_activeprod_t_redisp[:] = new_gen_p
-            self._load_demand_t_flex[:] = new_load_p
+            if self.flexible_load_available:
+                self._load_demand_t_flex[:] = new_load_p
         
         # First define the involved generators / flexible loads
         # these are the generators / loads that will be adjusted
@@ -2403,31 +2409,43 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             | (self._target_dispatch != self._actual_dispatch)
         )
         gen_involved[~self.gen_redispatchable] = False
-
-        load_involved = (
-            (new_load_p > 0.0)
-            | (np.abs(self._actual_flex) >= 1e-7)
-            | (self._target_flex != self._actual_flex)
-        )
-        load_involved[~self.load_flexible] = False
-
         incr_in_gen_chronics = new_gen_p - (self._gen_activeprod_t_redisp - self._actual_dispatch)
-        incr_in_load_chronics = new_load_p - (self._load_demand_t_flex - self._actual_flex)
-
+        
+        if self.flexible_load_available:
+            load_involved = (
+                (new_load_p > 0.0)
+                | (np.abs(self._actual_flex) >= 1e-7)
+                | (self._target_flex != self._actual_flex)
+            )
+            load_involved[~self.load_flexible] = False
+            incr_in_load_chronics = new_load_p - (self._load_demand_t_flex - self._actual_flex)
+        else:
+            load_involved = np.zeros([], dtype=dt_bool)
+            incr_in_load_chronics = np.zeros([], dtype=dt_float)
+            
         # Check if the constraints are violated
         ## Total available "juice" to go down (incl ramping rates, pmin, pmax, and load size)
         p_min_gen_down = (self.gen_pmin[gen_involved] -
                           self._gen_activeprod_t_redisp[gen_involved])
-        p_min_load_down = (0 - self._load_demand_t_flex[load_involved])
         avail_gen_down = np.maximum(p_min_gen_down, -self.gen_max_ramp_down[gen_involved])
-        avail_load_down = np.maximum(p_min_load_down, -self.load_max_ramp_down[load_involved])
+        if self.flexible_load_available:
+            p_min_load_down = (0 - self._load_demand_t_flex[load_involved])
+            avail_load_down = np.maximum(p_min_load_down, -self.load_max_ramp_down[load_involved])
+        else:
+            avail_load_down = np.zeros([], dtype=dt_float)
+        
         ## Total available "juice" to go up (incl ramping rates, pmin, pmax, and load size)
         p_max_gen_up = (self.gen_pmax[gen_involved] -
                         self._gen_activeprod_t_redisp[gen_involved])
-        p_max_load_up = (self.load_size[load_involved] -
-                         self._load_demand_t_flex[load_involved])
+        
         avail_gen_up = np.minimum(p_max_gen_up, self.gen_max_ramp_up[gen_involved])
-        avail_load_up = np.minimum(p_max_load_up, self.load_max_ramp_up[load_involved])
+        if self.flexible_load_available:
+            p_max_load_up = (self.load_size[load_involved] -
+                             self._load_demand_t_flex[load_involved])
+            avail_load_up = np.minimum(p_max_load_up, self.load_max_ramp_up[load_involved])
+        else:
+            avail_load_up = np.zeros([], dtype=dt_float)
+        
         except_ = self._detect_infeasible_dispatch(
             incr_in_gen_chronics[gen_involved], avail_gen_down, avail_gen_up,
             incr_in_load_chronics[load_involved], avail_load_down, avail_load_up
@@ -2443,7 +2461,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                                     self._gen_activeprod_t_redisp[self.gen_redispatchable])
                 avail_gen_up_tmp = np.minimum(p_max_gen_up_tmp,
                                               self.gen_max_ramp_up[self.gen_redispatchable])
-                if self._parameters.ALLOW_FLEX_LOAD_SWITCH_OFF:
+                if self._parameters.ALLOW_FLEX_LOAD_SWITCH_OFF and self.flexible_load_available:
                     p_min_load_down_tmp = (0 - self._load_demand_t_flex[self.load_flexible])
                     avail_load_down_tmp = np.maximum(p_min_load_down_tmp,
                                                     -self.load_max_ramp_down[self.load_flexible])
@@ -2452,8 +2470,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                     avail_load_up_tmp = np.minimum(p_max_load_up_tmp,
                                                   self.load_max_ramp_up[self.load_flexible])
                 else:
-                    avail_load_down_tmp = np.zeros(shape=np.sum(self.load_flexible))
-                    avail_load_up_tmp = np.zeros(shape=np.sum(self.load_flexible))
+                    avail_load_down_tmp = np.zeros([], dtype=dt_float)
+                    avail_load_up_tmp = np.zeros([], dtype=dt_float)
                 except_tmp = self._detect_infeasible_dispatch(
                     incr_in_gen_chronics[self.gen_redispatchable], avail_gen_down_tmp, avail_gen_up_tmp,
                     incr_in_load_chronics[load_involved], avail_load_down_tmp, avail_load_up_tmp
@@ -2463,7 +2481,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                     # generators / flexible loads, do so.
                     # TODO: Logger here
                     gen_involved = self.gen_redispatchable
-                    if self._parameters.ALLOW_FLEX_LOAD_SWITCH_OFF:
+                    if self._parameters.ALLOW_FLEX_LOAD_SWITCH_OFF and self.flexible_load_available:
                         load_involved = self.load_flexible
                     except_ = None
                 else:
@@ -2474,25 +2492,34 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         # Define the objective value
         target_gen_vals = (self._target_dispatch[gen_involved] -
                            self._actual_dispatch[gen_involved])
-        target_load_vals = (self._target_flex[load_involved] -
-                            self._actual_flex[load_involved])
         modded_involved_gens = already_modified_gen[gen_involved]
-        modded_involved_loads = already_modified_load[load_involved]
         target_gen_vals_mi = target_gen_vals[modded_involved_gens]
-        target_load_vals_mi = target_load_vals[modded_involved_loads]
+        if self.flexible_load_available:
+            target_load_vals = (self._target_flex[load_involved] -
+                                self._actual_flex[load_involved])
+            modded_involved_loads = already_modified_load[load_involved]
+            target_load_vals_mi = target_load_vals[modded_involved_loads]
 
         nb_dispatchable = gen_involved.sum()
         nb_flexible = load_involved.sum()
         tmp_zeros = np.zeros((1, nb_dispatchable + nb_flexible), dtype=dt_float)
         gen_coeffs = 1.0 / (self.gen_max_ramp_up +
                             self.gen_max_ramp_down + self._epsilon_poly)
-        load_coeffs = 1.0 / (self.load_max_ramp_up +
-                             self.load_max_ramp_down + self._epsilon_poly)
-        coeffs = np.concatenate((gen_coeffs[gen_involved], load_coeffs[load_involved]))
+        if self.flexible_load_available:
+            load_coeffs = 1.0 / (self.load_max_ramp_up +
+                                 self.load_max_ramp_down + self._epsilon_poly)
+            coeffs = np.concatenate((gen_coeffs[gen_involved], load_coeffs[load_involved]))
+        else:
+            coeffs = gen_coeffs[gen_involved]
         weights = np.ones(nb_dispatchable + nb_flexible) * coeffs
         weights /= weights.sum()
 
-        if target_gen_vals_mi.shape[0] == 0 and target_load_vals_mi.shape[0] == 0:
+        if target_gen_vals_mi.shape[0] == 0 and not self.flexible_load_available:
+            # No dispatch means all dispatchable
+            # Otherwise will never get to 0
+            modded_involved_gens[:] = True
+            target_gen_vals_mi = target_gen_vals[modded_involved_gens]
+        elif target_gen_vals_mi.shape[0] == 0 and target_load_vals_mi.shape[0] == 0 and self.flexible_load_available:
             # No dispatch and flex means all dispatchable and flexible
             # Otherwise will never get to 0
             modded_involved_gens[:] = True
@@ -2504,9 +2531,14 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         # To  also scale the input see:
         # https://stackoverflow.com/questions/11155721/positive-directional-derivative-for-linesearch
         scale_gen_x = max(np.max(np.abs(self._actual_dispatch)), 1.0)
-        scale_load_x = max(np.max(np.abs(self._actual_flex)), 1.0)
-        scale_x = dt_float(max(scale_gen_x, scale_load_x))
-        target_vals_mi = np.concatenate((target_gen_vals_mi, target_load_vals_mi))
+        if self.flexible_load_available:
+            scale_load_x = max(np.max(np.abs(self._actual_flex)), 1.0)
+            # TODO: Seperate scaling for redispatch and flexibility (?)
+            scale_x = dt_float(max(scale_gen_x, scale_load_x))
+            target_vals_mi = np.concatenate((target_gen_vals_mi, target_load_vals_mi))
+        else:
+            scale_x = dt_float(scale_gen_x)
+            target_vals_mi = target_gen_vals_mi
         target_vals_mi_optim =  (1.0 * (target_vals_mi / scale_x)).astype(dt_float)
 
         # See https://stackoverflow.com/questions/11155721/positive-directional-derivative-for-linesearch
@@ -2526,21 +2558,28 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                                   self._amount_storage - self._sum_curtailment_mw)
         # Gen increase in the chronics
         new_gen_p_th = new_gen_p[gen_involved] + self._actual_dispatch[gen_involved]
+        
         # Load increase in the chronics
         new_load_p_th = new_load_p[load_involved] + self._actual_flex[load_involved]
 
         # Minimum value available for dispatch
         ## 1st limit delta because of pmin
         p_min_gen_const = self.gen_pmin[gen_involved] - new_gen_p_th
-        p_min_load_const = 0 - new_load_p_th
-        p_min_const = np.concatenate((p_min_gen_const, p_min_load_const))
-
+        if self.flexible_load_available:
+            p_min_load_const = 0 - new_load_p_th
+            p_min_const = np.concatenate((p_min_gen_const, p_min_load_const))
+        else:
+            p_min_const = p_min_gen_const
+        
         ## 2nd limit delta because of ramping rates
         ramp_gen_down_const = (-self.gen_max_ramp_down[gen_involved] -
-                               incr_in_gen_chronics[gen_involved])
-        ramp_load_down_const = (-self.load_max_ramp_down[load_involved] -
-                                incr_in_load_chronics[load_involved])
-        ramp_down_const = np.concatenate((ramp_gen_down_const, ramp_load_down_const))
+                                incr_in_gen_chronics[gen_involved])
+        if self.flexible_load_available:
+            ramp_load_down_const = (-self.load_max_ramp_down[load_involved] -
+                                     incr_in_load_chronics[load_involved])
+            ramp_down_const = np.concatenate((ramp_gen_down_const, ramp_load_down_const))
+        else:
+            ramp_down_const = ramp_gen_down_const
 
         ## Take the maximum of the 2
         min_disp = np.maximum(p_min_const, ramp_down_const).astype(dt_float)
@@ -2548,16 +2587,22 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         # Maximum value available for dispatch
         ## 1st limit delta because of pmin
         p_max_gen_const = self.gen_pmax[gen_involved] - new_gen_p_th
-        p_max_load_const = self.load_size[load_involved] - new_load_p_th
-        p_max_const = np.concatenate((p_max_gen_const, p_max_load_const))
-
+        if self.flexible_load_available:
+            p_max_load_const = self.load_size[load_involved] - new_load_p_th
+            p_max_const = np.concatenate((p_max_gen_const, p_max_load_const))
+        else:
+            p_max_const = p_max_gen_const
+        
         ## 2nd limit delta because of ramps
         ramp_gen_up_const = (self.gen_max_ramp_up[gen_involved] -
-                         incr_in_gen_chronics[gen_involved])
-        ramp_load_up_const = (self.load_max_ramp_up[load_involved] -
-                         incr_in_load_chronics[load_involved])
-        ramp_up_const = np.concatenate((ramp_gen_up_const, ramp_load_up_const))
-
+                             incr_in_gen_chronics[gen_involved])
+        if self.flexible_load_available:
+            ramp_load_up_const = (self.load_max_ramp_up[load_involved] -
+                                  incr_in_load_chronics[load_involved])
+            ramp_up_const = np.concatenate((ramp_gen_up_const, ramp_load_up_const))
+        else:
+            ramp_up_const = ramp_gen_up_const
+        
         ## Take minimum of the 2
         max_disp = np.minimum(p_max_const, ramp_up_const).astype(dt_float)
 
@@ -2579,24 +2624,31 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         # Desired solution is one where the (sum of the) dispatch is split among 
         # the available generators / flexible loads)
         x0 = np.zeros(nb_dispatchable + nb_flexible)
-        if (((np.abs(self._target_dispatch) >= 1e-7).any() or already_modified_gen.any()) or
-            ((np.abs(self._target_flex) >= 1e-7).any() or already_modified_load.any())):
+        disp_cond = ((np.abs(self._target_dispatch) >= 1e-7).any() or already_modified_gen.any())
+        flex_cond = ((np.abs(self._target_flex) >= 1e-7).any() or already_modified_load.any())
+        if disp_cond or (flex_cond and self.flexible_load_available):
             # Find all dispatched generators or those which have already been modified
             gen_for_x0 = np.abs(self._target_dispatch[gen_involved]) >= 1e-7
             gen_for_x0 |= already_modified_gen[gen_involved]
             # Find all flexible loads or those which have already been modified
-            load_for_x0 = np.abs(self._target_flex[load_involved]) >= 1e-7
-            load_for_x0 |= already_modified_load[load_involved]
-            elts_for_x0 = np.concatenate((gen_for_x0, load_for_x0))
-
+            if self.flexible_load_available:
+                load_for_x0 = np.abs(self._target_flex[load_involved]) >= 1e-7
+                load_for_x0 |= already_modified_load[load_involved]
+                elts_for_x0 = np.concatenate((gen_for_x0, load_for_x0))
+            else:
+                elts_for_x0 = gen_for_x0
+            
             # x0 will be made of the difference between the target and the
             # actual dispatch/flex for all generators/flexible loads that have a
             # non-zero target dispatch/flex.
             gen_mismatch = self._target_dispatch[gen_involved][gen_for_x0] - \
                            self._actual_dispatch[gen_involved][gen_for_x0]
-            load_mismatch = self._target_flex[load_involved][load_for_x0] - \
-                            self._actual_flex[load_involved][load_for_x0]
-            mismatch = np.concatenate((gen_mismatch, load_mismatch))
+            if self.flexible_load_available:
+                load_mismatch = self._target_flex[load_involved][load_for_x0] - \
+                                self._actual_flex[load_involved][load_for_x0]
+                mismatch = np.concatenate((gen_mismatch, load_mismatch))
+            else:
+                mismatch = gen_mismatch
             # Subtitute in initial points for each controllable variable
             x0[elts_for_x0] = mismatch / scale_x
             
@@ -2612,11 +2664,17 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 x0[can_adjust] = -init_sum / (weights[can_adjust] * denom_adjust)
         else:
             # "force" the exact reset to 0.0 for all components
-            dispatch = np.concatenate((self._actual_dispatch[gen_involved],
-                                       self._actual_flex[load_involved]))
+            if self.flexible_load_available:
+                dispatch = np.concatenate((self._actual_dispatch[gen_involved],
+                                           self._actual_flex[load_involved]))
+            else:
+                dispatch = self._actual_dispatch[gen_involved]
             x0 -= dispatch / scale_x
 
-        modded_involved = np.concatenate((modded_involved_gens, modded_involved_loads))
+        if self.flexible_load_available:
+            modded_involved = np.concatenate((modded_involved_gens, modded_involved_loads))
+        else: 
+            modded_involved = modded_involved_gens
 
         def target(actual_dispatchable):
             # Define objective (quadratic)
@@ -2644,8 +2702,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 method="SLSQP",
                 constraints=[equality_const, ineq_const],
                 options={
-                    "eps": max(self._epsilon_poly / scale_gen_x, 1e-6),
-                    "ftol": max(self._epsilon_poly / scale_gen_x, 1e-6),
+                    "eps": max(self._epsilon_poly / scale_x, 1e-6),
+                    "ftol": max(self._epsilon_poly / scale_x, 1e-6),
                     "disp": False,
                 },
                 jac=jac
@@ -2656,8 +2714,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         if res.success:
             optim_gen_dispatch = res.x[0:nb_dispatchable]
             self._actual_dispatch[gen_involved] += optim_gen_dispatch * scale_gen_x
-            optim_load_flex = res.x[nb_dispatchable:]
-            self._actual_flex[load_involved] += optim_load_flex * scale_load_x
+            if self.flexible_load_available:
+                optim_load_flex = res.x[nb_dispatchable:]
+                self._actual_flex[load_involved] += optim_load_flex * scale_load_x
         else:
             # Check if constraints are "approximately" met
             mat_const = np.concatenate((mat_sum_0_no_turn_on, mat_pmin_max_ramps))
@@ -2674,8 +2733,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 # Can tolerate "small" perturbations
                 optim_gen_dispatch = res.x[0:nb_dispatchable]
                 self._actual_dispatch[gen_involved] += optim_gen_dispatch * scale_gen_x
-                optim_load_flex = res.x[nb_dispatchable:]
-                self._actual_flex[load_involved] += optim_load_flex * scale_load_x
+                if self.flexible_load_available:
+                    optim_load_flex = res.x[nb_dispatchable:]
+                    self._actual_flex[load_involved] += optim_load_flex * scale_load_x
             else:
                 # TODO: try with another method here, maybe
                 error_dispatch = (
@@ -2686,7 +2746,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         return except_
 
     def _detect_infeasible_dispatch(self, incr_in_gen_chronics:np.array, avail_gen_down:np.array, avail_gen_up:np.array,
-                                    incr_in_load_chronics:np.array, avail_load_down:np.array, avail_load_up:np.array):
+                                          incr_in_load_chronics:np.array, avail_load_down:np.array, avail_load_up:np.array):
         """
         This function is an attempt to give more detailed logging information by detecting
         infeasible dispatch / flexibility.
@@ -3568,16 +3628,17 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         # same kind of limit for the storage
         res_exc_ = None
         action._redispatch[:] = 0.0
-        action._flexibility[:] = 0.0
         action._storage_power[:] = self._storage_power
         self._backend_action += action
         action._storage_power[:] = action_storage_power
         action._redispatch[:] = init_disp
-        action._flexibility[:] = init_flex
         # TODO storage: check the original action, even when replaced by do nothing is not modified
         self._backend_action += self._env_modification
         self._backend_action.set_redispatch(self._actual_dispatch)
-        self._backend_action.set_flexibility(self._actual_flex)
+        if self.flexible_load_available:
+            action._flexibility[:] = 0.0
+            action._flexibility[:] = init_flex
+            self._backend_action.set_flexibility(self._actual_flex)
         return res_exc_
 
     def _update_alert_properties(self, action, lines_attacked, subs_attacked):
@@ -3678,7 +3739,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         # Extract consumption active value at this time step (should be independent of action class)
         self._load_demand_t[:], *_ = self.backend.loads_info()
-        self._load_demand_t_flex[:] = new_load_p + self._actual_flex
+        if self.flexible_load_available:
+            self._load_demand_t_flex[:] = new_load_p + self._actual_flex
 
         # Set the line status
         self._line_status[:] = copy.deepcopy(self.backend.get_line_status())
@@ -3691,7 +3753,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._time_extract_obs += time.perf_counter() - beg_res
 
     def _backend_next_grid_state(self):
-        """overlaoded in MaskedEnv"""
+        """Overloaded in MaskedEnv"""
         return self.backend.next_grid_state(env=self, is_dc=self._env_dc)
     
     def _aux_run_pf_after_state_properly_set(self, action:BaseAction, init_line_status:np.array,

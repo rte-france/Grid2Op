@@ -1726,7 +1726,7 @@ class Backend(GridObjects, ABC):
         self.load_min_downtime = np.full(self.n_load, fill_value=-1, dtype=dt_int)
         self.load_cost_per_MW = np.full(self.n_load, fill_value=1.0, dtype=dt_float)
 
-        # for redispatching
+        # For flexibility
         fullpath = os.path.join(path, name)
         if not os.path.exists(fullpath):
             return

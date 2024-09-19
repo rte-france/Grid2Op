@@ -600,6 +600,7 @@ class GridObjects:
         bool,
     ]
 
+    # For flexibility / demand response
     _li_attr_flex_load : ClassVar[List[str]] = [
         "load_size",
         "load_flexible",

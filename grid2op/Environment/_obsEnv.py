@@ -405,8 +405,10 @@ class _ObsEnv(BaseEnv):
         )
         self._backend_action_set += new_state_action
         # for storage unit
-        if time_step > 0:
-            self._backend_action_set.storage_power.values[:] = 0.0
+        # TODO: Commented out if-statement as this causes powerflow to 
+        # diverge for time_step == 0 (!)
+        # if time_step > 0:
+        self._backend_action_set.storage_power.values[:] = 0.0
         self._backend_action_set.all_changed()
         self._backend_action = copy.deepcopy(self._backend_action_set)
         
