@@ -743,205 +743,6 @@ class TestActionBase(ABC):
         )
 
     def test_action_str(self):
-        with warnings.catch_warnings(category=DeprecationWarning, action="ignore"):
-            self._skipMissingKey("set_bus")
-            self._skipMissingKey("change_bus")
-
-            arr1 = np.array([False, False, False, True, True, True, True], dtype=dt_bool)
-            arr2 = np.array([1, 1, 2, 2], dtype=dt_int)
-            id_1 = 1
-            id_2 = 12
-            action = self.helper_action(
-                {
-                    "change_bus": {"substations_id": [(id_1, arr1)]},
-                    "set_bus": {"substations_id": [(id_2, arr2)]},
-                }
-            )
-            res = action.__str__()
-            act_str = (
-                "This action will:\n\t - NOT change anything to the injections"
-                "\n\t - NOT perform any redispatching action\n"
-                "\t - NOT perform any flexibility action\n"
-                "\t - NOT modify any storage capacity\n"
-                "\t - NOT perform any curtailment"
-                "\n\t - NOT force any line status\n"
-                "\t - NOT switch any line status"
-                "\n\t - Change the bus of the following element(s):"
-                "\n\t \t - Switch bus of line (origin) id 4 [on substation 1]"
-                "\n\t \t - Switch bus of load id 0 [on substation 1]"
-                "\n\t \t - Switch bus of generator id 1 [on substation 1]"
-                "\n\t \t - Switch bus of storage id 0 [on substation 1]"
-                "\n\t - Set the bus of the following element(s):"
-                "\n\t \t - Assign bus 1 to line (extremity) id 18 [on substation 12]"
-                "\n\t \t - Assign bus 1 to line (origin) id 19 [on substation 12]"
-                "\n\t \t - Assign bus 2 to load id 9 [on substation 12]"
-                "\n\t \t - Assign bus 2 to line (extremity) id 12 [on substation 12]"
-            )
-            assert res == act_str
-
-    def test_to_vect(self):
-        self._skipMissingKey("set_bus")
-        self._skipMissingKey("change_bus")
-
-        arr1 = np.array([False, False, False, True, True, True, False], dtype=dt_bool)
-        arr2 = np.array([1, 1, 2, 2], dtype=dt_int)
-        id_1 = 1
-        id_2 = 12
-
-        action = self.helper_action(
-            {
-                "change_bus": {"substations_id": [(id_1, arr1)]},
-                "set_bus": {"substations_id": [(id_2, arr2)]},
-            }
-        )
-
-        res = action.to_vect()
-        tmp = np.zeros(self.size_act)
-        if "curtail" in action.authorized_keys:
-            # for curtailment, at the end, and by default its -1
-            tmp[-action.n_gen :] = -1
-
-        # compute the "set_bus" vect
-        id_set = np.nonzero(np.array(type(action).attr_list_vect) == "_set_topo_vect")[0][0]
-        size_before = 0
-        for el in type(action).attr_list_vect[:id_set]:
-            arr_ = action._get_array_from_attr_name(el)
-            size_before += arr_.shape[0]
-        tmp[size_before : (size_before + action.dim_topo)] = np.array(
-            [
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                1,
-                1,
-                2,
-                2,
-                0,
-                0,
-                0,
-            ]
-        )
-        id_change = np.nonzero(np.array(type(action).attr_list_vect) == "_change_bus_vect")[0][
-            0
-        ]
-        size_before = 0
-        for el in type(action).attr_list_vect[:id_change]:
-            arr_ = action._get_array_from_attr_name(el)
-            size_before += arr_.shape[0]
-        tmp[size_before : (size_before + action.dim_topo)] = 1.0 * np.array(
-            [
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                True,
-                True,
-                True,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-            ]
-        )
-        assert np.all(res[np.isfinite(tmp)] == tmp[np.isfinite(tmp)])
-        assert np.all(np.isfinite(res) == np.isfinite(tmp))
-
-    def test__eq__(self):
         self._skipMissingKey("set_bus")
         self._skipMissingKey("change_bus")
 
@@ -949,22 +750,220 @@ class TestActionBase(ABC):
         arr2 = np.array([1, 1, 2, 2], dtype=dt_int)
         id_1 = 1
         id_2 = 12
-        action1 = self.helper_action(
+        action = self.helper_action(
             {
                 "change_bus": {"substations_id": [(id_1, arr1)]},
                 "set_bus": {"substations_id": [(id_2, arr2)]},
             }
         )
-        action2 = self.helper_action(
-            {
-                "change_bus": {"substations_id": [(id_1, arr1)]},
-                "set_bus": {"substations_id": [(id_2, arr2)]},
-            }
+        res = action.__str__()
+        act_str = (
+            "This action will:\n\t - NOT change anything to the injections"
+            "\n\t - NOT perform any redispatching action\n"
+            "\t - NOT perform any flexibility action\n"
+            "\t - NOT modify any storage capacity\n"
+            "\t - NOT perform any curtailment"
+            "\n\t - NOT force any line status\n"
+            "\t - NOT switch any line status"
+            "\n\t - Change the bus of the following element(s):"
+            "\n\t \t - Switch bus of line (origin) id 4 [on substation 1]"
+            "\n\t \t - Switch bus of load id 0 [on substation 1]"
+            "\n\t \t - Switch bus of generator id 1 [on substation 1]"
+            "\n\t \t - Switch bus of storage id 0 [on substation 1]"
+            "\n\t - Set the bus of the following element(s):"
+            "\n\t \t - Assign bus 1 to line (extremity) id 18 [on substation 12]"
+            "\n\t \t - Assign bus 1 to line (origin) id 19 [on substation 12]"
+            "\n\t \t - Assign bus 2 to load id 9 [on substation 12]"
+            "\n\t \t - Assign bus 2 to line (extremity) id 12 [on substation 12]"
         )
-        action3 = self.helper_action()
-        test = type(action1).assert_grid_correct_cls()
-        assert action1 == action2
-        assert action1 != action3
+        assert res == act_str
+
+def test_to_vect(self):
+    self._skipMissingKey("set_bus")
+    self._skipMissingKey("change_bus")
+
+    arr1 = np.array([False, False, False, True, True, True, False], dtype=dt_bool)
+    arr2 = np.array([1, 1, 2, 2], dtype=dt_int)
+    id_1 = 1
+    id_2 = 12
+
+    action = self.helper_action(
+        {
+            "change_bus": {"substations_id": [(id_1, arr1)]},
+            "set_bus": {"substations_id": [(id_2, arr2)]},
+        }
+    )
+
+    res = action.to_vect()
+    tmp = np.zeros(self.size_act)
+    if "curtail" in action.authorized_keys:
+        # for curtailment, at the end, and by default its -1
+        tmp[-action.n_gen :] = -1
+
+    # compute the "set_bus" vect
+    id_set = np.nonzero(np.array(type(action).attr_list_vect) == "_set_topo_vect")[0][0]
+    size_before = 0
+    for el in type(action).attr_list_vect[:id_set]:
+        arr_ = action._get_array_from_attr_name(el)
+        size_before += arr_.shape[0]
+    tmp[size_before : (size_before + action.dim_topo)] = np.array(
+        [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1,
+            1,
+            2,
+            2,
+            0,
+            0,
+            0,
+        ]
+    )
+    id_change = np.nonzero(np.array(type(action).attr_list_vect) == "_change_bus_vect")[0][
+        0
+    ]
+    size_before = 0
+    for el in type(action).attr_list_vect[:id_change]:
+        arr_ = action._get_array_from_attr_name(el)
+        size_before += arr_.shape[0]
+    tmp[size_before : (size_before + action.dim_topo)] = 1.0 * np.array(
+        [
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            True,
+            True,
+            True,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+        ]
+    )
+    assert np.all(res[np.isfinite(tmp)] == tmp[np.isfinite(tmp)])
+    assert np.all(np.isfinite(res) == np.isfinite(tmp))
+
+def test__eq__(self):
+    self._skipMissingKey("set_bus")
+    self._skipMissingKey("change_bus")
+
+    arr1 = np.array([False, False, False, True, True, True, True], dtype=dt_bool)
+    arr2 = np.array([1, 1, 2, 2], dtype=dt_int)
+    id_1 = 1
+    id_2 = 12
+    action1 = self.helper_action(
+        {
+            "change_bus": {"substations_id": [(id_1, arr1)]},
+            "set_bus": {"substations_id": [(id_2, arr2)]},
+        }
+    )
+    action2 = self.helper_action(
+        {
+            "change_bus": {"substations_id": [(id_1, arr1)]},
+            "set_bus": {"substations_id": [(id_2, arr2)]},
+        }
+    )
+    action3 = self.helper_action()
+    test = type(action1).assert_grid_correct_cls()
+    assert action1 == action2
+    assert action1 != action3
 
     def test_from_vect_dn(self):
         action1 = self.helper_action({})
@@ -1128,88 +1127,87 @@ class TestActionBase(ABC):
         assert np.all(np.isfinite(vect_act1) == np.isfinite(vect_act2))
 
     def test_call_change_set(self):
-        with warnings.catch_warnings(category=DeprecationWarning, action="ignore"):
-            self._skipMissingKey("set_bus")
-            self._skipMissingKey("change_bus")
-            self._skipMissingKey("set_line_status")
-            self._skipMissingKey("change_line_status")
-            self._skipMissingKey("injection")
+        self._skipMissingKey("set_bus")
+        self._skipMissingKey("change_bus")
+        self._skipMissingKey("set_line_status")
+        self._skipMissingKey("change_line_status")
+        self._skipMissingKey("injection")
 
-            arr1 = np.array([False, False, False, True, True, True, True], dtype=dt_bool)
-            arr2 = np.array([1, 1, 2, 2], dtype=dt_int)
-            id_1 = 1
-            id_2 = 12
-            new_vect = np.random.randn(self.helper_action.n_load).astype(dt_int)
-            new_vect2 = np.random.randn(self.helper_action.n_load).astype(dt_int)
+        arr1 = np.array([False, False, False, True, True, True, True], dtype=dt_bool)
+        arr2 = np.array([1, 1, 2, 2], dtype=dt_int)
+        id_1 = 1
+        id_2 = 12
+        new_vect = np.random.randn(self.helper_action.n_load).astype(dt_int)
+        new_vect2 = np.random.randn(self.helper_action.n_load).astype(dt_int)
 
-            change_status_orig = np.random.randint(0, 2, self.helper_action.n_line).astype(
-                dt_bool
-            )
-            set_status_orig = np.random.randint(-1, 2, self.helper_action.n_line)
-            set_status_orig[change_status_orig] = 0
+        change_status_orig = np.random.randint(0, 2, self.helper_action.n_line).astype(
+            dt_bool
+        )
+        set_status_orig = np.random.randint(-1, 2, self.helper_action.n_line)
+        set_status_orig[change_status_orig] = 0
 
-            change_topo_vect_orig = np.random.randint(
-                0, 2, self.helper_action.dim_topo
-            ).astype(dt_bool)
-            # powerline that are set to be reconnected, can't be moved to another bus
-            change_topo_vect_orig[
-                self.helper_action.line_or_pos_topo_vect[set_status_orig == 1]
-            ] = False
-            change_topo_vect_orig[
-                self.helper_action.line_ex_pos_topo_vect[set_status_orig == 1]
-            ] = False
-            # powerline that are disconnected, can't be moved to the other bus
-            change_topo_vect_orig[
-                self.helper_action.line_or_pos_topo_vect[set_status_orig == -1]
-            ] = False
-            change_topo_vect_orig[
-                self.helper_action.line_ex_pos_topo_vect[set_status_orig == -1]
-            ] = False
+        change_topo_vect_orig = np.random.randint(
+            0, 2, self.helper_action.dim_topo
+        ).astype(dt_bool)
+        # powerline that are set to be reconnected, can't be moved to another bus
+        change_topo_vect_orig[
+            self.helper_action.line_or_pos_topo_vect[set_status_orig == 1]
+        ] = False
+        change_topo_vect_orig[
+            self.helper_action.line_ex_pos_topo_vect[set_status_orig == 1]
+        ] = False
+        # powerline that are disconnected, can't be moved to the other bus
+        change_topo_vect_orig[
+            self.helper_action.line_or_pos_topo_vect[set_status_orig == -1]
+        ] = False
+        change_topo_vect_orig[
+            self.helper_action.line_ex_pos_topo_vect[set_status_orig == -1]
+        ] = False
 
-            set_topo_vect_orig = np.random.randint(0, 3, self.helper_action.dim_topo)
-            set_topo_vect_orig[change_topo_vect_orig] = 0  # don't both change and set
-            # I need to make sure powerlines that are reconnected are indeed reconnected to a bus
-            set_topo_vect_orig[
-                self.helper_action.line_or_pos_topo_vect[set_status_orig == 1]
-            ] = 1
-            set_topo_vect_orig[
-                self.helper_action.line_ex_pos_topo_vect[set_status_orig == 1]
-            ] = 1
-            # I need to make sure powerlines that are disconnected are not assigned to a bus
-            set_topo_vect_orig[
-                self.helper_action.line_or_pos_topo_vect[set_status_orig == -1]
-            ] = 0
-            set_topo_vect_orig[
-                self.helper_action.line_ex_pos_topo_vect[set_status_orig == -1]
-            ] = 0
+        set_topo_vect_orig = np.random.randint(0, 3, self.helper_action.dim_topo)
+        set_topo_vect_orig[change_topo_vect_orig] = 0  # don't both change and set
+        # I need to make sure powerlines that are reconnected are indeed reconnected to a bus
+        set_topo_vect_orig[
+            self.helper_action.line_or_pos_topo_vect[set_status_orig == 1]
+        ] = 1
+        set_topo_vect_orig[
+            self.helper_action.line_ex_pos_topo_vect[set_status_orig == 1]
+        ] = 1
+        # I need to make sure powerlines that are disconnected are not assigned to a bus
+        set_topo_vect_orig[
+            self.helper_action.line_or_pos_topo_vect[set_status_orig == -1]
+        ] = 0
+        set_topo_vect_orig[
+            self.helper_action.line_ex_pos_topo_vect[set_status_orig == -1]
+        ] = 0
 
-            action = self.helper_action(
-                {
-                    "change_bus": change_topo_vect_orig,
-                    "set_bus": set_topo_vect_orig,
-                    "injection": {"load_p": new_vect, "load_q": new_vect2},
-                    "change_line_status": change_status_orig,
-                    "set_line_status": set_status_orig,
-                }
-            )
-            (
-                dict_injection,
-                set_status,
-                change_status,
-                set_topo_vect,
-                switch_topo_vect,
-                *_
-            ) = action()
+        action = self.helper_action(
+            {
+                "change_bus": change_topo_vect_orig,
+                "set_bus": set_topo_vect_orig,
+                "injection": {"load_p": new_vect, "load_q": new_vect2},
+                "change_line_status": change_status_orig,
+                "set_line_status": set_status_orig,
+            }
+        )
+        (
+            dict_injection,
+            set_status,
+            change_status,
+            set_topo_vect,
+            switch_topo_vect,
+            *_
+        ) = action()
 
-            assert "load_p" in dict_injection
-            assert np.all(dict_injection["load_p"] == new_vect)
-            assert "load_q" in dict_injection
-            assert np.all(dict_injection["load_q"] == new_vect2)
+        assert "load_p" in dict_injection
+        assert np.all(dict_injection["load_p"] == new_vect)
+        assert "load_q" in dict_injection
+        assert np.all(dict_injection["load_q"] == new_vect2)
 
-            assert np.all(set_status == set_status_orig)
-            assert np.all(change_status == change_status_orig)
-            assert np.all(set_topo_vect == set_topo_vect_orig)
-            assert np.all(switch_topo_vect == change_topo_vect_orig)
+        assert np.all(set_status == set_status_orig)
+        assert np.all(change_status == change_status_orig)
+        assert np.all(set_topo_vect == set_topo_vect_orig)
+        assert np.all(switch_topo_vect == change_topo_vect_orig)
 
     def test_get_topological_impact(self):
         self._skipMissingKey("set_bus")

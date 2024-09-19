@@ -171,13 +171,14 @@ class TestMaskedEnvironmentGym(unittest.TestCase):
     
     def test_gym_with_step(self):
         """test the step function also disconnects (or not) the lines"""
-        env_gym_in = GymEnv(self.env_in)
-        env_gym_out = GymEnv(self.env_out)
-        act = {}
-        self._aux_run_envs(act, env_gym_in, env_gym_out)
-        env_gym_in.reset()
-        env_gym_out.reset()
-        self._aux_run_envs(act, env_gym_in, env_gym_out)
+        with warnings.catch_warnings(category=DeprecationWarning, action="ignore"):
+            env_gym_in = GymEnv(self.env_in)
+            env_gym_out = GymEnv(self.env_out)
+            act = {}
+            self._aux_run_envs(act, env_gym_in, env_gym_out)
+            env_gym_in.reset()
+            env_gym_out.reset()
+            self._aux_run_envs(act, env_gym_in, env_gym_out)
             
     def test_gym_normal(self):
         """test I can create the gym env"""

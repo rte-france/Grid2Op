@@ -182,7 +182,7 @@ class TestL2RPN_CASE14_SANDBOX(unittest.TestCase):
 
     def test_observation_space(self):
         assert issubclass(self.env.observation_space.subtype, CompleteObservation)
-        size_th = 467
+        size_th = 489
         assert self.env.observation_space.n == size_th, (
             f"obs space size is {self.env.observation_space.n}," f"should be {size_th}"
         )
@@ -226,7 +226,7 @@ class TestEDUC_CASE14_REDISP(unittest.TestCase):
 
     def test_observation_space(self):
         assert issubclass(self.env.observation_space.subtype, CompleteObservation)
-        size_th = 467
+        size_th = 489
         assert self.env.observation_space.n == size_th, (
             f"obs space size is {self.env.observation_space.n}," f"should be {size_th}"
         )
@@ -270,7 +270,7 @@ class TestEDUC_STORAGE(unittest.TestCase):
 
     def test_observation_space(self):
         assert issubclass(self.env.observation_space.subtype, CompleteObservation)
-        size_th = 475
+        size_th = 497
         assert self.env.observation_space.n == size_th, (
             f"obs space size is {self.env.observation_space.n}," f"should be {size_th}"
         )

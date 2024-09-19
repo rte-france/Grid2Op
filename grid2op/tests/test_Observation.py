@@ -2075,25 +2075,24 @@ class TestBasisObsBehaviour(unittest.TestCase):
         assert np.all(shapes == self.shapes)
 
     def test_4_to_from_vect(self):
-        with warnings.catch_warnings(category=DeprecationWarning, action="ignore"):
-            # test that helper_obs is able to generate a valid observation
-            obs = self.env.observation_space(self.env)
-            obs2 = self.env.observation_space(self.env)
-            vect = obs.to_vect()
-            assert vect.shape[0] == obs.size()
-            obs2.reset()
-            obs2.from_vect(vect)
-            assert np.all(obs.dtypes() == self.dtypes)
-            assert np.all(obs.shapes() == self.shapes)
+        # test that helper_obs is able to generate a valid observation
+        obs = self.env.observation_space(self.env)
+        obs2 = self.env.observation_space(self.env)
+        vect = obs.to_vect()
+        assert vect.shape[0] == obs.size()
+        obs2.reset()
+        obs2.from_vect(vect)
+        assert np.all(obs.dtypes() == self.dtypes)
+        assert np.all(obs.shapes() == self.shapes)
 
-            # TODO: There is no reason that these 2 are equal: reset, will erase everything
-            # TODO: whereas creating the observation
-            # assert obs == obs2
-            obs_diff, attr_diff = obs.where_different(obs2)
-            for el in attr_diff:
-                assert el in obs.attr_list_json, f"{el} should be equal in obs and obs2"
-            vect2 = obs2.to_vect()
-            assert np.all(vect == vect2)
+        # TODO: There is no reason that these 2 are equal: reset, will erase everything
+        # TODO: whereas creating the observation
+        # assert obs == obs2
+        obs_diff, attr_diff = obs.where_different(obs2)
+        for el in attr_diff:
+            assert el in obs.attr_list_json, f"{el} should be equal in obs and obs2"
+        vect2 = obs2.to_vect()
+        assert np.all(vect == vect2)
 
     def test_5_simulate_proper_timestep(self):
         self.skipTest(
@@ -2209,30 +2208,29 @@ class TestBasisObsBehaviour(unittest.TestCase):
         assert dict_["nb_elements"] == 6
 
     def test_space_to_dict(self):
-        with warnings.catch_warnings(category=DeprecationWarning, action="ignore"):
-            dict_ = self.env.observation_space.cls_to_dict()
-            for el in dict_:
-                assert el in self.dict_, f"missing key {el} in self.dict_"
-            for el in self.dict_:
-                assert el in dict_, f"missing key {el} in dict_"
-                
-            for el in self.dict_:
-                val = dict_[el]
-                val_res = self.dict_[el]
-                if val is None and val_res is not None:
-                    raise AssertionError(f"{el}: val is None and val_res is not None: val_res: {val_res}")
-                if val is not None and val_res is None:
-                    raise AssertionError(f"{el}: val is not None and val_res is None: val {val}")
-                if val is None and val_res is None:
-                    continue
-                
-                ok_ = np.array_equal(val, val_res)
-                assert ok_, (f"values different for {el}: "
-                            f"{dict_[el]} vs "
-                            f"{self.dict_[el]}")
-                
-            # self.maxDiff = None
-            # self.assertDictEqual(dict_, self.dict_)
+        dict_ = self.env.observation_space.cls_to_dict()
+        for el in dict_:
+            assert el in self.dict_, f"missing key {el} in self.dict_"
+        for el in self.dict_:
+            assert el in dict_, f"missing key {el} in dict_"
+            
+        for el in self.dict_:
+            val = dict_[el]
+            val_res = self.dict_[el]
+            if val is None and val_res is not None:
+                raise AssertionError(f"{el}: val is None and val_res is not None: val_res: {val_res}")
+            if val is not None and val_res is None:
+                raise AssertionError(f"{el}: val is not None and val_res is None: val {val}")
+            if val is None and val_res is None:
+                continue
+            
+            ok_ = np.array_equal(val, val_res)
+            assert ok_, (f"values different for {el}: "
+                        f"{dict_[el]} vs "
+                        f"{self.dict_[el]}")
+            
+        # self.maxDiff = None
+        # self.assertDictEqual(dict_, self.dict_)
 
     def test_from_dict(self):
         res = ObservationSpace.from_dict(self.dict_)
@@ -2323,32 +2321,31 @@ class TestBasisObsBehaviour(unittest.TestCase):
 
     def test_to_from_json(self):
         """test the to_json, and from_json and make sure these are all  json serializable"""
-        with warnings.catch_warnings(category=DeprecationWarning, action="ignore"):
-            obs = self.env.observation_space(self.env)
-            obs2 = self.env.observation_space(self.env)
-            dict_ = obs.to_json()
+        obs = self.env.observation_space(self.env)
+        obs2 = self.env.observation_space(self.env)
+        dict_ = obs.to_json()
 
-            # test that the right dictionary is returned
-            for k in dict_:
-                assert (
-                    dict_[k] == self.json_ref[k]
-                ), f"error for key {k} (in dict_): {dict_[k]} vs {self.json_ref[k]} "
-            for k in self.json_ref:
-                assert dict_[k] == self.json_ref[k], f"error for key {k} (in self.json_ref)"
-            self.assertDictEqual(dict_, self.json_ref)
+        # test that the right dictionary is returned
+        for k in dict_:
+            assert (
+                dict_[k] == self.json_ref[k]
+            ), f"error for key {k} (in dict_): {dict_[k]} vs {self.json_ref[k]} "
+        for k in self.json_ref:
+            assert dict_[k] == self.json_ref[k], f"error for key {k} (in self.json_ref)"
+        self.assertDictEqual(dict_, self.json_ref)
 
-            with tempfile.TemporaryDirectory() as tmpdirname:
-                # test i can save it (json serializable)
-                with open(os.path.join(tmpdirname, "test.json"), "w") as fp:
-                    json.dump(obj=dict_, fp=fp)
-                # test i can properly load it back
-                with open(os.path.join(tmpdirname, "test.json"), "r") as fp:
-                    dict_realoaded = json.load(fp=fp)
-            assert dict_realoaded == dict_
-            # test i can initialize an observation from it
-            obs2.reset()
-            obs2.from_json(dict_realoaded)
-            assert obs == obs2
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            # test i can save it (json serializable)
+            with open(os.path.join(tmpdirname, "test.json"), "w") as fp:
+                json.dump(obj=dict_, fp=fp)
+            # test i can properly load it back
+            with open(os.path.join(tmpdirname, "test.json"), "r") as fp:
+                dict_realoaded = json.load(fp=fp)
+        assert dict_realoaded == dict_
+        # test i can initialize an observation from it
+        obs2.reset()
+        obs2.from_json(dict_realoaded)
+        assert obs == obs2
 
 
 class TestUpdateEnvironement(unittest.TestCase):
@@ -2592,22 +2589,21 @@ class TestSimulateEqualsStep(unittest.TestCase):
             raise AssertionError(f"Following attributes are different: {attr_diff}")
 
     def test_redispatch(self):
-        with warnings.catch_warnings(category=DeprecationWarning, action="ignore"):
-            if DEACTIVATE_FAILING_TEST:
-                return
-            # Find first redispatchable generator
-            gen_id = next((i for i, j in enumerate(self.obs.gen_redispatchable) if j), None)
-            # Create valid ramp up
-            redisp_val = self.obs.gen_max_ramp_up[gen_id] / 2.0
-            # Create redispatch action
-            redisp_act = self.env.action_space({"redispatch": [(gen_id, redisp_val)]})
-            # Simulate & Step
-            self.sim_obs, _, _, _ = self.obs.simulate(redisp_act)
-            self.step_obs, _, _, _ = self.env.step(redisp_act)
-            # Test observations are the same
-            if self.sim_obs != self.step_obs:
-                diff_, attr_diff = self.sim_obs.where_different(self.step_obs)
-                raise AssertionError(f"Following attributes are different: {attr_diff}")
+        if DEACTIVATE_FAILING_TEST:
+            return
+        # Find first redispatchable generator
+        gen_id = next((i for i, j in enumerate(self.obs.gen_redispatchable) if j), None)
+        # Create valid ramp up
+        redisp_val = self.obs.gen_max_ramp_up[gen_id] / 2.0
+        # Create redispatch action
+        redisp_act = self.env.action_space({"redispatch": [(gen_id, redisp_val)]})
+        # Simulate & Step
+        self.sim_obs, _, _, _ = self.obs.simulate(redisp_act)
+        self.step_obs, _, _, _ = self.env.step(redisp_act)
+        # Test observations are the same
+        if self.sim_obs != self.step_obs:
+            diff_, attr_diff = self.sim_obs.where_different(self.step_obs)
+            raise AssertionError(f"Following attributes are different: {attr_diff}")
 
     def test_change_simulate_reward(self):
         """test the env.observation_space.change_other_reward function"""
@@ -2928,27 +2924,26 @@ class TestSimulateEqualsStep(unittest.TestCase):
         ), "issue with storage_power"
 
     def test_simulate_current_ts(self):
-        with warnings.catch_warnings(category=DeprecationWarning, action="ignore"):
-            sim_obs, _, _, _ = self.obs.simulate(self.env.action_space(), time_step=0)
-            # check that the observations are equal
-            self._check_equal(sim_obs, self.obs)
+        sim_obs, _, _, _ = self.obs.simulate(self.env.action_space(), time_step=0)
+        # check that the observations are equal
+        self._check_equal(sim_obs, self.obs)
 
-            with warnings.catch_warnings():
-                warnings.filterwarnings("ignore")
-                obs = self.env.reset()
-            sim_obs1, rew1, done1, _ = obs.simulate(
-                self.env.action_space.disconnect_powerline(line_id=2)
-            )
-            sim_obs2, rew2, done2, _ = obs.simulate(self.env.action_space(), time_step=0)
-            sim_obs3, rew3, done3, _ = obs.simulate(
-                self.env.action_space.disconnect_powerline(line_id=2)
-            )
-            assert not done1
-            assert not done2
-            assert not done3
-            self._check_equal(sim_obs2, obs)
-            assert abs(rew1 - rew3) <= 1e-8, "issue with reward"
-            self._check_equal(sim_obs1, sim_obs3)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            obs = self.env.reset()
+        sim_obs1, rew1, done1, _ = obs.simulate(
+            self.env.action_space.disconnect_powerline(line_id=2)
+        )
+        sim_obs2, rew2, done2, _ = obs.simulate(self.env.action_space(), time_step=0)
+        sim_obs3, rew3, done3, _ = obs.simulate(
+            self.env.action_space.disconnect_powerline(line_id=2)
+        )
+        assert not done1
+        assert not done2
+        assert not done3
+        self._check_equal(sim_obs2, obs)
+        assert abs(rew1 - rew3) <= 1e-8, "issue with reward"
+        self._check_equal(sim_obs1, sim_obs3)
 
     def test_nb_step(self):
         with warnings.catch_warnings():
