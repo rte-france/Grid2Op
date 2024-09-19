@@ -4076,18 +4076,18 @@ class GridObjects:
                     res[nm_attr] = None
             
             # Flexibility
-            if cls.flexible_load_available:
-                for nm_attr, type_attr in zip(cls._li_attr_flex_load, cls._type_attr_flex_load):
-                    save_to_dict(
-                        res,
-                        cls,
-                        nm_attr,
-                        (lambda li: [type_attr(el) for el in li]) if as_list else None,
-                        copy_,
-                    )
-            else:
-                for nm_attr in cls._li_attr_flex_load:
-                    res[nm_attr] = None
+            # if cls.flexible_load_available:
+            for nm_attr, type_attr in zip(cls._li_attr_flex_load, cls._type_attr_flex_load):
+                save_to_dict(
+                    res,
+                    cls,
+                    nm_attr,
+                    (lambda li: [type_attr(el) for el in li]) if as_list else None,
+                    copy_,
+                )
+            # else:
+            #     for nm_attr in cls._li_attr_flex_load:
+            #         res[nm_attr] = None
 
             # Layout (position of substation on a map of the grid)
             if cls.grid_layout is not None:
