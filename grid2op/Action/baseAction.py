@@ -841,6 +841,18 @@ class BaseAction(GridObjects):
             cls.attr_list_vect.remove("_curtail")
 
     @classmethod
+    def _aux_process_pre_flexibility(cls):
+        super()._aux_process_pre_flexibility()
+        # Ensures base types are unaffected
+        cls.authorized_keys = copy.deepcopy(cls.authorized_keys)
+        cls.attr_list_vect = copy.deepcopy(cls.attr_list_vect)
+        if "flexibility" in cls.authorized_keys:
+            cls.authorized_keys.remove("flexibility")
+        if "_flexibility" in cls.attr_list_vect:
+            cls.attr_list_vect.remove("_flexibility")
+            cls.attr_list_set = set(cls.attr_list_vect)
+    
+    @classmethod
     def _aux_process_n_busbar_per_sub(cls):
         cls.authorized_keys = copy.deepcopy(cls.authorized_keys)
         cls.attr_list_vect = copy.deepcopy(cls.attr_list_vect)
@@ -866,6 +878,9 @@ class BaseAction(GridObjects):
         if glop_ver < version.parse("1.9.1"):
             # this feature did not exist before.
             cls.dim_alerts = 0
+
+        if glop_ver < version.parse("1.10.4dev"):
+            cls._aux_process_pre_flexibility()
 
         if (cls.n_busbar_per_sub >= 3) or (cls.n_busbar_per_sub == 1):
             # only relevant for grid2op >= 1.10.0

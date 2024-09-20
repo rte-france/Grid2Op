@@ -3226,6 +3226,7 @@ class GridObjects:
             # Flexibility did not exist before
             # Affects shape of vector representation 
             cls.flexible_load_available = False
+            cls._aux_process_pre_flexibility()
             res = True
             
         if res:
@@ -3292,6 +3293,23 @@ class GridObjects:
         cls._aux_fix_topo_vect_removed_storage()
         # deactivate storage
         cls.set_no_storage()
+
+    @classmethod
+    def _aux_process_pre_flexibility(cls):
+        # Remove flexibility
+        flex_attrs = ["load_size", "load_flexible", 
+                      "load_max_ramp_up", "load_max_ramp_down",
+                      "load_min_uptime", "load_min_downtime",
+                      "load_cost_per_MW"]
+        for flex_attr in flex_attrs:
+            if hasattr(cls, flex_attr):
+                setattr(cls, flex_attr, np.zeros([]))
+        if cls.attr_list_vect is not None:
+            if "actual_flex" in cls.attr_list_vect:
+                cls.attr_list_vect.remove("actual_flex")
+            if "target_flex" in cls.attr_list_vect:
+                cls.attr_list_vect.remove("target_flex")
+            cls.attr_list_set = set(cls.attr_list_vect)
             
     @classmethod
     def get_obj_connect_to(cls, _sentinel=None, substation_id=None):
