@@ -270,9 +270,10 @@ class TestEDUC_STORAGE(unittest.TestCase):
 
     def test_observation_space(self):
         assert issubclass(self.env.observation_space.subtype, CompleteObservation)
-        size_th = 497
-        assert self.env.observation_space.n == size_th, (
-            f"obs space size is {self.env.observation_space.n}," f"should be {size_th}"
+        size_th_old = 475 # < 1.10.4
+        size_th_new = 497 # >= 1.10.4
+        assert self.env.observation_space.n == size_th_old or self.env.observation_space.n == size_th_new, (
+            f"obs space size is {self.env.observation_space.n}," f"should be {size_th_old} or {size_th_new}"
         )
 
     def test_random_action(self):
