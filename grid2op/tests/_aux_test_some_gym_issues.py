@@ -10,6 +10,9 @@
 """put at the same place some test for gym, mainly to run them in a single command"""
 
 import unittest
+import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).parent))
 
 from test_issue_185 import Issue185Tester
 from test_issue_196 import Issue196Tester
