@@ -1197,6 +1197,25 @@ class BaseObservation(GridObjects):
             except ValueError as exc_:
                 # this attribute was not there in the first place
                 pass 
+
+    @classmethod
+    def _aux_process_grid2op_compat_1104(cls):
+        cls.attr_list_vect = copy.deepcopy(cls.attr_list_vect)
+
+        for el in [
+            "load_size",
+            "load_flexible",
+            "load_max_ramp_up",
+            "load_max_ramp_down",
+            "load_min_uptime",
+            "load_min_downtime",
+            "load_cost_per_MW",
+        ]:
+            try:
+                cls.attr_list_vect.remove(el)
+            except ValueError as exc_:
+                # this attribute was not there in the first place
+                pass 
         
     @classmethod
     def process_grid2op_compat(cls) -> None:
@@ -1226,6 +1245,10 @@ class BaseObservation(GridObjects):
         if glop_ver < version.parse("1.9.1"):
             # alert attributes have been added in 1.9.1
             cls._aux_process_grid2op_compat_191()
+
+        if glop_ver < version.parse("1.10.4"):
+            # flexibility attributes addded in 1.10.4
+            cls._aux_process_grid2op_compat_1104()
             
         cls.attr_list_set = copy.deepcopy(cls.attr_list_set)
         cls.attr_list_set = set(cls.attr_list_vect)

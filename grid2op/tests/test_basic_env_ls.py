@@ -150,81 +150,82 @@ class TestBasicEnvironmentRunner(unittest.TestCase):
                 assert not obs_in.line_status[self.line_id], f"error for step {i}: line is not disconnected"
                 
     def test_backward_compatibility(self):
-        # TODO copy paste from test_Runner
-        backward_comp_version = [
-            "1.6.4",  # minimum version for lightsim2grid
-            "1.6.5",
-            "1.7.0",
-            "1.7.1",
-            "1.7.2",
-            "1.8.1",
-            # "1.9.0",  # this one is bugy I don"t know why
-            "1.9.1",
-            "1.9.2",
-            "1.9.3",
-            "1.9.4",
-            "1.9.5",
-            "1.9.6",
-            "1.9.7",
-            "1.9.8",
-            "1.10.0",
-            "1.10.1",
-        ]
-        # first check a normal run
-        curr_version = "test_version"
-        PATH_PREVIOUS_RUNNER = os.path.join(data_test_dir, "runner_data")
-        assert (
-            "curtailment" in CompleteObservation.attr_list_vect
-        ), "error at the beginning"
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore")
-            with grid2op.make(
-                "rte_case5_example", test=True,
-                _add_to_name=type(self).__name__,
-                backend=LightSimBackend()
-            ) as env, tempfile.TemporaryDirectory() as path:
-                runner = Runner(**env.get_params_for_runner(), agentClass=RandomAgent)
-                runner.run(
-                    nb_episode=2,
-                    path_save=os.path.join(path, curr_version),
-                    pbar=False,
-                    max_iter=100,
-                    env_seeds=[1, 0],
-                    agent_seeds=[42, 69],
-                )
-                # check that i can read this data generate for this runner
-                try:
-                    self._aux_backward(path, curr_version, curr_version)
-                except Exception as exc_:
-                    raise RuntimeError(f"error for {curr_version}") from exc_
-        assert (
-            "curtailment" in CompleteObservation.attr_list_vect
-        ), "error after the first runner"
-
-        # check that it raises a warning if loaded on the compatibility version
-        grid2op_version = backward_comp_version[0]
-        with self.assertWarns(UserWarning, msg=f"error for {grid2op_version}"):
-            self._aux_backward(
-                PATH_PREVIOUS_RUNNER, f"res_agent_{grid2op_version}", grid2op_version
-            )
-        
-        # now check the compat versions
-        for grid2op_version in backward_comp_version:
-            # check that i can read previous data stored from previous grid2Op version
-            # can be loaded properly
+        with warnings.catch_warnings(action="ignore"):
+            # TODO copy paste from test_Runner
+            backward_comp_version = [
+                "1.6.4",  # minimum version for lightsim2grid
+                "1.6.5",
+                "1.7.0",
+                "1.7.1",
+                "1.7.2",
+                "1.8.1",
+                # "1.9.0",  # this one is bugy I don"t know why
+                "1.9.1",
+                "1.9.2",
+                "1.9.3",
+                "1.9.4",
+                "1.9.5",
+                "1.9.6",
+                "1.9.7",
+                "1.9.8",
+                "1.10.0",
+                "1.10.1",
+            ]
+            # first check a normal run
+            curr_version = "test_version"
+            PATH_PREVIOUS_RUNNER = os.path.join(data_test_dir, "runner_data")
+            assert (
+                "curtailment" in CompleteObservation.attr_list_vect
+            ), "error at the beginning"
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore")
-                try:
-                    self._aux_backward(
-                        PATH_PREVIOUS_RUNNER,
-                        f"res_agent_{grid2op_version}",
-                        grid2op_version,
+                with grid2op.make(
+                    "rte_case5_example", test=True,
+                    _add_to_name=type(self).__name__,
+                    backend=LightSimBackend()
+                ) as env, tempfile.TemporaryDirectory() as path:
+                    runner = Runner(**env.get_params_for_runner(), agentClass=RandomAgent)
+                    runner.run(
+                        nb_episode=2,
+                        path_save=os.path.join(path, curr_version),
+                        pbar=False,
+                        max_iter=100,
+                        env_seeds=[1, 0],
+                        agent_seeds=[42, 69],
                     )
-                except Exception as exc_:
-                    raise RuntimeError(f"error for {grid2op_version}") from exc_
-            assert "curtailment" in CompleteObservation.attr_list_vect, (
-                f"error after the legacy version " f"{grid2op_version}"
-            )
+                    # check that i can read this data generate for this runner
+                    try:
+                        self._aux_backward(path, curr_version, curr_version)
+                    except Exception as exc_:
+                        raise RuntimeError(f"error for {curr_version}") from exc_
+            assert (
+                "curtailment" in CompleteObservation.attr_list_vect
+            ), "error after the first runner"
+
+            # check that it raises a warning if loaded on the compatibility version
+            grid2op_version = backward_comp_version[0]
+            with self.assertWarns(UserWarning, msg=f"error for {grid2op_version}"):
+                self._aux_backward(
+                    PATH_PREVIOUS_RUNNER, f"res_agent_{grid2op_version}", grid2op_version
+                )
+            
+            # now check the compat versions
+            for grid2op_version in backward_comp_version:
+                # check that i can read previous data stored from previous grid2Op version
+                # can be loaded properly
+                with warnings.catch_warnings():
+                    warnings.filterwarnings("ignore")
+                    try:
+                        self._aux_backward(
+                            PATH_PREVIOUS_RUNNER,
+                            f"res_agent_{grid2op_version}",
+                            grid2op_version,
+                        )
+                    except Exception as exc_:
+                        raise RuntimeError(f"error for {grid2op_version}") from exc_
+                assert "curtailment" in CompleteObservation.attr_list_vect, (
+                    f"error after the legacy version " f"{grid2op_version}"
+                )
  
     def _aux_backward(self, base_path, g2op_version_txt, g2op_version):
         # TODO copy paste from test_Runner

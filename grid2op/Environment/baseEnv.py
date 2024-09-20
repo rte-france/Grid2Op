@@ -2788,7 +2788,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 gen_ramp_up=self.gen_max_ramp_down[self.gen_redispatchable],
                 load_ramp_up=self.load_max_ramp_down[self.load_flexible],
                 gen_pmax=self.gen_pmin[self.gen_redispatchable],
-                load_pmax=np.zeros(shape=sum(self.load_flexible)),
+                load_size=self.load_size[self.load_flexible],
                 avail_gen_up=np.round(avail_gen_up, decimals=2),
                 avail_load_up=np.round(avail_load_up, decimals=2),
                 increase="decrease",
@@ -2800,24 +2800,29 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             except_ = InvalidRedispatching(msg)
         return except_
     
-    def _detect_infeasible_flexibility(self, incr_in_chronics, avail_down, avail_up):
+    def _detect_infeasible_flexibility(self, incr_in_chronics, avail_load_down, avail_load_up):
         """This function is an attempt to give more detailed log by detecting infeasible Flexibility"""
         except_ = None
         sum_move = (
             incr_in_chronics.sum() + self._amount_storage - self._sum_curtailment_mw
         )
-        avail_down_sum = avail_down.sum()
-        avail_up_sum = avail_up.sum()
+        avail_down_sum = avail_load_down.sum()
+        avail_up_sum = avail_load_up.sum()
+        gen_setpoint = self._gen_activeprod_t_redisp[self.gen_redispatchable]
         load_setpoint = self._load_demand_t_flex[self.load_flexible]
         if sum_move > avail_up_sum:
             # infeasible because too much is asked
             msg = DETAILED_REDISP_ERR_MSG.format(
                 sum_move=sum_move,
                 avail_up_sum=avail_up_sum,
+                gen_setpoint=np.round(gen_setpoint, decimals=2),
                 load_setpoint=np.round(load_setpoint, decimals=2),
-                ramp_up=self.load_max_ramp_up[self.load_flexible],
-                gen_pmax=self.load_pmax[self.load_flexible],
-                avail_up=np.round(avail_up, decimals=2),
+                gen_ramp_up=self.gen_max_ramp_up[self.gen_redispatchable],
+                gen_pmax = self.gen_pmax[self.gen_redispatchable],
+                load_ramp_up=self.load_max_ramp_up[self.load_flexible],
+                load_size=self.load_size[self.load_flexible],
+                avail_load_up=np.round(avail_load_up, decimals=2),
+                avail_gen_up="",
                 increase="increase",
                 decrease="decrease",
                 maximum="maximum",
@@ -2830,10 +2835,14 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             msg = DETAILED_REDISP_ERR_MSG.format(
                 sum_move=sum_move,
                 avail_up_sum=avail_down_sum,
-                load_setpoint=np.round(load_setpoint, decimals=2),
-                ramp_up=self.load_max_ramp_down[self.load_flexible],
-                gen_pmax=self.load_pmin[self.load_flexible],
-                avail_up=np.round(avail_up, decimals=2),
+                gen_setpoint=np.round(gen_setpoint, decimals=2),
+                load_setpoint=np.round(load_setpoint, decimals=2), 
+                gen_ramp_up=self.gen_max_ramp_down[self.gen_redispatchable],
+                gen_pmax = self.gen_pmin[self.gen_redispatchable],
+                load_ramp_up=self.load_max_ramp_down[self.load_flexible],
+                load_size=self.load_size[self.load_flexible],
+                avail_load_up=np.round(avail_load_up, decimals=2),
+                avail_gen_up="",
                 increase="decrease",
                 decrease="increase",
                 maximum="minimum",

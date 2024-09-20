@@ -187,29 +187,30 @@ class TestLimitAction(unittest.TestCase):
         eg when the available generators could not decrease their power too much 
         to compensate the increase of storage power (and curtailment because storage unit is too weak on its own).
         """
-        act_too_much = self.env.action_space()
-        tmp_ = np.zeros(self.env.n_gen, dtype=float) -1
-        tmp_[self.env.gen_renewable] = 0.06
-        act_too_much.storage_p = - act_too_much.storage_max_p_prod
-        act_too_much.curtail = tmp_
+        with warnings.catch_warnings(action="ignore"):
+            act_too_much = self.env.action_space()
+            tmp_ = np.zeros(self.env.n_gen, dtype=float) -1
+            tmp_[self.env.gen_renewable] = 0.06
+            act_too_much.storage_p = - act_too_much.storage_max_p_prod
+            act_too_much.curtail = tmp_
 
-        # for storage:
-        self._aux_prep_env_for_tests_down()
-        obs, reward, done, info0 = self.env.step(act_too_much)  # If i do this it crashes
-        assert done
-        assert info0["exception"]
-        
-        obs = self._aux_prep_env_for_tests_down()
-        act7, *_ = act_too_much.limit_curtail_storage(obs, margin=5., do_copy=True)  # not enough "margin" => it crashes
-        obs, reward, done, info = self.env.step(act7)
-        assert done
-        assert info["exception"]
-        
-        obs = self._aux_prep_env_for_tests_down()
-        act8, *_ = act_too_much.limit_curtail_storage(obs, margin=10., do_copy=True)  # "just enough" "margin" => it passes
-        obs, reward, done, info = self.env.step(act8)
-        assert not done
-        assert not info["exception"]
+            # for storage:
+            self._aux_prep_env_for_tests_down()
+            obs, reward, done, info0 = self.env.step(act_too_much)  # If i do this it crashes
+            assert done
+            assert info0["exception"]
+            
+            obs = self._aux_prep_env_for_tests_down()
+            act7, *_ = act_too_much.limit_curtail_storage(obs, margin=5., do_copy=True)  # not enough "margin" => it crashes
+            obs, reward, done, info = self.env.step(act7)
+            assert done
+            assert info["exception"]
+            
+            obs = self._aux_prep_env_for_tests_down()
+            act8, *_ = act_too_much.limit_curtail_storage(obs, margin=10., do_copy=True)  # "just enough" "margin" => it passes
+            obs, reward, done, info = self.env.step(act8)
+            assert not done
+            assert not info["exception"]
         
         
 if __name__ == "__main__":

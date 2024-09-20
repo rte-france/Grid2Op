@@ -3221,6 +3221,12 @@ class GridObjects:
             # I need to set it to the default if set elsewhere
             cls.n_busbar_per_sub = DEFAULT_N_BUSBAR_PER_SUB
             res = True
+
+        if glop_ver < version.parse("1.10.4.dev0"):
+            # Flexibility did not exist before
+            # Affects shape of vector representation 
+            cls.flexible_load_available = False
+            res = True
             
         if res:
             cls._reset_cls_dict()  # forget the previous class (stored as dict)
@@ -4076,15 +4082,15 @@ class GridObjects:
                     res[nm_attr] = None
             
             # Flexibility
-            # if cls.flexible_load_available:
-            for nm_attr, type_attr in zip(cls._li_attr_flex_load, cls._type_attr_flex_load):
-                save_to_dict(
-                    res,
-                    cls,
-                    nm_attr,
-                    (lambda li: [type_attr(el) for el in li]) if as_list else None,
-                    copy_,
-                )
+            if cls._get_grid2op_version_as_version_obj() >= version.parse("1.10.4.dev0"):
+                for nm_attr, type_attr in zip(cls._li_attr_flex_load, cls._type_attr_flex_load):
+                    save_to_dict(
+                        res,
+                        cls,
+                        nm_attr,
+                        (lambda li: [type_attr(el) for el in li]) if as_list else None,
+                        copy_,
+                    )
             # else:
             #     for nm_attr in cls._li_attr_flex_load:
             #         res[nm_attr] = None
@@ -4262,7 +4268,7 @@ class GridObjects:
 
             # Flexible / redispatchable loads
             res["flexible_load_available"] = cls.flexible_load_available
-            
+
             # n_busbar_per_sub
             res["n_busbar_per_sub"] = cls.n_busbar_per_sub
             

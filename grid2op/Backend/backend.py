@@ -1718,13 +1718,13 @@ class Backend(GridObjects, ABC):
         """
         self.flexible_load_available = False
         
-        self.load_size = np.full(self.n_load, fill_value=1.0, dtype=dt_float)
+        self.load_size = np.full(self.n_load, fill_value=0.0, dtype=dt_float)
         self.load_flexible = np.full(self.n_load, fill_value=False, dtype=dt_bool)
         self.load_max_ramp_up = np.full(self.n_load, fill_value=0.0, dtype=dt_float)
         self.load_max_ramp_down = np.full(self.n_load, fill_value=0.0, dtype=dt_float)
-        self.load_min_uptime = np.full(self.n_load, fill_value=-1, dtype=dt_int)
-        self.load_min_downtime = np.full(self.n_load, fill_value=-1, dtype=dt_int)
-        self.load_cost_per_MW = np.full(self.n_load, fill_value=1.0, dtype=dt_float)
+        self.load_min_uptime = np.full(self.n_load, fill_value=0, dtype=dt_int)
+        self.load_min_downtime = np.full(self.n_load, fill_value=0, dtype=dt_int)
+        self.load_cost_per_MW = np.full(self.n_load, fill_value=0.0, dtype=dt_float)
 
         # For flexibility
         fullpath = os.path.join(path, name)
