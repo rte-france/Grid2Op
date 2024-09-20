@@ -8,10 +8,12 @@
 
 from typing import Optional
 import numpy as np
-
+import networkx as nx
+import copy
+        
 import grid2op
 from grid2op.dtypes import dt_int, dt_bool
-from grid2op.Exceptions import Grid2OpException
+from grid2op.Exceptions import Grid2OpException, ImpossibleTopology
 from grid2op.Space.space_utils import extract_from_dict, save_to_dict
 
 
@@ -294,6 +296,13 @@ class DetailedTopoDescription(object):
         #: this is automatically set when the detailed topo description
         #: is processed
         self._n_shunt : int = -1
+        
+        #: INTERNAL
+        self._conn_node_to_bbs_conn_node_id = None
+        
+        #: INTERNAL
+        self._connectivity_graph = None
+        # TODO detailed topo: list per substation !
     
     @classmethod
     def from_ieee_grid(cls, init_grid : "grid2op.Space.GridObjects.GridObjects"):
@@ -452,27 +461,23 @@ class DetailedTopoDescription(object):
         return res
     
     def _aux_compute_busbars_sections(self):
-        cls = type(self)
-        # bbs = (np.isin(self.switches[:, cls.CONN_NODE_1_ID_COL], self.busbar_section_to_conn_node_id) & 
-        #        np.isin(self.switches[:, cls.CONN_NODE_2_ID_COL], self.busbar_section_to_conn_node_id))
-        # switches = self.switches[~bbs,:]
-        import networkx as nx
-        graph = nx.Graph()
-        graph.add_edges_from([(el[1], el[2]) for el in self.switches])
+        # TODO detailed topo: speed optimization: install graph-tool (but not available with pip...)
         
-        # NON !
-        # d_shortest_path = nx.shortest_path(graph)
-        # top_vect_cn = (self.conn_node_to_topovect_id != -1).nonzero()[0]
-        # bbs_cn = (self.busbar_section_to_conn_node_id)
-        # for tp_el in top_vect_cn:  
-        #     for bb_id in bbs_cn:
-        #         sh_p = d_shortest_path[tp_el][bb_id]
-        #         pass  
+        # import time
+        # beg_ = time.perf_counter()
+        self._connectivity_graph = nx.Graph()
+        self._connectivity_graph.add_edges_from([(el[1], el[2], {"id": switch_id}) for switch_id, el in enumerate(self.switches)])
         
         # je veux isoler les elements qui, si on enleve les busbar, peuvent atteindre les autres busbars
-        import pdb
-        pdb.set_trace()
-        
+        self._conn_node_to_bbs_conn_node_id = [set() for _ in range(self.conn_node_name.shape[0])]
+        for busbar_id in self.busbar_section_to_conn_node_id:
+            tmp_g = copy.deepcopy(self._connectivity_graph)
+            tmp_g.remove_nodes_from([el for el in self.busbar_section_to_conn_node_id if el != busbar_id])
+            conn_nodes = nx.node_connected_component(tmp_g, busbar_id)
+            for el in conn_nodes:
+                self._conn_node_to_bbs_conn_node_id[el].add(busbar_id)
+        # print(time.perf_counter() - beg_)  # 2ms for 1 sub
+            
     def get_switch_id_ieee(self, conn_node_id: int):
         """TODO detailed topo
 
@@ -537,9 +542,12 @@ class DetailedTopoDescription(object):
             
     def compute_switches_position(self,
                                   topo_vect: np.ndarray,
-                                  shunt_bus: Optional[np.ndarray]=None):
+                                  shunt_bus: Optional[np.ndarray]=None,
+                                  subs_changed : Optional[np.ndarray]=None):
         """This function compute a plausible switches configuration
         from a given `topo_vect` representation.
+        
+        TODO detailed topo: documentation
 
         Parameters
         ----------
@@ -554,44 +562,277 @@ class DetailedTopoDescription(object):
         a numpy boolean array.
         
         """
+        # TODO detailed topo: input the previous switch state
+        
         if topo_vect.shape[0] != self._dim_topo:
             raise Grid2OpException("Incorrect input size for the topology vector.")
         if shunt_bus is not None and shunt_bus.shape[0] != self._n_shunt:
             raise Grid2OpException("Incorrect size for the shunt bus vector.")
-        # TODO detailed topo: input a substation mask for example
-        # TODO detailed topo: check that the nodes id are consistent (starts at 1 mainly)
-        
-        # TODO detailed topo
+        if topo_vect[topo_vect != -1].min() < 1:
+            raise Grid2OpException("In grid2op buses are labelled starting from 1 and not 0 "
+                                   "(check your `topo_vect` input)")
+        if  shunt_bus is not None and shunt_bus[shunt_bus != -1].min() < 1:
+            raise Grid2OpException("In grid2op buses are labelled starting from 1 and not 0 "
+                                   "(check your `shunt_bus` input)")
+        if np.unique(topo_vect).shape[0] > self.busbar_section_to_subid.shape[0]:
+            raise ImpossibleTopology("You ask for more independant buses than there are "
+                                     "busbar section on this substation")
         if self._from_ieee_grid:
             # specific case for IEEE grid, consistent with the AddDetailedTopoIEEE
             # class
             return self.compute_switches_position_ieee(topo_vect, shunt_bus)
         
-        if shunt_bus is not None:
-            raise NotImplementedError("TODO detailed topo: shunts are not handled right now")
-        if (topo_vect == -1).any():
-            raise NotImplementedError("TODO detailed topo: cannot disconnect elements right now")
+        if subs_changed is None:
+            subs_changed = np.ones(self._n_sub, dtype=dt_bool)
+        
+        if subs_changed.shape[0] != self._n_sub:
+            raise Grid2OpException("Incorrect size for the substation mask")
+        
+        if self._conn_node_to_bbs_conn_node_id is None:
+            self._aux_compute_busbars_sections()
             
+        full_res = np.zeros(self.switches.shape[0], dtype=dt_bool)
+        for sub_id, is_sub_modif in enumerate(subs_changed):
+            if not is_sub_modif:
+                continue
+            mask_this_sub = self.switches[:, type(self).SUB_COL] == sub_id
+            res_this_sub = self._aux_compute_switches_position_one_sub(sub_id, topo_vect, shunt_bus)
+            full_res[mask_this_sub] = res_this_sub
+        return full_res
+    
+    def _aux_compute_switches_position_one_sub(self,
+                                               sub_id,
+                                               topo_vect: np.ndarray,
+                                               shunt_bus: Optional[np.ndarray]=None):
+        
         # by default they are False
-        nb_switch = self.switches.shape[0]
-        nb_conn_node = self.conn_node_name.shape[0]
-        switches_state = np.zeros(nb_switch, dtype=dt_bool)
+        nb_switch = self.switches[self.switches[:, type(self).SUB_COL] == sub_id].shape[0]
+        nb_conn_node = self.conn_node_name[self.conn_node_to_subid == sub_id].shape[0]
+        switches_state = np.zeros(nb_switch, dtype=dt_bool)  # results
         
         # whether the switch is already assigned to a bus
         switch_visited = np.zeros(nb_switch, dtype=dt_bool)
-        # to which buses a connection node belongs to
-        conn_node_to_buses = np.zeros(nb_conn_node, dtype=dt_int) - 2
-        # whether the connection node is assigned to a bus
-        conn_node_visited = np.zeros(nb_conn_node, dtype=dt_int) - 1
-        while True:
-            import pdb
-            pdb.set_trace()
-            this_bus = 1
+        # whether the connectivity node is assigned to a bus
+        conn_node_visited = np.zeros(nb_conn_node, dtype=dt_bool)
+        conn_node_to_bus_id = np.zeros(nb_conn_node, dtype=dt_int)
+        all_pos = ((self.conn_node_to_topovect_id != -1) & (self.conn_node_to_subid == sub_id)).nonzero()[0]
+        
+        if shunt_bus is not None:
+            # add the shunts
+            all_pos = np.concatenate((all_pos, 
+                                      ((self.conn_node_to_shunt_id != -1) & (self.conn_node_to_subid == sub_id)).nonzero()[0]))
+            topo_vect = np.concatenate((topo_vect, shunt_bus))
             
-            topo_this_bus = topo_vect == this_bus
+        # traverse all objects
+        main_obj_id = 0
+        try:
+            res = self._dfs_compute_switches_position(topo_vect, 
+                                                      main_obj_id, 
+                                                      all_pos, 
+                                                      switch_visited, 
+                                                      switches_state, 
+                                                      conn_node_visited,
+                                                      conn_node_to_bus_id)
+        except RecursionError as exc_:
+            raise ImpossibleTopology(f"For substation {sub_id}: "
+                                     "No topology found, maybe the substation is "
+                                     "too large or there is a bug in the implementation. "
+                                     "It is most likely due to the fact that does not exist "
+                                     "a valid switch state for the input topology, but we "
+                                     "exclude a bug or a substation too large.") from exc_
+        if res is None:
+            raise ImpossibleTopology(f"For substation {sub_id}")
+        return res
+        
+    def _dfs_compute_switches_position(self,
+                                       topo_vect,
+                                       main_obj_id,
+                                       all_pos,
+                                       switch_visited,
+                                       switches_state,
+                                       conn_node_visited,
+                                       conn_node_to_bus_id):
+        """should be use for one substation only, otherwise it will not work !"""
+        if main_obj_id >= len(all_pos):
+            return switch_visited
+        
+        if switch_visited.all():
+            # TODO detailed topo do I have to check if result topo is correct
+            return None
+        
+        el_cn_id = all_pos[main_obj_id]
+        my_bus = topo_vect[self.conn_node_to_topovect_id[el_cn_id]]
+        cn_bbs_possible = self._conn_node_to_bbs_conn_node_id[el_cn_id]
+        if my_bus == -1:
+            # the object is disconnected, I suppose here that there exist
+            # a switch that directly control this element.
+            # With this hyp. this switch will never be changed
+            # so there is nothing to do.
+            conn_node_visited[el_cn_id] = True
+            main_obj_id = self._aux_find_next_el_id(main_obj_id, all_pos, conn_node_visited)
+            if main_obj_id is not None:
+                # I still need to visit some other elements
+                this_res = self._dfs_compute_switches_position(topo_vect,
+                                                               main_obj_id,
+                                                               all_pos,
+                                                               switch_visited,
+                                                               switches_state,
+                                                               conn_node_visited,
+                                                               conn_node_to_bus_id)
+                return this_res
+            # all elements have been visited
+            return switches_state
             
-        return switches_state
+        for cn_bbs in cn_bbs_possible:  # chose a busbar section
+            n_switch_visited = copy.deepcopy(switch_visited)
+            n_switches_state = copy.deepcopy(switches_state)
+            n_conn_node_to_bus_id = copy.deepcopy(conn_node_to_bus_id)
+            n_conn_node_visited = copy.deepcopy(conn_node_visited)
+            
+            if conn_node_visited[cn_bbs]:
+                if my_bus != conn_node_to_bus_id[cn_bbs]:
+                    # cannot assign on the same busbar section two objects not on the same bus
+                    # so I need to "backtrack"
+                    continue
+                
+            elif (conn_node_to_bus_id == my_bus).any():
+                # there is already an element connected to "my" bus, so I need to connect both busbars
+                which_other_bbs = (conn_node_to_bus_id[self.busbar_section_to_conn_node_id] == my_bus).nonzero()[0]
+                other_bbs_cn_ids = self.busbar_section_to_conn_node_id[which_other_bbs]
+                for other_bbs_cn in other_bbs_cn_ids:
+                    this_tmp_g = copy.deepcopy(self._connectivity_graph)
+                    this_tmp_g.remove_nodes_from([el for el in self.busbar_section_to_conn_node_id if el != cn_bbs and el != other_bbs_cn])
+                    bbs_switch, bbs_cn = self._aux_connect_el_to_switch(other_bbs_cn, cn_bbs, n_switch_visited, n_switches_state, this_tmp_g)
+                    for bbs_sw, bbs_cn_ in zip(bbs_switch, bbs_cn):
+                        # there is a way to connect both busbar sections
+                        # we see if it works out until the end
+                        n_switch_visited[bbs_sw] = True
+                        n_switches_state[bbs_sw] = True
+                        n_conn_node_visited[bbs_cn_] = True
+                        n_conn_node_to_bus_id[bbs_cn_] = my_bus
+                        this_res = self._dfs_compute_switches_position(topo_vect,
+                                                                       main_obj_id,
+                                                                       all_pos,
+                                                                       n_switch_visited,
+                                                                       n_switches_state,
+                                                                       n_conn_node_visited,
+                                                                       n_conn_node_to_bus_id)
+                        if this_res is not None:
+                            return this_res
+                # I cannot connect two busbars in this case
+                continue
+            # graph with all busbars remove except the "correct" one
+            tmp_g = copy.deepcopy(self._connectivity_graph)
+            tmp_g.remove_nodes_from([el for el in self.busbar_section_to_conn_node_id if el != cn_bbs])
+            
+            # check if "main" element can be connected to this busbar
+            possible_switches_tmp, cn_visited_tmp = self._aux_connect_el_to_switch(el_cn_id, cn_bbs, switch_visited, switches_state, tmp_g)
+            
+            if len(possible_switches_tmp) == 0:
+                # this is not possible, I should move to other choice
+                continue
+            
+            something_works = False
+            this_res = None
+            n_conn_node_visited[el_cn_id] = True
+            n_conn_node_to_bus_id[el_cn_id] = my_bus
+            n_conn_node_visited[cn_visited_tmp] = True
+            n_conn_node_to_bus_id[cn_visited_tmp] = my_bus
+            for path in possible_switches_tmp:
+                n_switch_visited[path] = True
+                n_switches_state[path] = True
+                is_working = True
+                for other_cn_id in all_pos:
+                    # find if all other elements can be assigned to this path (just an assessment for now)
+                    if topo_vect[self.conn_node_to_topovect_id[other_cn_id]] != my_bus:
+                        # nothing to do if the object is not on the same bus
+                        continue
+                    if n_conn_node_visited[other_cn_id]:
+                        # node already visited
+                        continue
+                            
+                    ps_tmp, cns_tmp = self._aux_connect_el_to_switch(other_cn_id,
+                                                                     cn_bbs,
+                                                                     n_switch_visited,
+                                                                     n_switches_state,
+                                                                     self._connectivity_graph)
+                    if len(ps_tmp) == 0:
+                        is_working = False
+                        break
+                    
+                    if len(ps_tmp) == 1:
+                        # both objects are on the same bus and there is only one path 
+                        # to connect this object to the main object, so I necessarily
+                        # toggle all switches on this path and continue
+                        tmp_path = ps_tmp[0]
+                        n_switch_visited[tmp_path] = True
+                        n_switches_state[tmp_path] = True
+                        n_conn_node_visited[cns_tmp] = True
+                        n_conn_node_to_bus_id[cns_tmp] = my_bus
+                
+                if not is_working:
+                    # this path is not working, I don't use it
+                    continue
+                else:
+                    # this seems to work, I try to see if I can 
+                    # handle all the remaining elements
+                    main_obj_id = self._aux_find_next_el_id(main_obj_id, all_pos, n_conn_node_visited)
+                    if main_obj_id is not None:
+                        # I still need to visit some other elements
+                        this_res = self._dfs_compute_switches_position(topo_vect,
+                                                                       main_obj_id,
+                                                                       all_pos,
+                                                                       n_switch_visited,
+                                                                       n_switches_state,
+                                                                       n_conn_node_visited,
+                                                                       n_conn_node_to_bus_id)
+                    else:
+                        # I found a correct path
+                        return n_switches_state
+                    if this_res is not None:
+                        something_works = True
+                        break  # I found a solution
+                    else:
+                        # I need to back track
+                        something_works = False
+            if something_works:
+                # I found a solution valid for everything
+                return this_res
+            else:
+                # no solution found, this bus is not possible
+                continue
+        # If I end up here it's because 
+        # none of the `cn_bbs in cn_bbs_possible` are working
+        # so there is not solution
+        return None
     
+    def _aux_find_next_el_id(self, main_obj_id, all_pos, n_conn_node_visited):
+        still_more_els = True
+        while n_conn_node_visited[all_pos[main_obj_id]]:
+            main_obj_id += 1
+            if main_obj_id >= len(all_pos):
+                still_more_els = False
+                break
+        if still_more_els:
+            return main_obj_id
+        return None
+    
+    def _aux_connect_el_to_switch(self, el_cn_id, cn_bbs, switch_visited, switches_state, tmp_g):
+        """connect the connectivity node `el_cn_id` (representing an element) to 
+        the connectivity node representing a busbar `cn_bbs` and should return all possible ways
+        to connect it without having to traverse another busbar
+        """     
+        paths = [el for el in nx.all_simple_paths(tmp_g, el_cn_id, cn_bbs)]
+        tmp = [np.array([self._connectivity_graph[pp[i]][pp[i+1]]["id"] for i in range(len(pp)-1)]) for pp in paths]  # retrieve the switch id
+        res_switch = []
+        res_cn = []
+        for el, cn_path in zip(tmp, paths):
+            if not (switches_state[el] | ~switch_visited[el]).all():
+                continue
+            res_switch.append(el)
+            res_cn.append(np.array(cn_path))
+        return res_switch, res_cn        
+        
     def from_switches_position(self,
                                switches_state : np.ndarray,
                                subs_changed : Optional[np.ndarray]=None):
