@@ -75,22 +75,21 @@ class TestStorageEnv(HelperTests, unittest.TestCase):
 
     def test_action_ok(self):
         """test a storage action is supported (basic test)"""
-        with warnings.catch_warnings(action="ignore"):
-            act = self.env.action_space({"set_storage": [(0, 1)]})
-            str_ = act.__str__()
-            real_str = (
-                "This action will:\n"
-                "\t - NOT change anything to the injections\n"
-                "\t - NOT perform any redispatching action\n"
-                "\t - NOT perform any flexibility action\n"
-                "\t - Modify the storage units in the following way:\n"
-                '\t \t - Ask unit "storage_5_0" to absorb 1.00 MW (setpoint: 1.00 MW)\n'
-                "\t - NOT perform any curtailment\n"
-                "\t - NOT force any line status\n"
-                "\t - NOT switch any line status\n\t - NOT switch anything in the topology\n"
-                "\t - NOT force any particular bus configuration"
-            )
-            assert str_ == real_str
+        act = self.env.action_space({"set_storage": [(0, 1)]})
+        str_ = act.__str__()
+        real_str = (
+            "This action will:\n"
+            "\t - NOT change anything to the injections\n"
+            "\t - NOT perform any redispatching action\n"
+            "\t - NOT perform any flexibility action\n"
+            "\t - Modify the storage units in the following way:\n"
+            '\t \t - Ask unit "storage_5_0" to absorb 1.00 MW (setpoint: 1.00 MW)\n'
+            "\t - NOT perform any curtailment\n"
+            "\t - NOT force any line status\n"
+            "\t - NOT switch any line status\n\t - NOT switch anything in the topology\n"
+            "\t - NOT force any particular bus configuration"
+        )
+        assert str_ == real_str
 
     def test_env_storage_ok(self):
         """

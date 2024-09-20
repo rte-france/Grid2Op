@@ -3303,7 +3303,7 @@ class GridObjects:
                       "load_cost_per_MW"]
         for flex_attr in flex_attrs:
             if hasattr(cls, flex_attr):
-                setattr(cls, flex_attr, np.zeros([]))
+                setattr(cls, flex_attr, np.zeros([], dtype=dt_int))
         if cls.attr_list_vect is not None:
             if "actual_flex" in cls.attr_list_vect:
                 cls.attr_list_vect.remove("actual_flex")

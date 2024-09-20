@@ -124,7 +124,7 @@ class TestAction(unittest.TestCase):
         act = self.env.action_space()
         act.raise_alert = [attackable_line_id]
 
-        assert act.__str__() == 'This action will:\n\t - NOT change anything to the injections\n\t - NOT perform any redispatching action\n\t - NOT modify any storage capacity\n\t - NOT perform any curtailment\n\t - NOT force any line status\n\t - NOT switch any line status\n\t - NOT switch anything in the topology\n\t - NOT force any particular bus configuration\n\t - Raise alert(s) : 0 (on line 62_58_180)'
+        assert act.__str__() == 'This action will:\n\t - NOT change anything to the injections\n\t - NOT perform any redispatching action\n\t - NOT perform any flexibility action\n\t - NOT modify any storage capacity\n\t - NOT perform any curtailment\n\t - NOT force any line status\n\t - NOT switch any line status\n\t - NOT switch anything in the topology\n\t - NOT force any particular bus configuration\n\t - Raise alert(s) : 0 (on line 62_58_180)'
 
     def test_sample_a_random_alert_action(self) -> None :
         """test i can sample an alert on a set of attackable lines"""
