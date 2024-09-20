@@ -10,7 +10,7 @@ import warnings
 # TODO test the json part but... https://github.com/openai/gym-http-api/issues/62 or https://github.com/openai/gym/issues/1841
 # TODO when functions are called in the converter (especially with graph)
 from grid2op.tests.helper_path_test import *
-
+from packaging import version
 
 import grid2op
 from grid2op.dtypes import dt_float, dt_int
@@ -153,8 +153,11 @@ class _AuxTestGymCompatModule:
                 for el in env_gym.observation_space.spaces
             ]
         )
-        size_th = 558  # as of grid2Op 1.7.1 (where all obs attributes are there)
-                       # as of grid2Op 1.10.4 (where flex attributes were added)
+        if self.env._get_grid2op_version_as_version_obj() < version.parse("1.10.4.dev0"):
+            size_th = 536  # as of grid2Op 1.10.4 (where flex attributes were added)
+        else:
+            size_th = 558  # as of grid2Op 1.7.1 (where all obs attributes are there)
+                      
         assert (
             dim_obs_space == size_th
         ), f"Size should be {size_th} but is {dim_obs_space}"
