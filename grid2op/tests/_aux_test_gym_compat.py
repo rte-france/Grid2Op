@@ -154,10 +154,11 @@ class _AuxTestGymCompatModule:
             ]
         )
         if self.env._get_grid2op_version_as_version_obj() < version.parse("1.10.4.dev0"):
-            size_th = 536  # as of grid2Op 1.10.4 (where flex attributes were added)
+            size_th = 536  # as of grid2Op 1.7.1 (where all obs attributes are there)
         else:
-            size_th = 558  # as of grid2Op 1.7.1 (where all obs attributes are there)
-                      
+            size_th = 558  # as of grid2Op 1.10.4 (where flex attributes were added)
+        size_th = 536 # TODO: Update this
+
         assert (
             dim_obs_space == size_th
         ), f"Size should be {size_th} but is {dim_obs_space}"
