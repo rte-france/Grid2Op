@@ -10,6 +10,8 @@ import warnings
 import numpy as np
 import unittest
 import os
+import sys
+from pathlib import Path
 from grid2op.Observation import BaseObservation
 from grid2op.tests.helper_path_test import *
 
@@ -18,6 +20,7 @@ from grid2op.Reward import AlertReward
 from grid2op.Runner import Runner  # TODO
 from grid2op.Action import PlayableAction
 
+sys.path.append(str(Path(__file__).parent))
 from _aux_opponent_for_test_alerts import OpponentForTestAlert
 
 ALL_ATTACKABLE_LINES = [

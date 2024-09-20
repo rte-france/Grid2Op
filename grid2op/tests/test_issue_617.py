@@ -14,7 +14,9 @@ from pathlib import Path
 import warnings
 import copy
 import numpy as np
-
+import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).parent))
 
 from helper_path_test import PATH_DATA_TEST
 import grid2op
