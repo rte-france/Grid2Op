@@ -281,7 +281,7 @@ class _AuxTestGymCompatModule:
         
         assert np.all(
             act_gym["redispatch"] == res
-        ), f'wrong action: {act_gym["redispatch"]}'
+        ), f'Wrong redispatch action: {act_gym["redispatch"]} != {res}'
         act_gym = env_gym.action_space.sample()
         if _IS_WINDOWS:
             res = (2, 9, 0, 0, 0, 1)
@@ -297,7 +297,7 @@ class _AuxTestGymCompatModule:
                 res = (7, 5, 0, 0, 0, 8)
         assert np.all(
             act_gym["redispatch"] == res
-        ), f'wrong action: {act_gym["redispatch"]}'
+        ), f'Wrong redispatch action: {act_gym["redispatch"]} != {res}'
         assert isinstance(env_gym.action_space["redispatch"], self._aux_MultiDiscrete_cls())
         env_gym.action_space = env_gym.action_space.reencode_space(
             "redispatch", self._aux_MultiToTupleConverter_cls()()
@@ -341,11 +341,11 @@ class _AuxTestGymCompatModule:
             
         assert (
             act_gym["redispatch"] == res_tup
-        ), f'error. redispatch is {act_gym["redispatch"]}'
+        ), f'error. redispatch is {act_gym["redispatch"]}, should be {res_tup}'
         act_glop = env_gym.action_space.from_gym(act_gym)
         assert np.array_equal(
             act_glop._redispatch, res_disp
-        ), f"error. redispatch is {act_glop._redispatch}"
+        ), f"error. redispatch is {act_glop._redispatch}, should be {res_tup}"
         act_gym = env_gym.action_space.sample()
 
         if _IS_WINDOWS:
@@ -378,11 +378,11 @@ class _AuxTestGymCompatModule:
                 )
         assert (
             act_gym["redispatch"] == res_tup
-        ), f'error. redispatch is {act_gym["redispatch"]}'
+        ), f'error. redispatch is {act_gym["redispatch"]}, should be {res_tup}'
         act_glop = env_gym.action_space.from_gym(act_gym)
         assert np.allclose(
             act_glop._redispatch, res_disp, atol=1e-5
-        ), f"error. redispatch is {act_glop._redispatch}"
+        ), f"error. redispatch is {act_glop._redispatch}, should be {res_tup}"
 
     def test_all_together(self):
         """combine all test above (for the action space)"""
