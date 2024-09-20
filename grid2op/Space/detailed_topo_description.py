@@ -571,9 +571,12 @@ class DetailedTopoDescription(object):
         if topo_vect[topo_vect != -1].min() < 1:
             raise Grid2OpException("In grid2op buses are labelled starting from 1 and not 0 "
                                    "(check your `topo_vect` input)")
-        if  shunt_bus is not None and shunt_bus[shunt_bus != -1].min() < 1:
-            raise Grid2OpException("In grid2op buses are labelled starting from 1 and not 0 "
-                                   "(check your `shunt_bus` input)")
+        if self._n_shunt > 0 and shunt_bus is not None:
+            conn_shunt = shunt_bus[shunt_bus != -1]
+            if conn_shunt.shape[0]:
+                if conn_shunt.min() < 1:
+                    raise Grid2OpException("In grid2op buses are labelled starting from 1 and not 0 "
+                                           "(check your `shunt_bus` input)")
         if np.unique(topo_vect).shape[0] > self.busbar_section_to_subid.shape[0]:
             raise ImpossibleTopology("You ask for more independant buses than there are "
                                      "busbar section on this substation")
@@ -617,7 +620,7 @@ class DetailedTopoDescription(object):
         conn_node_to_bus_id = np.zeros(nb_conn_node, dtype=dt_int)
         all_pos = ((self.conn_node_to_topovect_id != -1) & (self.conn_node_to_subid == sub_id)).nonzero()[0]
         
-        if shunt_bus is not None:
+        if self._n_shunt > 0 and shunt_bus is not None:
             # add the shunts
             all_pos = np.concatenate((all_pos, 
                                       ((self.conn_node_to_shunt_id != -1) & (self.conn_node_to_subid == sub_id)).nonzero()[0]))
