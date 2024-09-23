@@ -95,9 +95,11 @@ class CompactEpisodeData():
         """
         if exp_dir is not None:
             self.exp_dir = p(exp_dir)
+            self.exp_dir = self.exp_dir / "CompactEpisodeData"
+            self.exp_dir.mkdir(parents=False, exist_ok=True)
         else:
             self.exp_dir = None
-        self.array_names = ("actions", "env_actions", "attacks", "observations", "rewards", "other_rewards", "disc_lines", "times")
+        self.array_names = ("actions", "env_actions", "attacks", "observations", "rewards", "other_rewards", "disc_lines", "times", "legal", "ambiguous")
         self.space_names = ("observation_space", "action_space", "attack_space", "env_modification_space")
         if ep_id is None:
             self.ep_id = env.chronics_handler.get_name()
