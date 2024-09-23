@@ -247,17 +247,21 @@ def _aux_make_multimix(
     dataset_path,
     test=False,
     experimental_read_from_local_dir=False,
+    n_busbar=2,
     _add_to_name="",
     _compat_glop_version=None,
+    _overload_name_multimix=None,
     logger=None,
     **kwargs
 ) -> Environment:
     # Local import to prevent imports loop
     from grid2op.Environment import MultiMixEnvironment
-
+    if _overload_name_multimix is not None:
+        raise RuntimeError("You should not create a MultiMix with `_overload_name_multimix`.")
     return MultiMixEnvironment(
         dataset_path,
         experimental_read_from_local_dir=experimental_read_from_local_dir,
+        n_busbar=n_busbar,
         _test=test,
         _add_to_name=_add_to_name,
         _compat_glop_version=_compat_glop_version,
@@ -266,14 +270,25 @@ def _aux_make_multimix(
     )
 
 
+def _get_path_multimix(_overload_name_multimix) -> str:
+    baseenv_path, multi_mix_name, add_to_name = _overload_name_multimix
+    if os.path.exists(baseenv_path):
+        return baseenv_path
+    if multi_mix_name in TEST_DEV_ENVS:
+        return TEST_DEV_ENVS[multi_mix_name]
+    raise Grid2OpException(f"Unknown multimix environment with name {multi_mix_name} that should be located at {baseenv_path}.")
+    
+    
 def make(
     dataset : Union[str, os.PathLike],
     *,
     test : bool=False,
     logger: Optional[logging.Logger]=None,
     experimental_read_from_local_dir : bool=False,
+    n_busbar=2,
     _add_to_name : str="",
     _compat_glop_version : Optional[str]=None,
+    _overload_name_multimix : Optional[str]=None,  # do not use !
     **kwargs
 ) -> Environment:
     """
@@ -286,6 +301,9 @@ def make(
 
     .. versionchanged:: 1.9.3
         Remove the possibility to use this function with arguments (force kwargs)
+    
+    .. versionadded:: 1.10.0
+        The `n_busbar` parameters
         
     Parameters
     ----------
@@ -308,6 +326,9 @@ def make(
         processing, you can set this flag to ``True``. See the doc of 
         :func:`grid2op.Environment.BaseEnv.generate_classes` for more information.
         
+    n_busbar: ``int``
+        Number of independant busbars allowed per substations. By default it's 2.
+        
     kwargs:
         Other keyword argument to give more control on the environment you are creating. See
         the Parameters information of the :func:`make_from_dataset_path`.
@@ -318,6 +339,9 @@ def make(
 
     _compat_glop_version:
         Internal, do not use (and can only be used when setting "test=True")
+        
+    _overload_name_multimix:
+        Internal, do not use !
 
     Returns
     -------
@@ -350,7 +374,15 @@ def make(
         raise Grid2OpException("Impossible to create an environment without its name. Please call something like: \n"
                                "> env = grid2op.make('l2rpn_case14_sandbox') \nor\n"
                                "> env = grid2op.make('rte_case14_realistic')")
+    try:
+        n_busbar_int = int(n_busbar)
+    except Exception as exc_:
+        raise Grid2OpException("n_busbar parameters should be convertible to integer") from exc_
 
+    if n_busbar != n_busbar_int:
+        raise Grid2OpException(f"n_busbar parameters should be convertible to integer, but we have "
+                               f"int(n_busbar) = {n_busbar_int} != {n_busbar}")
+        
     accepted_kwargs = ERR_MSG_KWARGS.keys() | {"dataset", "test"}
     for el in kwargs:
         if el not in accepted_kwargs:
@@ -402,6 +434,8 @@ def make(
             dataset_path=dataset,
             _add_to_name=_add_to_name_tmp,
             _compat_glop_version=_compat_glop_version_tmp,
+            _overload_name_multimix=_overload_name_multimix,
+            n_busbar=n_busbar,
             **kwargs
         )
 
@@ -412,7 +446,7 @@ def make(
     )
 
     # Unknown dev env
-    if test and dataset_name not in TEST_DEV_ENVS:
+    if _overload_name_multimix is None and test and dataset_name not in TEST_DEV_ENVS:
         raise Grid2OpException(_MAKE_UNKNOWN_ENV.format(dataset))
     
     # Known test env and test flag enabled
@@ -425,7 +459,13 @@ def make(
             or dataset_name.startswith("educ")
         ):
             warnings.warn(_MAKE_DEV_ENV_DEPRECATED_WARN.format(dataset_name))
-        ds_path = TEST_DEV_ENVS[dataset_name]
+        if _overload_name_multimix:
+            # make is invoked from a Multimix 
+            path_multimix = _get_path_multimix(_overload_name_multimix)
+            ds_path = os.path.join(path_multimix, dataset_name)
+        else:
+            # normal behaviour
+            ds_path = TEST_DEV_ENVS[dataset_name]
         # Check if multimix from path
         if _aux_is_multimix(ds_path):
 
@@ -441,9 +481,11 @@ def make(
         return make_from_path_fn(
             dataset_path=ds_path,
             logger=logger,
+            n_busbar=n_busbar,
             _add_to_name=_add_to_name,
             _compat_glop_version=_compat_glop_version,
             experimental_read_from_local_dir=experimental_read_from_local_dir,
+            _overload_name_multimix=_overload_name_multimix,
             **kwargs
         )
 
@@ -454,7 +496,9 @@ def make(
         return make_from_path_fn(
             real_ds_path,
             logger=logger,
+            n_busbar=n_busbar,
             experimental_read_from_local_dir=experimental_read_from_local_dir,
+            _overload_name_multimix=_overload_name_multimix,
             **kwargs
         )
 
@@ -472,6 +516,8 @@ def make(
     return make_from_path_fn(
         dataset_path=real_ds_path,
         logger=logger,
+        n_busbar=n_busbar,
         experimental_read_from_local_dir=experimental_read_from_local_dir,
+        _overload_name_multimix=_overload_name_multimix,
         **kwargs
     )

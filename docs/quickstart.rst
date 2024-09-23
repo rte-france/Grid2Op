@@ -121,3 +121,5 @@ The most basic code, for those familiar with openAI gym (a well-known framework 
 
     To make the use of grid2op alongside grid2op environment easier, we developed a module described in
     :ref:`openai-gym`.
+
+.. include:: final.rst

@@ -6,11 +6,16 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
+import warnings
 from grid2op.Agent.baseAgent import BaseAgent
 
 
 class OneChangeThenNothing(BaseAgent):
     """
+    .. warning::
+        As of grid2op 1.10.2, this class has been deprecated. Please use `env.reset(options={"init state": THE_INITIAl_CHANGE})`
+        instead.
+    
     This is a specific kind of BaseAgent. It does an BaseAction (possibly non empty) at the first time step and then does
     nothing.
 
@@ -25,10 +30,17 @@ class OneChangeThenNothing(BaseAgent):
 
     Examples
     ---------
-    We advise to use this class as following
+    
+    This class is deprecated in favor of the "init state" reset options. Please avoid using it.
+    
+    But if you really want to use it... then you can do it with:
 
     .. code-block:: python
 
+        # This class has been deprecated, please use the env.reset()
+        # with proper options instead
+        
+        # DEPRECATED ! 
         import grid2op
         from grid2op.Agent import OneChangeThenNothing
         acts_dict_ = [{}, {"set_line_status": [(0,-1)]}]  # list of dictionaries. Each dictionary
@@ -38,18 +50,42 @@ class OneChangeThenNothing(BaseAgent):
         for act_as_dict in zip(acts_dict_):
             # generate the proper class that will perform the first action (encoded by {}) in acts_dict_
             agent_class = OneChangeThenNothing.gen_next(act_as_dict)
-
+            
             # start a runner with this agent
             runner = Runner(**env.get_params_for_runner(), agentClass=agent_class)
             # run 2 episode with it
             res_2 = runner.run(nb_episode=2)
 
+
+    Notes
+    ------
+    
+    After grid2op 1.10.2, this class has been deprecated. A cleaner alternative
+    to use it is to set the initial state of grid when calling `env.reset` like this:
+    
+    .. code-block:: python
+    
+        import grid2op
+        
+        env = grid2op.make("l2rpn_case14_sandbox")  # create an environment
+        dict_act_json = ...  # dict representing an action
+        obs = env.reset(options={"init state": dict_act_json})
+    
+    This way of doing offers:
+    
+    - more flexibility: rules are not checked
+    - more flexibility: any type of actions acting on anything can be performed
+      (even if the action would be illegal for the agent)
+    - less trouble: cooldown are not affected
+    
     """
 
     my_dict = {}
 
     def __init__(self, action_space):
         BaseAgent.__init__(self, action_space)
+        cls = type(self)
+        warnings.warn(f"Deprecated class, please use `env.reset(options={{'init state': {self.action_space(cls.my_dict).to_json()}, 'method': 'ignore' }})` instead")
         self.has_changed = False
         self.do_nothing_action = self.action_space({})
 

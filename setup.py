@@ -23,7 +23,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 pkgs = {
     "required": [
-        "numpy>=1.20",
+        "numpy>=1.20,<2",  # disable numpy 2 for now
         "scipy>=1.4.1",
         "pandas>=1.0.3",
         "pandapower>=2.2.2",
@@ -73,7 +73,7 @@ pkgs = {
                  "numba",
                  "gym>=0.26",
                  "gymnasium",
-                 "stable-baselines3>=2.0",
+                #  "stable-baselines3>=2.0",
                  "nbconvert",
                  "jinja2"
                  ],
@@ -84,7 +84,6 @@ pkgs = {
 }
 pkgs["extras"]["test"] += pkgs["extras"]["optional"]
 pkgs["extras"]["test"] += pkgs["extras"]["plot"]
-pkgs["extras"]["test"] += pkgs["extras"]["chronix2grid"]
 pkgs["extras"]["test"] += pkgs["extras"]["gymnasium"]
 
 if sys.version_info.minor <= 7:

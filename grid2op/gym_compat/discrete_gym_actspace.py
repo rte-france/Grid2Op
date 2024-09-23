@@ -8,22 +8,16 @@
 
 import copy
 import warnings
-# from gym.spaces import Discrete
+from typing import Literal, Dict, Tuple, Any, Optional
 
 from grid2op.Exceptions import Grid2OpException
-from grid2op.Action import ActionSpace
+from grid2op.Action import ActionSpace, BaseAction
 from grid2op.Converter import IdToAct
 
 from grid2op.gym_compat.utils import (ALL_ATTR_FOR_DISCRETE,
                                       ATTR_DISCRETE,
                                       GYM_AVAILABLE,
                                       GYMNASIUM_AVAILABLE)
-
-# TODO test that it works normally
-# TODO test the casting in dt_int or dt_float depending on the data
-# TODO test the scaling
-# TODO doc
-# TODO test the function part
 
 
 class __AuxDiscreteActSpace:
@@ -215,9 +209,18 @@ class __AuxDiscreteActSpace:
 
     def __init__(
         self,
-        grid2op_action_space,
-        attr_to_keep=ALL_ATTR_FOR_DISCRETE,
-        nb_bins=None,
+        grid2op_action_space : ActionSpace,
+        attr_to_keep: Optional[Tuple[Literal["set_line_status"],
+                                     Literal["set_line_status_simple"],
+                                     Literal["change_line_status"],
+                                     Literal["set_bus"],
+                                     Literal["change_bus"],
+                                     Literal["redispatch"],
+                                     Literal["set_storage"],
+                                     Literal["curtail"],
+                                     Literal["curtail_mw"],
+                     ]]=ALL_ATTR_FOR_DISCRETE,
+        nb_bins : Dict[Literal["redispatch", "set_storage", "curtail", "curtail_mw"], int]=None,
         action_list=None,
     ):
 
@@ -274,8 +277,6 @@ class __AuxDiscreteActSpace:
             "set_storage": act_sp.get_all_unitary_storage,
             "curtail": act_sp.get_all_unitary_curtail,
             "curtail_mw": act_sp.get_all_unitary_curtail,
-            # "raise_alarm": act_sp.get_all_unitary_alarm,
-            # "raise_alert": act_sp.get_all_unitary_alert,
             "set_line_status_simple": act_sp.get_all_unitary_line_set_simple,
         }
 
@@ -319,7 +320,7 @@ class __AuxDiscreteActSpace:
         self.converter = converter
         return self.converter.n
 
-    def from_gym(self, gym_act):
+    def from_gym(self, gym_act: int) -> BaseAction:
         """
         This is the function that is called to transform a gym action (in this case a numpy array!)
         sent by the agent
@@ -339,7 +340,11 @@ class __AuxDiscreteActSpace:
         res = self.converter.all_actions[int(gym_act)]
         return res
 
-    def close(self):
+    def close(self) -> None:
+        """If you override this class, this function is called when the GymEnv is deleted.
+        
+        You can use it to free some memory if needed, but there is nothing to do in the general case.
+        """
         pass
 
 
@@ -363,7 +368,7 @@ if GYMNASIUM_AVAILABLE:
     from gymnasium.spaces import Discrete
     from grid2op.gym_compat.box_gym_actspace import BoxGymnasiumActSpace
     from grid2op.gym_compat.continuous_to_discrete import  ContinuousToDiscreteConverterGymnasium
-    DiscreteActSpaceGymnasium = type("MultiDiscreteActSpaceGymnasium",
+    DiscreteActSpaceGymnasium = type("DiscreteActSpaceGymnasium",
                                      (__AuxDiscreteActSpace, Discrete, ),
                                      {"_gymnasium": True,
                                       "_DiscreteType": Discrete,

@@ -266,13 +266,15 @@ class BaseTestLoadingBackendPandaPower:
         i = 0
         self.chronics_handler.next_chronics()
 
+        ch = copy.deepcopy(self.chronics_handler)
+        ch.cleanup_action_space()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self.env = Environment(
                 init_grid_path=os.path.join(self.path_matpower, self.case_file),
                 backend=self.get_backend(),
                 init_env_path=os.path.join(self.path_matpower, self.case_file),
-                chronics_handler=self.chronics_handler,
+                chronics_handler=ch,
                 parameters=self.env_params,
                 rewardClass=L2RPNReward,
                 names_chronics_to_backend=self.names_chronics_to_backend,
@@ -845,7 +847,7 @@ class TestDeactivateForecast(unittest.TestCase):
         # type of power flow to play
         # if True, then it will not disconnect lines above their thermal limits
         assert env._no_overflow_disconnection == param.NO_OVERFLOW_DISCONNECTION
-        assert env._hard_overflow_threshold == param.HARD_OVERFLOW_THRESHOLD
+        assert (env._hard_overflow_threshold == param.HARD_OVERFLOW_THRESHOLD).all()
 
         # store actions "cooldown"
         assert (

@@ -6,7 +6,7 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-from typing import Optional, Union
+from typing import Optional, Union, Dict, Literal
 import numpy as np
 import hashlib
 from datetime import datetime, timedelta
@@ -68,12 +68,13 @@ class FromNPY(GridValue):
                                                 "load_q": load_q,
                                                 "prod_p": prod_p,
                                                 "prod_v": prod_v
-                                                # other parameters includes
+                                                ## other parameters includes
                                                 # maintenance
                                                 # load_p_forecast
                                                 # load_q_forecast
                                                 # prod_p_forecast
                                                 # prod_v_forecast
+                                                # init_state  # new in 1.10.2
                                                 })
 
         # you can use env normally, including in runners
@@ -129,6 +130,7 @@ class FromNPY(GridValue):
         chunk_size: Optional[int] = None,
         i_start: Optional[int] = None,
         i_end: Optional[int] = None,  # excluded, as always in python
+        init_state: Optional["grid2op.Action.BaseAction"] = None,
         **kwargs
     ):
         GridValue.__init__(
@@ -193,17 +195,6 @@ class FromNPY(GridValue):
                 "This feature is not available at the moment. Fill a github issue at "
                 "https://github.com/rte-france/Grid2Op/issues/new?assignees=&labels=enhancement&template=feature_request.md&title="
             )
-            # self.has_hazards = True
-            # if self.n_line is None:
-            #     self.n_line = hazards.shape[1]
-            # else:
-            #     assert self.n_line == hazards.shape[1]
-            # assert load_p.shape[0] == hazards.shape[0]
-
-            # self.hazards = hazards  # TODO copy !
-            # self.hazard_duration = np.zeros(shape=(self.hazards.shape[0], self.n_line), dtype=dt_int)
-            # for line_id in range(self.n_line):
-            #     self.hazard_duration[:, line_id] = self.get_hazard_duration_1d(self.hazards[:, line_id])
 
         self._forecasts = None
         if load_p_forecast is not None:
@@ -229,6 +220,9 @@ class FromNPY(GridValue):
             raise ChronicsError(
                 "if prod_p_forecast is not None, then load_p_forecast should not be None"
             )
+        
+        self._init_state = init_state
+        self._max_iter = min(self._i_end - self._i_start, load_p.shape[0])
 
     def initialize(
         self,
@@ -259,6 +253,7 @@ class FromNPY(GridValue):
 
         self.curr_iter = 0
         self.current_index = self._i_start - 1
+        self._max_iter = self._i_end - self._i_start
 
     def _get_long_hash(self, hash_: hashlib.blake2b = None):
         # get the "long hash" from blake2b
@@ -427,6 +422,7 @@ class FromNPY(GridValue):
             # update the forecast
             self._forecasts.next_chronics()
         self.check_validity(backend=None)
+        self._max_iter = self._i_end - self._i_start
 
     def done(self):
         """
@@ -655,6 +651,7 @@ class FromNPY(GridValue):
             self.__new_istart = int(new_i_start)
         else:
             self.__new_istart = None
+            
 
     def change_i_end(self, new_i_end: Union[int, None]):
         """
@@ -700,3 +697,9 @@ class FromNPY(GridValue):
             self.__new_iend = int(new_i_end)
         else:
             self.__new_iend = None
+
+    def get_init_action(self, names_chronics_to_backend: Optional[Dict[Literal["loads", "prods", "lines"], Dict[str, str]]]=None) -> Union["grid2op.Action.playableAction.PlayableAction", None]:
+        # names_chronics_to_backend is ignored, names should be consistent between the environment 
+        # and the initial state
+        
+        return self._init_state

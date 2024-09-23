@@ -7,10 +7,12 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 import numpy as np
 from datetime import timedelta, datetime
+import warnings
 
 from grid2op.dtypes import dt_int
 from grid2op.Chronics.multiFolder import Multifolder
 from grid2op.Chronics.gridStateFromFile import GridStateFromFile
+from grid2op.Chronics.time_series_from_handlers import FromHandlers
 from grid2op.Exceptions import ChronicsError
 
 
@@ -70,7 +72,7 @@ class MultifolderWithCache(Multifolder):
         env = make(...,chronics_class=MultifolderWithCache)
 
         # set the chronics to limit to one week of data (lower memory footprint)
-        env.chronics_handler.set_max_iter(7*288)
+        env.set_max_iter(7*288)
         # assign a filter, use only chronics that have "december" in their name
         env.chronics_handler.real_data.set_filter(lambda x: re.match(".*december.*", x) is not None)
         # create the cache
@@ -140,12 +142,18 @@ class MultifolderWithCache(Multifolder):
         )
         self._cached_data = None
         self.cache_size = 0
-        if not issubclass(self.gridvalueClass, GridStateFromFile):
+        if not (issubclass(self.gridvalueClass, GridStateFromFile) or 
+                issubclass(self.gridvalueClass, FromHandlers)):
             raise RuntimeError(
                 'MultifolderWithCache does not work when "gridvalueClass" does not inherit from '
                 '"GridStateFromFile".'
             )
+        if issubclass(self.gridvalueClass, FromHandlers):
+            warnings.warn("You use caching with handler data. This is possible but "
+                          "might be a bit risky especially if your handlers are "
+                          "heavily 'random' and you want fully reproducible results.")
         self.__i = 0
+        self._cached_seeds = None
 
     def _default_filter(self, x):
         """
@@ -161,6 +169,11 @@ class MultifolderWithCache(Multifolder):
         """
         Rebuilt the cache as if it were built from scratch. 
         This call might take a while to process.
+        
+        This means that current data in cache will be discarded and that new data will
+        most likely be read from the hard drive.
+        
+        This might take a while.
         
         .. danger::
             You NEED to call this function (with `env.chronics_handler.reset()`)
@@ -180,16 +193,10 @@ class MultifolderWithCache(Multifolder):
         for i in self._order:
             # everything in "_order" need to be put in cache
             path = self.subpaths[i]
-            data = self.gridvalueClass(
-                time_interval=self.time_interval,
-                sep=self.sep,
-                path=path,
-                max_iter=self.max_iter,
-                chunk_size=None,
-            )
-            if self.seed_used is not None:
-                seed_chronics = self.space_prng.randint(max_int)
-                data.seed(seed_chronics)
+            data = self._get_nex_data(path)
+            
+            if self._cached_seeds is not None:
+                data.seed(self._cached_seeds[i])
 
             data.initialize(
                 self._order_backend_loads,
@@ -198,8 +205,14 @@ class MultifolderWithCache(Multifolder):
                 self._order_backend_subs,
                 self._names_chronics_to_backend,
             )
+            
+            if self._cached_seeds is not None:
+                data.regenerate_with_new_seed()
+                
             self._cached_data[i] = data
             self.cache_size += 1
+            if self.action_space is not None:
+                data.action_space = self.action_space
 
         if self.cache_size == 0:
             raise RuntimeError("Impossible to initialize the new cache.")
@@ -231,12 +244,16 @@ class MultifolderWithCache(Multifolder):
         self.n_load = len(order_backend_loads)
         self.n_line = len(order_backend_lines)
         if self._cached_data is None:
-            # initialize the cache
+            # initialize the cache of this MultiFolder
             self.reset()
 
         id_scenario = self._order[self._prev_cache_id]
         self.data = self._cached_data[id_scenario]
         self.data.next_chronics()
+        if self.seed_used is not None and self.data.seed_used != self._cached_seeds[id_scenario]:
+            self.data.seed(self._cached_seeds[id_scenario])
+            self.data.regenerate_with_new_seed()
+        self._max_iter = self.data.max_iter
     
     @property
     def max_iter(self):
@@ -258,6 +275,15 @@ class MultifolderWithCache(Multifolder):
         (which has an impact for example on :func:`MultiFolder.sample_next_chronics`)
         and each data present in the cache.
 
+        .. warning::
+            Before grid2op version 1.10.3 this function did not fully ensured 
+            reproducible experiments (the cache was not update with the new seed)
+            
+            For grid2op 1.10.3 and after, this function might trigger some modification 
+            in the cached data (calling :func:`GridValue.seed` and then 
+            :func:`GridValue.regenerate_with_new_seed`). It might take a while if the cache
+            is large.
+            
         Parameters
         ----------
         seed : int
@@ -265,12 +291,15 @@ class MultifolderWithCache(Multifolder):
         """
         res = super().seed(seed)
         max_int = np.iinfo(dt_int).max
+        self._cached_seeds = np.empty(shape=self._order.shape, dtype=dt_int)
         for i in self._order:
             data = self._cached_data[i]
+            seed_ts = self.space_prng.randint(max_int)
+            self._cached_seeds[i] = seed_ts
             if data is None:
                 continue
-            seed_ts = self.space_prng.randint(max_int)
             data.seed(seed_ts)
+            data.regenerate_with_new_seed()
         return res
         
     def load_next(self):
@@ -282,9 +311,66 @@ class MultifolderWithCache(Multifolder):
         return super().load_next()
 
     def set_filter(self, filter_fun):
+        """
+        Assign a filtering function to remove some chronics from the next time a call to "reset_cache" is called.
+
+        **NB** filter_fun is applied to all element of :attr:`Multifolder.subpaths`. If ``True`` then it will
+        be put in cache, if ``False`` this data will NOT be put in the cache.
+
+        **NB** this has no effect until :attr:`Multifolder.reset` is called.
+        
+        
+        .. danger::
+            Calling this function cancels the previous seed used. If you use `env.seed`
+            or `env.chronics_handler.seed` before then you need to 
+            call it again after otherwise it has no effect.
+
+        Parameters
+        ----------
+        filter_fun : _type_
+            _description_
+
+        Examples
+        --------
+        Let's assume in your chronics, the folder names are "Scenario_august_dummy", and
+        "Scenario_february_dummy". For the sake of the example, we want the environment to loop
+        only through the month of february, because why not. Then we can do the following:
+
+        .. code-block:: python
+
+            import re
+            import grid2op
+            env = grid2op.make("l2rpn_neurips_2020_track1", test=True)  # don't add "test=True" if
+            # you don't want to perform a test.
+
+            # check at which month will belong each observation
+            for i in range(10):
+                obs = env.reset()
+                print(obs.month)
+                # it always alternatively prints "8" (if chronics if from august) or
+                # "2" if chronics is from february)
+
+            # to see where the chronics are located
+            print(env.chronics_handler.subpaths)
+
+            # keep only the month of february
+            env.chronics_handler.set_filter(lambda path: re.match(".*february.*", path) is not None)
+            env.chronics_handler.reset()  # if you don't do that it will not have any effect
+
+            for i in range(10):
+                obs = env.reset()
+                print(obs.month)
+                # it always prints "2" (representing february)
+
+        Returns
+        -------
+        _type_
+            _description_
+        """
         self.__nb_reset_called = 0
         self.__nb_step_called = 0
         self.__nb_init_called = 0
+        self._cached_seeds = None
         return super().set_filter(filter_fun)
 
     def get_kwargs(self, dict_):
@@ -292,3 +378,10 @@ class MultifolderWithCache(Multifolder):
         dict_["_DONTUSE_nb_step_called"] = self.__nb_step_called
         dict_["_DONTUSE_nb_init_called"] = self.__nb_init_called
         return super().get_kwargs(dict_)
+
+    def cleanup_action_space(self):
+        super().cleanup_action_space()
+        for el in self._cached_data:
+            if el is None:
+                continue
+            el.cleanup_action_space()

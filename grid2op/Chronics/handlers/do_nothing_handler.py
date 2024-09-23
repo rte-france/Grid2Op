@@ -6,6 +6,7 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
+from typing import Union
 from grid2op.Chronics.handlers.baseHandler import BaseHandler
 
 
@@ -51,3 +52,5 @@ class DoNothingHandler(BaseHandler):
     def load_next_hazard(self):
         return None
     
+    def get_init_dict_action(self) -> Union[dict, None]:
+        return None

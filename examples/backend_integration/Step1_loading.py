@@ -30,8 +30,11 @@ from grid2op.Backend import Backend   # required
 # to serve as an example
 import pandapower as pp
 
+ERR_MSG_ELSEWHERE = "Will be detailed in another example script"
+
 
 class CustomBackend_Step1(Backend):
+    shunts_data_available = False
     def load_grid(self,
                   path : Union[os.PathLike, str],
                   filename : Optional[Union[os.PathLike, str]]=None) -> None:
@@ -97,25 +100,25 @@ class CustomBackend_Step1(Backend):
         self._compute_pos_big_topo()
 
     def apply_action(self, backendAction: Union["grid2op.Action._backendAction._BackendAction", None]) -> None:
-        raise NotImplementedError("Will be detailed in another example script")
+        raise NotImplementedError()
     
     def runpf(self, is_dc : bool=False) -> Tuple[bool, Union[Exception, None]]:
-        raise NotImplementedError("Will be detailed in another example script")
+        raise NotImplementedError(ERR_MSG_ELSEWHERE)
     
     def get_topo_vect(self) -> np.ndarray:
-        raise NotImplementedError("Will be detailed in another example script")
+        raise NotImplementedError(ERR_MSG_ELSEWHERE)
     
     def generators_info(self)-> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-        raise NotImplementedError("Will be detailed in another example script")
+        raise NotImplementedError(ERR_MSG_ELSEWHERE)
     
     def loads_info(self)-> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-        raise NotImplementedError("Will be detailed in another example script")
+        raise NotImplementedError(ERR_MSG_ELSEWHERE)
     
     def lines_or_info(self)-> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-        raise NotImplementedError("Will be detailed in another example script")
+        raise NotImplementedError(ERR_MSG_ELSEWHERE)
     
     def lines_ex_info(self)-> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-        raise NotImplementedError("Will be detailed in another example script")
+        raise NotImplementedError(ERR_MSG_ELSEWHERE)
 
 
 if __name__ == "__main__":
@@ -168,8 +171,8 @@ if __name__ == "__main__":
     # storage_pos_topo_vect
     
     # for example
-    print(type(backend).name_load)
-    print(type(backend).load_to_subid)
-    print(type(backend).load_to_sub_pos)
-    print(type(backend).load_pos_topo_vect)
+    print(f"Name of the loads, seen in grid2op: {type(backend).name_load}")
+    print(f"Id of substation, for each load: {type(backend).load_to_subid}")
+    print(f"Position in the substation topology vector, for each load: {type(backend).load_to_sub_pos}")
+    print(f"Position in the global topology vector, for each load: {type(backend).load_pos_topo_vect}")
     

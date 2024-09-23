@@ -8,36 +8,43 @@
 
 
 from datetime import datetime
+import tempfile
 import logging
 import time
 import copy
 import os
 import json
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Union, Dict, Any, Literal
+import importlib
+import sys
+
 import warnings
 import numpy as np
 from scipy.optimize import (minimize, LinearConstraint)
+
 from abc import ABC, abstractmethod
-from grid2op.Action import ActionSpace
 from grid2op.Observation import (BaseObservation,
                                  ObservationSpace,
                                  HighResSimCounter)
 from grid2op.Backend import Backend
 from grid2op.dtypes import dt_int, dt_float, dt_bool
 from grid2op.Space import GridObjects, RandomObject
-from grid2op.Exceptions import *
+from grid2op.Exceptions import (Grid2OpException,
+                                EnvError,
+                                InvalidRedispatching,
+                                GeneratorTurnedOffTooSoon,
+                                GeneratorTurnedOnTooSoon,
+                                AmbiguousActionRaiseAlert,
+                                ImpossibleTopology)
 from grid2op.Parameters import Parameters
-from grid2op.Reward import BaseReward
-from grid2op.Reward import RewardHelper
-from grid2op.Opponent import OpponentSpace, NeverAttackBudget
-from grid2op.Action import DontAct, BaseAction
-from grid2op.Rules import AlwaysLegal
-from grid2op.Opponent import BaseOpponent
+from grid2op.Reward import BaseReward, RewardHelper
+from grid2op.Opponent import OpponentSpace, NeverAttackBudget, BaseOpponent
+from grid2op.Action import DontAct, BaseAction, ActionSpace
 from grid2op.operator_attention import LinearAttentionBudget
 from grid2op.Action._backendAction import _BackendAction
 from grid2op.Chronics import ChronicsHandler
-from grid2op.Rules import AlwaysLegal, BaseRules
-
+from grid2op.Rules import AlwaysLegal, BaseRules, AlwaysLegal
+from grid2op.typing_variables import STEP_INFO_TYPING, RESET_OPTIONS_TYPING
 
 # TODO put in a separate class the redispatching function
 
@@ -72,7 +79,6 @@ BASE_TXT_COPYRIGHT = """# Copyright (c) 2019-2020, RTE (https://www.rte-france.c
 # WE DO NOT RECOMMEND TO ALTER IT IN ANY WAY
 """
 
-
 class BaseEnv(GridObjects, RandomObject, ABC):
     """
     INTERNAL
@@ -84,6 +90,65 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
     The documentation is showed here to document the common attributes of an "BaseEnvironment".
 
+    .. _danger-env-ownership:
+    
+    Notes 
+    ------------------------
+    
+    Note en environment data ownership
+    
+    .. danger::
+    
+        
+        A non pythonic decision has been implemented in grid2op for various reasons: an environment
+        owns everything created from it.
+        
+        This means that if you (or the python interpreter) deletes the environment, you might not
+        use some data generate with this environment.
+        
+        More precisely, you cannot do something like:
+        
+        .. code-block:: python
+
+            import grid2op
+            env = grid2op.make("l2rpn_case14_sandbox")
+            
+            saved_obs = []
+            
+            obs = env.reset()
+            saved_obs.append(obs)
+            obs2, reward, done, info = env.step(env.action_space())
+            saved_obs.append(obs2)
+            
+            saved_obs[0].simulate(env.action_space())  # works
+            del env
+            saved_obs[0].simulate(env.action_space())  # DOES NOT WORK
+            
+        It will raise an error like `Grid2OpException EnvError "This environment is closed. You cannot use it anymore."`
+        
+        This will also happen if you do things inside functions, for example like this:
+        
+        .. code-block:: python
+
+            import grid2op
+            
+            def foo(manager):
+                env = grid2op.make("l2rpn_case14_sandbox")
+                obs = env.reset()
+                manager.append(obs)
+                obs2, reward, done, info = env.step(env.action_space())
+                manager.append(obs2)
+                manager[0].simulate(env.action_space())  # works
+                return manager
+                
+            manager = []
+            manager = foo(manager)
+            manager[0].simulate(env.action_space())  # DOES NOT WORK
+        
+        The same error is raised because the environment `env` is automatically deleted by python when the function `foo` ends
+        (well it might work on some cases, if the function is called before the variable `env` is actually deleted but you 
+        should not rely on this behaviour.)
+            
     Attributes
     ----------
 
@@ -234,12 +299,17 @@ class BaseEnv(GridObjects, RandomObject, ABC):
     
     CAN_SKIP_TS = False  # each step is exactly one time step
 
+    #: this are the keys of the dictionnary `options`
+    #: that can be used when calling `env.reset(..., options={})`
+    KEYS_RESET_OPTIONS = {"time serie id", "init state", "init ts", "max step"}
+    
     def __init__(
         self,
         init_env_path: os.PathLike,
         init_grid_path: os.PathLike,
         parameters: Parameters,
         voltagecontrolerClass: type,
+        name="unknown",
         thermal_limit_a: Optional[np.ndarray] = None,
         epsilon_poly: float = 1e-4,  # precision of the redispatching algorithm
         tol_poly: float = 1e-2,  # i need to compute a redispatching if the actual values are "more than tol_poly" the values they should be
@@ -263,11 +333,33 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         observation_bk_kwargs=None,  # type of backend for the observation space
         highres_sim_counter=None,
         update_obs_after_reward=False,
+        n_busbar=2,
         _is_test: bool = False,  # TODO not implemented !!
-        _init_obs: Optional[BaseObservation] =None
+        _init_obs: Optional[BaseObservation] =None,
+        _local_dir_cls=None,
+        _read_from_local_dir=None,
+        _raw_backend_class=None,
     ):
+        #: flag to indicate not to erase the directory when the env has been used
+        self._do_not_erase_local_dir_cls = False
         GridObjects.__init__(self)
         RandomObject.__init__(self)
+        self.name = name
+        self._local_dir_cls = _local_dir_cls  # suppose it's the second path to the environment, so the classes are already in the files
+        self._read_from_local_dir = _read_from_local_dir
+        if self._read_from_local_dir is not None:
+            if os.path.split(self._read_from_local_dir)[1] == "_grid2op_classes":
+                # legacy behaviour (using experimental_read_from_local_dir kwargs in env.make)
+                self._do_not_erase_local_dir_cls = True
+        else:
+            self._do_not_erase_local_dir_cls = True
+            
+        self._actionClass_orig = None
+        self._observationClass_orig = None
+        
+        self._raw_backend_class = _raw_backend_class
+            
+        self._n_busbar = n_busbar  # env attribute not class attribute !
         if other_rewards is None:
             other_rewards = {}
         if kwargs_attention_budget is None:
@@ -319,10 +411,10 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         # class used for the action spaces
         self._helper_action_class: ActionSpace = None
-        self._helper_observation_class: ActionSpace = None
+        self._helper_observation_class: ObservationSpace = None
 
         # and calendar data
-        self.time_stamp: time.struct_time = None
+        self.time_stamp: time.struct_time = datetime(year=2019, month=1, day=1)
         self.nb_time_step: datetime.timedelta = dt_int(0)
         self.delta_time_seconds = None  # number of seconds between two consecutive step
 
@@ -342,7 +434,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         )
         self._timestep_overflow: np.ndarray = None
         self._nb_timestep_overflow_allowed: np.ndarray = None
-        self._hard_overflow_threshold: float = self._parameters.HARD_OVERFLOW_THRESHOLD
+        self._hard_overflow_threshold: np.ndarray  = None
 
         # store actions "cooldown"
         self._times_before_line_status_actionable: np.ndarray = None
@@ -449,11 +541,11 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._voltage_controler = None
 
         # backend action
-        self._backend_action_class = None
-        self._backend_action = None
+        self._backend_action_class : type = None
+        self._backend_action : _BackendAction = None
 
         # specific to Basic Env, do not change
-        self.backend :Backend = None
+        self.backend : Backend = None
         self.__is_init = False
         self.debug_dispatch = False
 
@@ -552,16 +644,26 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         if self.__closed:
             raise RuntimeError("Impossible to make a copy of a closed environment !")
 
-        if not self.backend._can_be_copied:
-            raise RuntimeError("Impossible to copy your environment: the backend "
-                               "class you used cannot be copied.")
+        if hasattr(self.backend, "_can_be_copied"):
+            if not self.backend._can_be_copied:
+                # introduced later on, might not be copied perfectly for some older backends
+                raise RuntimeError("Impossible to copy your environment: the backend "
+                                "class you used cannot be copied.")
+            # for earlier backend it is not possible to check this so I ignore it.
+            
         RandomObject._custom_deepcopy_for_copy(self, new_obj)
+        new_obj.name = self.name
         if dict_ is None:
             dict_ = {}
-
+        new_obj._n_busbar = self._n_busbar
+        
         new_obj._init_grid_path = copy.deepcopy(self._init_grid_path)
         new_obj._init_env_path = copy.deepcopy(self._init_env_path)
+        new_obj._local_dir_cls = None  # copy of a env is not the "main" env.  TODO
+        new_obj._do_not_erase_local_dir_cls = self._do_not_erase_local_dir_cls
+        new_obj._read_from_local_dir = self._read_from_local_dir
 
+        new_obj._raw_backend_class = self._raw_backend_class
         new_obj._DEBUG = self._DEBUG
         new_obj._parameters = copy.deepcopy(self._parameters)
         new_obj.with_forecast = self.with_forecast
@@ -581,27 +683,23 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         new_obj._tol_poly = self._tol_poly
 
         #
-        new_obj._complete_action_cls = copy.deepcopy(self._complete_action_cls)
+        new_obj._complete_action_cls = self._complete_action_cls #  const
 
         # define logger
         new_obj.logger = copy.deepcopy(self.logger)  # TODO does that make any sense ?
 
         # class used for the action spaces
         new_obj._helper_action_class = self._helper_action_class  #  const
-        new_obj._helper_observation_class = self._helper_observation_class
+        new_obj._helper_observation_class = self._helper_observation_class #  const
 
         # and calendar data
         new_obj.time_stamp = self.time_stamp
         new_obj.nb_time_step = self.nb_time_step
         new_obj.delta_time_seconds = self.delta_time_seconds
 
-        # observation
-        if self.current_obs is not None:
-            new_obj.current_obs = self.current_obs.copy()
-
         # backend
         # backend action
-        new_obj._backend_action_class = self._backend_action_class
+        new_obj._backend_action_class = self._backend_action_class #  const
         new_obj._backend_action = copy.deepcopy(self._backend_action)
 
         # specific to Basic Env, do not change
@@ -626,7 +724,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         new_obj._nb_timestep_overflow_allowed = copy.deepcopy(
             self._nb_timestep_overflow_allowed
         )
-        new_obj._hard_overflow_threshold = self._hard_overflow_threshold
+        new_obj._hard_overflow_threshold = copy.deepcopy(self._hard_overflow_threshold)
 
         # store actions "cooldown"
         new_obj._times_before_line_status_actionable = copy.deepcopy(
@@ -671,37 +769,48 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         new_obj._hazards = copy.deepcopy(self._hazards)
         new_obj._env_modification = copy.deepcopy(self._env_modification)
 
+        # action space used by the environment
+        new_obj._game_rules = copy.deepcopy(self._game_rules)
+        new_obj._helper_action_env = self._helper_action_env.copy()
+        new_obj._helper_action_env.legal_action = new_obj._game_rules.legal_action
+        
         # to use the data
         new_obj.done = self.done
         new_obj.current_reward = copy.deepcopy(self.current_reward)
         new_obj.chronics_handler = copy.deepcopy(self.chronics_handler)
-        new_obj._game_rules = copy.deepcopy(self._game_rules)
-        new_obj._helper_action_env = self._helper_action_env.copy()
-        new_obj._helper_action_env.legal_action = new_obj._game_rules.legal_action
+        # retrieve the "pointer" to the new_obj action space (for initializing the grid)
+        new_obj.chronics_handler.cleanup_action_space()
+        new_obj.chronics_handler.action_space = new_obj._helper_action_env
+        
+        # action space
         new_obj._action_space = self._action_space.copy()
         new_obj._action_space.legal_action = new_obj._game_rules.legal_action
 
         new_obj._rewardClass = self._rewardClass
         new_obj._actionClass = self._actionClass
+        new_obj._actionClass_orig = self._actionClass_orig
         new_obj._observationClass = self._observationClass
+        new_obj._observationClass_orig = self._observationClass_orig
         new_obj._legalActClass = self._legalActClass
-        new_obj._observation_space = self._observation_space.copy(copy_backend=True)
-        new_obj._observation_space._legal_action = (
-            new_obj._game_rules.legal_action
-        )  # TODO this does not respect SOLID principles at all !
-        new_obj._kwargs_observation = copy.deepcopy(self._kwargs_observation)
-        new_obj._observation_space._ptr_kwargs_observation = new_obj._kwargs_observation
-        new_obj._names_chronics_to_backend = self._names_chronics_to_backend
-        new_obj._reward_helper = copy.deepcopy(self._reward_helper)
-
-        # gym compatibility
-        new_obj.reward_range = copy.deepcopy(self.reward_range)
-        new_obj._viewer = copy.deepcopy(self._viewer)
-        new_obj.viewer_fig = copy.deepcopy(self.viewer_fig)
-
+        new_obj._names_chronics_to_backend = self._names_chronics_to_backend  # cst
+        
         # other rewards
-        new_obj.other_rewards = copy.deepcopy(self.other_rewards)
-
+        new_obj.other_rewards = {k: copy.deepcopy(v) for k, v in self.other_rewards.items()}
+        for extra_reward in new_obj.other_rewards.values():
+            extra_reward.reset(new_obj)
+        
+        # voltage
+        new_obj._voltagecontrolerClass = self._voltagecontrolerClass
+        if self._voltage_controler is not None:
+            new_obj._voltage_controler = self._voltage_controler.copy()
+        else:
+            new_obj._voltage_controler = None
+        
+        # needed for the "Environment.get_kwargs(env, False, False)" (used in the observation_space)
+        new_obj._attention_budget_cls = self._attention_budget_cls  # const
+        new_obj._kwargs_attention_budget = copy.deepcopy(self._kwargs_attention_budget)
+        new_obj._has_attention_budget = self._has_attention_budget
+        
         # opponent
         new_obj._opponent_space_type = self._opponent_space_type
         new_obj._opponent_action_class = self._opponent_action_class  # const
@@ -718,6 +827,27 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         new_obj._compute_opp_budget = self._opponent_budget_class(
             self._opponent_action_space
         )
+        
+        new_obj._observation_bk_class = self._observation_bk_class
+        new_obj._observation_bk_kwargs = self._observation_bk_kwargs
+        
+        # do not copy it.
+        new_obj._highres_sim_counter = self._highres_sim_counter      
+        
+        # observation space (might depends on the previous things)
+        # at this stage the function "Environment.get_kwargs(env, False, False)" should run
+        new_obj._kwargs_observation = copy.deepcopy(self._kwargs_observation)
+        new_obj._observation_space = self._observation_space.copy(copy_backend=True, env=new_obj)
+        new_obj._observation_space._legal_action = (
+            new_obj._game_rules.legal_action
+        )  # TODO this does not respect SOLID principles at all !
+        new_obj._observation_space._ptr_kwargs_observation = new_obj._kwargs_observation
+        new_obj._reward_helper = copy.deepcopy(self._reward_helper)
+
+        # gym compatibility
+        new_obj.reward_range = copy.deepcopy(self.reward_range)
+        new_obj._viewer = copy.deepcopy(self._viewer)
+        new_obj.viewer_fig = copy.deepcopy(self.viewer_fig)
 
         # init the opponent
         new_obj._opponent = new_obj._opponent_class.__new__(new_obj._opponent_class)
@@ -731,15 +861,11 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             attack_duration=new_obj._opponent_attack_duration,
             attack_cooldown=new_obj._opponent_attack_cooldown,
             budget_per_timestep=new_obj._opponent_budget_per_ts,
-            opponent=new_obj._opponent,
+            opponent=new_obj._opponent
         )
         state_me, state_opp = self._oppSpace._get_state()
         new_obj._oppSpace._set_state(state_me)
-
-        # voltage
-        new_obj._voltagecontrolerClass = self._voltagecontrolerClass
-        new_obj._voltage_controler = self._voltage_controler.copy()
-
+        
         # to change the parameters
         new_obj.__new_param = copy.deepcopy(self.__new_param)
         new_obj.__new_forecast_param = copy.deepcopy(self.__new_forecast_param)
@@ -763,19 +889,13 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         new_obj._limited_before = copy.deepcopy(self._limited_before)
 
         # attention budget
-        new_obj._has_attention_budget = self._has_attention_budget
         new_obj._attention_budget = copy.deepcopy(self._attention_budget)
-        new_obj._attention_budget_cls = self._attention_budget_cls  # const
         new_obj._is_alarm_illegal = copy.deepcopy(self._is_alarm_illegal)
         new_obj._is_alarm_used_in_reward = copy.deepcopy(self._is_alarm_used_in_reward)
 
         # alert 
         new_obj._is_alert_illegal = copy.deepcopy(self._is_alert_illegal)
         new_obj._is_alert_used_in_reward = copy.deepcopy(self._is_alert_used_in_reward)
-        
-        new_obj._kwargs_attention_budget = copy.deepcopy(self._kwargs_attention_budget)
-
-        new_obj._last_obs = self._last_obs.copy()
 
         new_obj._has_just_been_seeded = self._has_just_been_seeded
         
@@ -788,14 +908,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         else:
             new_obj._init_obs = self._init_obs.copy()
         
-        new_obj._observation_bk_class = self._observation_bk_class
-        new_obj._observation_bk_kwargs = self._observation_bk_kwargs
-        
         # do not forget !
-        new_obj._is_test = self._is_test
-        
-        # do not copy it.
-        new_obj._highres_sim_counter = self._highres_sim_counter        
+        new_obj._is_test = self._is_test  
         
         # alert
         new_obj._last_alert = copy.deepcopy(self._last_alert)
@@ -808,6 +922,17 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         new_obj._was_alert_used_after_attack = copy.deepcopy(self._was_alert_used_after_attack)
         
         new_obj._update_obs_after_reward = copy.deepcopy(self._update_obs_after_reward)
+
+        if self._last_obs is not None:
+            new_obj._last_obs = self._last_obs.copy(env=new_obj)
+        else:
+            new_obj._last_obs = None
+            
+        # observation
+        from grid2op.Environment._obsEnv import _ObsEnv
+        if self.current_obs is not None and not isinstance(self, _ObsEnv):
+            # breaks for some version of lightsim2grid... (a powerflow need to be run to retrieve the observation)
+            new_obj.current_obs = new_obj.get_obs()
 
     def get_path_env(self):
         """
@@ -951,7 +1076,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             alertable_line_names = copy.deepcopy(lines_attacked)
             alertable_line_ids = np.empty(len(alertable_line_names), dtype=dt_int)
             for i, el in enumerate(alertable_line_names): 
-                indx = np.where(self.backend.name_line == el)[0]
+                indx = (self.backend.name_line == el).nonzero()[0]
                 if not len(indx):
                     raise Grid2OpException(f"Attacked line {el} is not found in the grid.")
                 alertable_line_ids[i] = indx[0]
@@ -1149,6 +1274,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             gridobj=type(self.backend),
             legal_action=AlwaysLegal,
             actionClass=self._opponent_action_class,
+            _local_dir_cls=self._local_dir_cls
         )
 
         self._compute_opp_budget = self._opponent_budget_class(
@@ -1162,6 +1288,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             attack_cooldown=self._opponent_attack_cooldown,
             budget_per_timestep=self._opponent_budget_per_ts,
             opponent=self._opponent,
+            _local_dir_cls=self._local_dir_cls,
         )
         self._oppSpace.init_opponent(partial_env=self, **self._kwargs_opponent)
         self._oppSpace.reset()
@@ -1171,13 +1298,19 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             # the class has already been initialized
             return
         # remember the original grid2op class
-        type(self)._INIT_GRID_CLS = type(self)
+        orig_cls = type(self)
 
-        bk_type = type(
-            self.backend
-        )  # be careful here: you need to initialize from the class, and not from the object
+        # be careful here: you need to initialize from the class, and not from the object
+        bk_type = type(self.backend)  
         # create the proper environment class for this specific environment
-        self.__class__ = type(self).init_grid(bk_type)
+        new_cls = type(self).init_grid(bk_type, _local_dir_cls=self._local_dir_cls)
+        # assign the right initial grid class
+        if orig_cls._INIT_GRID_CLS is None:
+            new_cls._INIT_GRID_CLS = orig_cls
+        else:
+            new_cls._INIT_GRID_CLS = orig_cls._INIT_GRID_CLS
+            
+        self.__class__  = new_cls
 
     def _has_been_initialized(self):
         # type of power flow to play
@@ -1186,7 +1319,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         bk_type = type(self.backend)
         if np.min([self.n_line, self.n_gen, self.n_load, self.n_sub]) <= 0:
             raise EnvironmentError("Environment has not been initialized properly")
-        self._backend_action_class = _BackendAction.init_grid(bk_type)
+        self._backend_action_class = _BackendAction.init_grid(bk_type, _local_dir_cls=self._local_dir_cls)
         self._backend_action = self._backend_action_class()
 
         # initialize maintenance / hazards
@@ -1204,7 +1337,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._gen_downtime = np.zeros(self.n_gen, dtype=dt_int)
         self._gen_activeprod_t = np.zeros(self.n_gen, dtype=dt_float)
         self._gen_activeprod_t_redisp = np.zeros(self.n_gen, dtype=dt_float)
-        self._nb_timestep_overflow_allowed = np.ones(shape=self.n_line, dtype=dt_int)
         self._max_timestep_line_status_deactivated = (
             self._parameters.NB_TIMESTEP_COOLDOWN_LINE
         )
@@ -1219,6 +1351,11 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             shape=(self.n_line,),
             fill_value=self._parameters.NB_TIMESTEP_OVERFLOW_ALLOWED,
             dtype=dt_int,
+        )
+        self._hard_overflow_threshold = np.full(
+            shape=(self.n_line,),
+            fill_value=self._parameters.HARD_OVERFLOW_THRESHOLD,
+            dtype=dt_float,
         )
         self._timestep_overflow = np.zeros(shape=(self.n_line,), dtype=dt_int)
 
@@ -1261,7 +1398,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         # type of power flow to play
         # if True, then it will not disconnect lines above their thermal limits
         self._no_overflow_disconnection = self._parameters.NO_OVERFLOW_DISCONNECTION
-        self._hard_overflow_threshold = self._parameters.HARD_OVERFLOW_THRESHOLD
 
         # store actions "cooldown"
         self._max_timestep_line_status_deactivated = (
@@ -1275,20 +1411,34 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._nb_timestep_overflow_allowed[
             :
         ] = self._parameters.NB_TIMESTEP_OVERFLOW_ALLOWED
-
+        self._hard_overflow_threshold[:] = self._parameters.HARD_OVERFLOW_THRESHOLD
         # hard overflow part
         self._env_dc = self._parameters.ENV_DC
 
         self.__new_param = None
 
-    def reset(self):
+    def set_id(self, id_: Union[int, str]) -> None:
+        # nothing to do in general, overloaded for real Environment
+        pass
+    
+    def reset(self, 
+              *,
+              seed: Union[int, None] = None,
+              options: RESET_OPTIONS_TYPING = None):
         """
         Reset the base environment (set the appropriate variables to correct initialization).
         It is (and must be) overloaded in other :class:`grid2op.Environment`
         """
         if self.__closed:
             raise EnvError("This environment is closed. You cannot use it anymore.")
-
+        if options is not None:
+            for el in options:
+                if el not in type(self).KEYS_RESET_OPTIONS:
+                    raise EnvError(f"You tried to customize the `reset` call with some "
+                                   f"`options` using the key `{el}` which is invalid. "
+                                   f"Only keys in {sorted(list(type(self).KEYS_RESET_OPTIONS))} "
+                                   f"can be used.")
+                    
         self.__is_init = True
         # current = None is an indicator that this is the first step of the environment
         # so don't change the setting of current_obs = None unless you are willing to change that
@@ -1309,9 +1459,15 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         self._last_obs = None
 
-        # seeds (so that next episode does not depend on what happened in previous episode)
-        if self.seed_used is not None and not self._has_just_been_seeded:
+        if options is not None and "time serie id" in options:
+            self.set_id(options["time serie id"])
+            
+        if seed is not None:
+            self.seed(seed)  
+        elif self.seed_used is not None and not self._has_just_been_seeded:
+            # seeds (so that next episode does not depend on what happened in previous episode)
             self.seed(None, _seed_me=False)
+            
         self._reset_storage()
         self._reset_curtailment()
         self._reset_alert()
@@ -1356,6 +1512,18 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         """
         Set the seed of this :class:`Environment` for a better control and to ease reproducible experiments.
 
+        .. seealso::
+            function :func:`Environment.reset` for extra information
+
+        .. versionchanged:: 1.9.8
+            Starting from version 1.9.8 you can directly set the seed when calling
+            reset.
+            
+        .. warning::
+            It is preferable to call this function `just before` a call to `env.reset()` otherwise
+            the seeding might not work properly (especially if some non standard "time serie generators"
+            *aka* chronics are used)
+            
         Parameters
         ----------
         seed: ``int``
@@ -1645,7 +1813,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                         f"names. We found: {key} which is not a line name. The names of the "
                         f"powerlines are {self.name_line}"
                     )
-                ind_line = np.where(self.name_line == key)[0][0]
+                ind_line = (self.name_line == key).nonzero()[0][0]
                 if np.isfinite(tmp[ind_line]):
                     raise Grid2OpException(
                         f"Humm, there is a really strange bug, some lines are set twice."
@@ -1741,9 +1909,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         redisp_act_orig = 1.0 * action._redispatch
 
         if (
-            np.all(redisp_act_orig == 0.0)
-            and np.all(self._target_dispatch == 0.0)
-            and np.all(self._actual_dispatch == 0.0)
+            np.all(np.abs(redisp_act_orig) <= 1e-7)
+            and np.all(np.abs(self._target_dispatch) <= 1e-7)
+            and np.all(np.abs(self._actual_dispatch) <= 1e-7)
         ):
             return valid, except_, info_
         # check that everything is consistent with pmin, pmax:
@@ -1755,7 +1923,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 "invalid because, even if the sepoint is pmin, this dispatch would set it "
                 "to a number higher than pmax, which is impossible]. Invalid dispatch for "
                 "generator(s): "
-                "{}".format(np.where(cond_invalid)[0])
+                "{}".format((cond_invalid).nonzero()[0])
             )
             self._target_dispatch -= redisp_act_orig
             return valid, except_, info_
@@ -1767,13 +1935,13 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 "invalid because, even if the sepoint is pmax, this dispatch would set it "
                 "to a number bellow pmin, which is impossible]. Invalid dispatch for "
                 "generator(s): "
-                "{}".format(np.where(cond_invalid)[0])
+                "{}".format((cond_invalid).nonzero()[0])
             )
             self._target_dispatch -= redisp_act_orig
             return valid, except_, info_
 
         # i can't redispatch turned off generators [turned off generators need to be turned on before redispatching]
-        if (redisp_act_orig[new_p == 0.0]).any() and self._forbid_dispatch_off:
+        if (redisp_act_orig[np.abs(new_p) <= 1e-7]).any() and self._forbid_dispatch_off:
             # action is invalid, a generator has been redispatched, but it's turned off
             except_ = InvalidRedispatching(
                 "Impossible to dispatch a turned off generator"
@@ -1783,15 +1951,13 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         if self._forbid_dispatch_off is True:
             redisp_act_orig_cut = 1.0 * redisp_act_orig
-            redisp_act_orig_cut[new_p == 0.0] = 0.0
+            redisp_act_orig_cut[np.abs(new_p) <= 1e-7] = 0.0
             if (redisp_act_orig_cut != redisp_act_orig).any():
                 info_.append(
                     {
-                        "INFO: redispatching cut because generator will be turned_off": np.where(
+                        "INFO: redispatching cut because generator will be turned_off": (
                             redisp_act_orig_cut != redisp_act_orig
-                        )[
-                            0
-                        ]
+                        ).nonzero()[0]
                     }
                 )
         return valid, except_, info_
@@ -1814,11 +1980,18 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
     def _compute_dispatch_vect(self, already_modified_gen, new_p):        
         except_ = None
+        
+        # handle the case where there are storage or redispatching
+        # action or curtailment action on the "init state"
+        # of the grid
+        if self.nb_time_step == 0:
+            self._gen_activeprod_t_redisp[:] = new_p
+            
         # first i define the participating generators
         # these are the generators that will be adjusted for redispatching
         gen_participating = (
             (new_p > 0.0)
-            | (self._actual_dispatch != 0.0)
+            | (np.abs(self._actual_dispatch) >= 1e-7)
             | (self._target_dispatch != self._actual_dispatch)
         )
         gen_participating[~self.gen_redispatchable] = False
@@ -1969,8 +2142,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         # the idea here is to chose a initial point that would be close to the
         # desired solution (split the (sum of the) dispatch to the available generators)
         x0 = np.zeros(gen_participating.sum())
-        if (self._target_dispatch != 0.).any() or already_modified_gen.any():
-            gen_for_x0 = self._target_dispatch[gen_participating] != 0.
+        if (np.abs(self._target_dispatch) >= 1e-7).any() or already_modified_gen.any():
+            gen_for_x0 = np.abs(self._target_dispatch[gen_participating]) >= 1e-7
             gen_for_x0 |= already_modified_gen[gen_participating]
             x0[gen_for_x0] = (
                 self._target_dispatch[gen_participating][gen_for_x0]
@@ -1982,7 +2155,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             
             # in this "if" block I set the other component of x0 to 
             # their "right" value
-            can_adjust = (x0 == 0.0)
+            can_adjust = (np.abs(x0) <= 1e-7)
             if can_adjust.any():
                 init_sum = x0.sum()
                 denom_adjust = (1.0 / weights[can_adjust]).sum()
@@ -2247,8 +2420,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 self._gen_downtime[gen_connected_this_timestep]
                 < self.gen_min_downtime[gen_connected_this_timestep]
             )
-            id_gen = np.where(id_gen)[0]
-            id_gen = np.where(gen_connected_this_timestep[id_gen])[0]
+            id_gen = (id_gen).nonzero()[0]
+            id_gen = (gen_connected_this_timestep[id_gen]).nonzero()[0]
             except_ = GeneratorTurnedOnTooSoon(
                 "Some generator has been connected too early ({})".format(id_gen)
             )
@@ -2269,8 +2442,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 self._gen_uptime[gen_disconnected_this]
                 < self.gen_min_uptime[gen_disconnected_this]
             )
-            id_gen = np.where(id_gen)[0]
-            id_gen = np.where(gen_connected_this_timestep[id_gen])[0]
+            id_gen = (id_gen).nonzero()[0]
+            id_gen = (gen_connected_this_timestep[id_gen]).nonzero()[0]
             except_ = GeneratorTurnedOffTooSoon(
                 "Some generator has been disconnected too early ({})".format(id_gen)
             )
@@ -2419,7 +2592,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
     def _compute_storage(self, action_storage_power):
         self._storage_previous_charge[:] = self._storage_current_charge
-        storage_act = np.isfinite(action_storage_power) & (action_storage_power != 0.0)
+        storage_act = np.isfinite(action_storage_power) & (np.abs(action_storage_power) >= 1e-7)
         self._action_storage[:] = 0.0
         self._storage_power[:] = 0.0
         modif = False
@@ -2540,7 +2713,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
     def _aux_compute_new_p_curtailment(self, new_p, curtailment_vect):
         """modifies the new_p argument !!!!"""
         gen_curtailed = (
-            curtailment_vect != 1.0
+            np.abs(curtailment_vect - 1.) >= 1e-7
         )  # curtailed either right now, or in a previous action
         max_action = self.gen_pmax[gen_curtailed] * curtailment_vect[gen_curtailed]
         new_p[gen_curtailed] = np.minimum(max_action, new_p[gen_curtailed])
@@ -2549,7 +2722,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
     def _aux_handle_curtailment_without_limit(self, action, new_p):
         """modifies the new_p argument !!!! (but not the action)"""
         if self.redispatching_unit_commitment_availble and (
-            action._modif_curtailment or (self._limit_curtailment != 1.0).any()
+            action._modif_curtailment or (np.abs(self._limit_curtailment - 1.) >= 1e-7).any()
         ):
             self._aux_update_curtailment_act(action)
 
@@ -2570,7 +2743,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         else:
             self._sum_curtailment_mw = -self._sum_curtailment_mw_prev
             self._sum_curtailment_mw_prev = dt_float(0.0)
-            gen_curtailed = self._limit_curtailment != 1.0
+            gen_curtailed = np.abs(self._limit_curtailment - 1.) >= 1e-7
 
         return gen_curtailed
 
@@ -2782,7 +2955,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             is_illegal_redisp = True
             except_.append(except_tmp)
 
-            if self.n_storage > 0:
+            if type(self).n_storage > 0:
                 # TODO curtailment: cancel it here too !
                 self._storage_current_charge[:] = self._storage_previous_charge
                 self._amount_storage -= self._amount_storage_prev
@@ -2804,7 +2977,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._storage_power_prev[:] = self._storage_power
         # case where the action modifies load (TODO maybe make a different env for that...)
         self._aux_handle_act_inj(action)
-
         valid_disp, except_tmp = self._make_redisp(already_modified_gen, new_p)
 
         if not valid_disp or except_tmp is not None:
@@ -2839,10 +3011,14 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             res_action = action
         return res_action, is_illegal_redisp, is_illegal_reco, is_done
 
-    def _aux_update_backend_action(self, action, action_storage_power, init_disp):
+    def _aux_update_backend_action(self,
+                                   action: BaseAction,
+                                   action_storage_power: np.ndarray,
+                                   init_disp: np.ndarray):
         # make sure the dispatching action is not implemented "as is" by the backend.
         # the environment must make sure it's a zero-sum action.
         # same kind of limit for the storage
+        res_exc_ = None
         action._redispatch[:] = 0.0
         action._storage_power[:] = self._storage_power
         self._backend_action += action
@@ -2851,6 +3027,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         # TODO storage: check the original action, even when replaced by do nothing is not modified
         self._backend_action += self._env_modification
         self._backend_action.set_redispatch(self._actual_dispatch)
+        return res_exc_
 
     def _update_alert_properties(self, action, lines_attacked, subs_attacked):
         # update the environment with the alert information from the
@@ -2957,16 +3134,19 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         # TODO is non zero and disconnected, this should be ok.
         self._time_extract_obs += time.perf_counter() - beg_res
 
+    def _backend_next_grid_state(self):
+        """overlaoded in MaskedEnv"""
+        return self.backend.next_grid_state(env=self, is_dc=self._env_dc)
+    
     def _aux_run_pf_after_state_properly_set(
         self, action, init_line_status, new_p, except_
     ):
         has_error = True
+        detailed_info = None
         try:
             # compute the next _grid state
             beg_pf = time.perf_counter()
-            disc_lines, detailed_info, conv_ = self.backend.next_grid_state(
-                env=self, is_dc=self._env_dc
-            )
+            disc_lines, detailed_info, conv_ = self._backend_next_grid_state()
             self._disc_lines[:] = disc_lines
             self._time_powerflow += time.perf_counter() - beg_pf
             if conv_ is None:
@@ -2985,7 +3165,10 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 )
         return detailed_info, has_error
 
-    def step(self, action: BaseAction) -> Tuple[BaseObservation, float, bool, dict]:
+    def step(self, action: BaseAction) -> Tuple[BaseObservation,
+                                                float,
+                                                bool,
+                                                STEP_INFO_TYPING]:
         """
         Run one timestep of the environment's dynamics. When end of
         episode is reached, you are responsible for calling `reset()`
@@ -3039,11 +3222,10 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                       the simulation of the "cascading failures".
                     - "rewards": dictionary of all "other_rewards" provided when the env was built.
                     - "time_series_id": id of the time series used (if any, similar to a call to `env.chronics_handler.get_id()`)
-
         Examples
         ---------
 
-        As any openAI gym environment, this is used like:
+        This is used like:
 
         .. code-block:: python
 
@@ -3087,6 +3269,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         # somehow "env.step()" or "env.reset()"
         self._has_just_been_seeded =  False  
         
+        cls = type(self)
         has_error = True
         is_done = False
         is_illegal = False
@@ -3103,7 +3286,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         detailed_info = []
         init_disp = 1.0 * action._redispatch  # dispatching action
         init_alert = None
-        if type(self).dim_alerts > 0:
+        if cls.dim_alerts > 0:
             init_alert = copy.deepcopy(action._raise_alert)
             
         action_storage_power = 1.0 * action._storage_power  # battery information
@@ -3130,12 +3313,12 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 )  # battery information
                 is_ambiguous = True
                     
-                if type(self).dim_alerts > 0:
+                if cls.dim_alerts > 0:
                     # keep the alert even if the rest is ambiguous (if alert is non ambiguous)
                     is_ambiguous_alert = isinstance(except_tmp, AmbiguousActionRaiseAlert)
                     if is_ambiguous_alert:
                         # reset the alert
-                        init_alert = np.zeros(type(self).dim_alerts, dtype=dt_bool)
+                        init_alert = np.zeros(cls.dim_alerts, dtype=dt_bool)
                     else:
                         action.raise_alert = init_alert
                 except_.append(except_tmp)
@@ -3149,13 +3332,13 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                     1.0 * action._storage_power
                 )  # battery information
                 except_.append(reason)
-                if type(self).dim_alerts > 0:
+                if cls.dim_alerts > 0:
                     # keep the alert even if the rest is illegal
                     action.raise_alert = init_alert
                 is_illegal = True
 
             if self._has_attention_budget:
-                if type(self).assistant_warning_type == "zonal":
+                if cls.assistant_warning_type == "zonal":
                     # this feature is implemented, so i do it
                     reason_alarm_illegal = self._attention_budget.register_action(
                         self, action, is_illegal, is_ambiguous
@@ -3171,7 +3354,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             new_p_th = 1.0 * new_p
 
             # storage unit
-            if self.n_storage > 0:
+            if cls.n_storage > 0:
                 # limiting the storage units is done in `_aux_apply_redisp`
                 # this only ensure the Emin / Emax and all the actions
                 self._compute_storage(action_storage_power)
@@ -3182,7 +3365,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             gen_curtailed = self._aux_handle_curtailment_without_limit(action, new_p)
 
             beg__redisp = time.perf_counter()
-            if self.redispatching_unit_commitment_availble or self.n_storage > 0.0:
+            if cls.redispatching_unit_commitment_availble or cls.n_storage > 0.0:
                 # this computes the "optimal" redispatching
                 # and it is also in this function that the limiting of the curtailment / storage actions
                 # is perform to make the state "feasible"
@@ -3208,19 +3391,25 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 tock = time.perf_counter()
                 self._time_opponent += tock - tick
                 self._time_create_bk_act += tock - beg_
-                
-                self.backend.apply_action(self._backend_action)
+                try:
+                    self.backend.apply_action(self._backend_action)
+                except ImpossibleTopology as exc_:
+                    has_error = True
+                    except_.append(exc_)
+                    is_done = True
+                    # TODO in this case: cancel the topological action of the agent
+                    # and continue instead of "game over"
                 self._time_apply_act += time.perf_counter() - beg_
 
                 # now it's time to run the powerflow properly
                 # and to update the time dependant properties
-                self._update_alert_properties(action, lines_attacked, subs_attacked)
-                detailed_info, has_error = self._aux_run_pf_after_state_properly_set(
-                    action, init_line_status, new_p, except_
-                )
+                if not is_done:
+                    self._update_alert_properties(action, lines_attacked, subs_attacked)
+                    detailed_info, has_error = self._aux_run_pf_after_state_properly_set(
+                        action, init_line_status, new_p, except_
+                    )
             else:
                 has_error = True
-
         except StopIteration:
             # episode is over
             is_done = True
@@ -3327,7 +3516,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         ] = self._parameters.NB_TIMESTEP_OVERFLOW_ALLOWED
 
         self.nb_time_step = 0  # to have the first step at 0
-        self._hard_overflow_threshold = self._parameters.HARD_OVERFLOW_THRESHOLD
+        self._hard_overflow_threshold[:] = self._parameters.HARD_OVERFLOW_THRESHOLD
         self._env_dc = self._parameters.ENV_DC
 
         self._times_before_line_status_actionable[:] = 0
@@ -3560,7 +3749,24 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             if hasattr(self, attr_nm):
                 delattr(self, attr_nm)
             setattr(self, attr_nm, None)
-
+        
+        if self._do_not_erase_local_dir_cls:
+            # The resources are not held by this env, so 
+            # I do not remove them
+            # (case for ObsEnv or ForecastedEnv)
+            return
+        self._aux_close_local_dir_cls()
+        
+    def _aux_close_local_dir_cls(self):
+        if self._local_dir_cls is not None:
+            # I am the "keeper" of the temporary directory
+            # deleting this env should also delete the temporary directory
+            if not (hasattr(self._local_dir_cls, "_RUNNER_DO_NOT_ERASE") and not self._local_dir_cls._RUNNER_DO_NOT_ERASE):
+                # BUT if a runner uses it, then I should not delete it !
+                self._local_dir_cls.cleanup()
+                self._local_dir_cls = None
+                # In this case it's likely that the OS will clean it for grid2op with a warning...
+                
     def attach_layout(self, grid_layout):
         """
         Compare to the method of the base class, this one performs a check.
@@ -3642,6 +3848,17 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         00:00). This can lead to suboptimal exploration, as during this phase, only a few time steps are managed by
         the agent, so in general these few time steps will correspond to grid state around Jan 1st at 00:00.
 
+        .. seealso::
+            From grid2op version 1.10.3, a similar objective can be
+            obtained directly by calling :func:`grid2op.Environment.Environment.reset` with `"init ts"`
+            as option, for example like `obs = env.reset(options={"init ts": 12})`
+
+
+        .. danger::
+            The usage of both :func:`BaseEnv.fast_forward_chronics` and :func:`Environment.set_max_iter`
+            is not recommended at all and might not behave correctly. Please use `env.reset` with 
+            `obs = env.reset(options={"max step": xxx, "init ts": yyy})` for a correct behaviour.
+            
         Parameters
         ----------
         nb_timestep: ``int``
@@ -3649,7 +3866,20 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         Examples
         ---------
-        This can be used like this:
+        
+        From grid2op version 1.10.3 we recommend not to use this function (which will be deprecated)
+        but to use the :func:`grid2op.Environment.Environment.reset` functon with the `"init ts"` 
+        option.
+        
+        .. code-block:: python
+        
+            import grid2op
+            env_name = "l2rpn_case14_sandbox"
+            env = grid2op.make(env_name)
+            
+            obs = env.reset(options={"init ts": 123})
+            
+        For the legacy usave, this can be used like this:
 
         .. code-block:: python
 
@@ -3800,29 +4030,86 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             )
         self.__new_reward_func = new_reward_func
 
-    def _aux_gen_classes(self, cls, sys_path):
-        if not isinstance(cls, type):
-            raise RuntimeError(f"cls should be a type and not an object !: {cls}")
-        if not issubclass(cls, GridObjects):
-            raise RuntimeError(f"cls should inherit from GridObjects: {cls}")
+    @staticmethod
+    def _aux_gen_classes(cls_other, sys_path, _add_class_output=False):
+        if not isinstance(cls_other, type):
+            raise RuntimeError(f"cls_other should be a type and not an object !: {cls_other}")
+        if not issubclass(cls_other, GridObjects):
+            raise RuntimeError(f"cls_other should inherit from GridObjects: {cls_other}")
         
         from pathlib import Path
-        path_env = cls._PATH_ENV
-        cls._PATH_ENV = str(Path(self.get_path_env()).as_posix())
+        path_env = cls_other._PATH_GRID_CLASSES
+        # cls_other._PATH_GRID_CLASSES = str(Path(self.get_path_env()).as_posix())
+        cls_other._PATH_GRID_CLASSES = str(Path(sys_path).as_posix())
         
-        res = cls._get_full_cls_str()
-        cls._PATH_ENV = path_env
-        output_file = os.path.join(sys_path, f"{cls.__name__}_file.py")
+        res = cls_other._get_full_cls_str()
+        cls_other._PATH_GRID_CLASSES = path_env
+        output_file = os.path.join(sys_path, f"{cls_other.__name__}_file.py")
         if not os.path.exists(output_file):
             # if the file is not already saved, i save it and add it to the __init__ file
             with open(output_file, "w", encoding="utf-8") as f:
                 f.write(res)
-            return f"\nfrom .{cls.__name__}_file import {cls.__name__}"
+            str_import = f"\nfrom .{cls_other.__name__}_file import {cls_other.__name__}"
         else:
-            # otherwise i do nothing
-            return ""
+            # if the file exists, I check it's the same
+            from grid2op.MakeEnv.UpdateEnv import _aux_hash_file, _aux_update_hash_text
+            hash_saved = _aux_hash_file(output_file)
+            my_hash = _aux_update_hash_text(res)
+            if hash_saved.hexdigest() != my_hash.hexdigest():
+                raise EnvError(f"It appears some classes have been modified between what was saved on the hard drive "
+                               f"and the current state of the grid. This should not have happened. "
+                               f"Check class {cls_other.__name__}")
+            str_import = None
+        if not _add_class_output:
+            return str_import
+        
+        # NB: these imports needs to be consistent with what is done in
+        # griobj.init_grid(...)
+        package_path, nm_ = os.path.split(output_file)
+        nm_, ext = os.path.splitext(nm_)
+        sub_repo, tmp_nm = os.path.split(package_path)
+        if sub_repo not in sys.path:
+            sys.path.append(sub_repo)
+            
+        sub_repo_mod = None
+        if tmp_nm == "_grid2op_classes":
+            # legacy "experimental_read_from_local_dir"
+            # issue was the module "_grid2op_classes" had the same name
+            # regardless of the environment, so grid2op was "confused"
+            path_init = os.path.join(sub_repo, "__init__.py")
+            if not os.path.exists(path_init):
+                try:
+                    with open(path_init, "w", encoding='utf-8') as f:
+                        f.write("# DO NOT REMOVE, automatically generated by grid2op")
+                except FileExistsError:
+                    pass
+            env_path, env_nm = os.path.split(sub_repo)
+            if env_path not in sys.path:
+                sys.path.append(env_path)
+            if not package_path in sys.path:
+                sys.path.append(package_path)
+            super_supermodule = importlib.import_module(env_nm)
+            nm_ = f"{tmp_nm}.{nm_}"
+            tmp_nm = env_nm
+        super_module = importlib.import_module(tmp_nm, package=sub_repo_mod)
+        add_sys_path = os.path.dirname(super_module.__file__)
+        if not add_sys_path in sys.path:
+            sys.path.append(add_sys_path)
+            
+        if f"{tmp_nm}.{nm_}" in sys.modules:
+            cls_res = getattr(sys.modules[f"{tmp_nm}.{nm_}"], cls_other.__name__)
+            return str_import, cls_res
+        try:
+            module = importlib.import_module(f".{nm_}", package=tmp_nm)
+        except ModuleNotFoundError as exc_:
+            # invalidate the cache and reload the package in this case
+            importlib.invalidate_caches()
+            importlib.reload(super_module)
+            module = importlib.import_module(f".{nm_}", package=tmp_nm)
+        cls_res = getattr(module, cls_other.__name__)
+        return str_import, cls_res
 
-    def generate_classes(self, _guard=None, _is_base_env__=True, sys_path=None):
+    def generate_classes(self, *, local_dir_id=None, _guard=None, _is_base_env__=True, sys_path=None):
         """
         Use with care, but can be incredibly useful !
         
@@ -3890,15 +4177,14 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         if self.__closed:
             return
-
         # create the folder
         if _guard is not None:
             raise RuntimeError("use `env.generate_classes()` with no arguments !")
 
-        if type(self)._PATH_ENV is not None:
+        if type(self)._PATH_GRID_CLASSES is not None:
             raise RuntimeError(
                 "This function should only be called ONCE without specifying that the classes "
-                "need to be read from disk (class attribute type(self)._PATH_ENV should be None)"
+                "need to be read from disk (class attribute type(self)._PATH_GRID_CLASSES should be None)"
             )
         import shutil
 
@@ -3907,54 +4193,96 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 raise RuntimeError("Cannot generate file from a \"sub env\" "
                                    "(eg no the top level env) if I don't know the path of "
                                    "the top level environment.")
-            sys_path = os.path.join(self.get_path_env(), "_grid2op_classes")
-
+            if local_dir_id is not None:
+                sys_path = os.path.join(self.get_path_env(), "_grid2op_classes", local_dir_id)
+            else:
+                sys_path = os.path.join(self.get_path_env(), "_grid2op_classes")
+                
         if _is_base_env__:
             if os.path.exists(sys_path):
                 shutil.rmtree(sys_path)
             os.mkdir(sys_path)
+            
+            with open(os.path.join(sys_path, "__init__.py"), "w", encoding="utf-8") as f:
+                f.write(BASE_TXT_COPYRIGHT)
 
         # initialized the "__init__" file
         _init_txt = ""
-        mode = "w"
-        if not _is_base_env__:
-            _init_txt = BASE_TXT_COPYRIGHT + _init_txt
-        else:
-            # i am apppending to the __init__ file in case of obs_env
-            mode = "a"
+        mode = "a"
 
         # generate the classes
-        _init_txt += self._aux_gen_classes(type(self), sys_path)
-        _init_txt += self._aux_gen_classes(type(self.backend), sys_path)
-        _init_txt += self._aux_gen_classes(
-            self.backend._complete_action_class, sys_path
+        # for the environment
+        txt_ = self._aux_gen_classes(type(self), sys_path)
+        if txt_ is not None:
+            _init_txt += txt_
+        
+        # for the forecast env (we do this even if it's not used)
+        from grid2op.Environment._forecast_env import _ForecastEnv
+        for_env_cls = _ForecastEnv.init_grid(type(self.backend), _local_dir_cls=self._local_dir_cls)
+        txt_ = self._aux_gen_classes(for_env_cls, sys_path, _add_class_output=False)
+        if txt_ is not None:
+            _init_txt += txt_
+        
+        # for the backend
+        txt_, cls_res_bk = self._aux_gen_classes(type(self.backend), sys_path, _add_class_output=True)
+        if txt_ is not None:    
+            _init_txt += txt_
+        old_bk_cls = self.backend.__class__ 
+        self.backend.__class__ = cls_res_bk
+        txt_, cls_res_complete_act = self._aux_gen_classes(
+            old_bk_cls._complete_action_class, sys_path, _add_class_output=True
         )
-        _init_txt += self._aux_gen_classes(self._backend_action_class, sys_path)
-        _init_txt += self._aux_gen_classes(type(self.action_space), sys_path)
-        _init_txt += self._aux_gen_classes(self._actionClass, sys_path)
-        _init_txt += self._aux_gen_classes(self._complete_action_cls, sys_path)
-        _init_txt += self._aux_gen_classes(type(self.observation_space), sys_path)
-        _init_txt += self._aux_gen_classes(self._observationClass, sys_path)
-        _init_txt += self._aux_gen_classes(
+        if txt_ is not None:    
+            _init_txt += txt_
+        self.backend.__class__._complete_action_class = cls_res_complete_act
+        txt_, cls_res_bk_act = self._aux_gen_classes(self._backend_action_class, sys_path, _add_class_output=True)
+        if txt_ is not None:    
+            _init_txt += txt_
+        self._backend_action_class = cls_res_bk_act
+        self.backend.__class__.my_bk_act_class = cls_res_bk_act
+        
+        # for the other class
+        txt_ = self._aux_gen_classes(type(self.action_space), sys_path)
+        if txt_ is not None:    
+            _init_txt += txt_
+        txt_ = self._aux_gen_classes(self._actionClass, sys_path)
+        if txt_ is not None:    
+            _init_txt += txt_
+        txt_ = self._aux_gen_classes(self._complete_action_cls, sys_path)
+        if txt_ is not None:    
+            _init_txt += txt_
+        txt_ = self._aux_gen_classes(type(self.observation_space), sys_path)
+        if txt_ is not None:    
+            _init_txt += txt_
+        txt_ = self._aux_gen_classes(self._observationClass, sys_path)
+        if txt_ is not None:    
+            _init_txt += txt_
+        txt_ = self._aux_gen_classes(
             self._opponent_action_space.subtype, sys_path
         )
+        if txt_ is not None:    
+            _init_txt += txt_
 
         # now do the same for the obs_env
         if _is_base_env__:
-            _init_txt += self._aux_gen_classes(
+            txt_ = self._aux_gen_classes(
                 self._voltage_controler.action_space.subtype, sys_path
             )
+            if txt_ is not None:    
+                _init_txt += txt_
 
             init_grid_tmp = self._observation_space.obs_env._init_grid_path
             self._observation_space.obs_env._init_grid_path = self._init_grid_path
-            self._observation_space.obs_env.generate_classes(_is_base_env__=False, sys_path=sys_path)
+            self._observation_space.obs_env.generate_classes(local_dir_id=local_dir_id,
+                                                             _is_base_env__=False,
+                                                             sys_path=sys_path)
             self._observation_space.obs_env._init_grid_path = init_grid_tmp
 
         # now write the __init__ file
         _init_txt += "\n"
         with open(os.path.join(sys_path, "__init__.py"), mode, encoding="utf-8") as f:
             f.write(_init_txt)
-
+        
     def __del__(self):
         """when the environment is garbage collected, free all the memory, including cross reference to itself in the observation space."""
         if hasattr(self, "_BaseEnv__closed") and not self.__closed:
@@ -4113,3 +4441,16 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                         type(legalActClass)
                     )
                 )
+                
+    def classes_are_in_files(self) -> bool:
+        """
+        
+        Whether the classes created when this environment has been made are
+        store on the hard drive (will return `True`) or not.
+        
+        .. note::
+            This will become the default behaviour in future grid2op versions.
+                
+        See :ref:`troubleshoot_pickle` for more information.
+        """
+        return self._read_from_local_dir is not None

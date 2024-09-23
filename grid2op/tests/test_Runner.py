@@ -11,6 +11,9 @@ import tempfile
 import json
 import unittest
 import pdb
+import packaging
+from packaging import version
+import inspect
 
 from grid2op.tests.helper_path_test import *
 
@@ -399,9 +402,8 @@ class TestRunner(HelperTests, unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             with grid2op.make("rte_case14_test", test=True, _add_to_name=type(self).__name__) as env:
+                env.set_max_iter(2 * self.max_iter)
                 runner = Runner(**env.get_params_for_runner())
-        runner.gridStateclass_kwargs["max_iter"] = 2 * self.max_iter
-        runner.chronics_handler.set_max_iter(2 * self.max_iter)
         res = runner.run(nb_episode=1)
         for i, _, cum_reward, timestep, total_ts in res:
             assert int(timestep) == 2 * self.max_iter
@@ -456,8 +458,15 @@ class TestRunner(HelperTests, unittest.TestCase):
                 )
             except Exception as exc_:
                 raise exc_
-
-            if g2op_version <= "1.4.0":
+            g2op_ver = ""
+            try:
+                g2op_ver = version.parse(g2op_version)
+            except packaging.version.InvalidVersion:
+                if g2op_version != "test_version":
+                    g2op_ver = version.parse("0.0.1")
+                else:
+                    g2op_ver = version.parse("1.4.1")
+            if g2op_ver <= version.parse("1.4.0"):
                 assert (
                     EpisodeData.get_grid2op_version(full_episode_path) == "<=1.4.0"
                 ), "wrong grid2op version stored (grid2op version <= 1.4.0)"
@@ -507,6 +516,11 @@ class TestRunner(HelperTests, unittest.TestCase):
             "1.9.5",
             "1.9.6",
             "1.9.7",
+            "1.9.8",
+            "1.10.0",
+            "1.10.1",
+            "1.10.2",
+            "1.10.3",
         ]
         curr_version = "test_version"
         assert (
@@ -625,6 +639,28 @@ class TestRunner(HelperTests, unittest.TestCase):
         assert ep_data.ambiguous[1]
         assert not ep_data.ambiguous[2]
         assert not ep_data.ambiguous[3]
+        
+    def test_get_params(self):
+        """test the runner._get_params() function (used in multiprocessing context)
+        can indeed make a runner with all its arguments modified (proper 'copy' of the runner)
+        """
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = grid2op.make("l2rpn_case14_sandbox", test=True, chronics_class=ChangeNothing,
+                               _add_to_name=type(self).__name__)   
+                     
+            runner = Runner(**env.get_params_for_runner(), agentClass=AgentTestLegalAmbiguous)
+        made_params = runner._get_params()
+        ok_params =  inspect.signature(Runner.__init__).parameters
+        for k in made_params.keys():
+            assert k in ok_params, f"params {k} is returned in runner._get_params() but cannot be used to make a runner"
+            
+        for k in ok_params.keys():
+            if k == "self":
+                continue
+            assert k in made_params, f"params {k} is used to make a runner but is not returned in runner._get_params()"
+        
+        
 
 
 if __name__ == "__main__":

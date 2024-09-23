@@ -8,10 +8,12 @@
 
 import os
 import json
+from typing import Union, Optional, Dict, Literal
 import warnings
 import numpy as np
 from datetime import timedelta, datetime
 
+import grid2op
 from grid2op.dtypes import dt_int, dt_float
 from grid2op.Exceptions import ChronicsNotFoundError, ChronicsError
 from grid2op.Chronics.gridValue import GridValue
@@ -352,7 +354,7 @@ class Multifolder(GridValue):
         probabilities /= sum_prob
         # take one at "random" among these
         selected = self.space_prng.choice(self._order, p=probabilities)
-        id_sel = np.where(self._order == selected)[0]
+        id_sel = (self._order == selected).nonzero()[0]
         self._prev_cache_id = selected - 1
         return id_sel
 
@@ -392,6 +394,17 @@ class Multifolder(GridValue):
         self._order = np.array(self._order)
         return self.subpaths[self._order]
 
+    def _get_nex_data(self, this_path):
+        res = self.gridvalueClass(
+            time_interval=self.time_interval,
+            sep=self.sep,
+            path=this_path,
+            max_iter=self.max_iter,
+            chunk_size=self.chunk_size,
+            **self._kwargs
+        )
+        return res
+        
     def initialize(
         self,
         order_backend_loads,
@@ -417,14 +430,7 @@ class Multifolder(GridValue):
 
         id_scenario = self._order[self._prev_cache_id]
         this_path = self.subpaths[id_scenario]
-        self.data = self.gridvalueClass(
-            time_interval=self.time_interval,
-            sep=self.sep,
-            path=this_path,
-            max_iter=self.max_iter,
-            chunk_size=self.chunk_size,
-            **self._kwargs
-        )
+        self.data = self._get_nex_data(this_path)
         if self.seed is not None:
             max_int = np.iinfo(dt_int).max
             seed_chronics = self.space_prng.randint(max_int)
@@ -437,6 +443,9 @@ class Multifolder(GridValue):
             order_backend_subs,
             names_chronics_to_backend=names_chronics_to_backend,
         )
+        if self.action_space is not None:
+            self.data.action_space = self.action_space
+        self._max_iter = self.data.max_iter
 
     def done(self):
         """
@@ -777,3 +786,12 @@ class Multifolder(GridValue):
                 
     def fast_forward(self, nb_timestep):
         self.data.fast_forward(nb_timestep)
+
+    def get_init_action(self, names_chronics_to_backend: Optional[Dict[Literal["loads", "prods", "lines"], Dict[str, str]]]=None) -> Union["grid2op.Action.playableAction.PlayableAction", None]:
+        return self.data.get_init_action(names_chronics_to_backend)
+
+    def cleanup_action_space(self):
+        super().cleanup_action_space()
+        if self.data is None:
+            return
+        self.data.cleanup_action_space()

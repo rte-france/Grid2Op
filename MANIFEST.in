@@ -1,4 +1,4 @@
-recursive-include grid2op/data *.bz2 *.json *.zip prods_charac.csv *.py .multimix storage_units_charac.csv start_datetime.info time_interval.info
+recursive-include grid2op/data *.bz2 *.json *.zip loads_charac.csv prods_charac.csv *.py .multimix storage_units_charac.csv start_datetime.info time_interval.info
 global-exclude */__pycache__/*
 global-exclude *.pyc
 global-exclude  grid2op/data_test/*

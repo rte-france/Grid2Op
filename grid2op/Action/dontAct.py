@@ -6,6 +6,7 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
+from typing import Optional, Dict, Literal
 from grid2op.Action.playableAction import PlayableAction
 
 
@@ -28,7 +29,7 @@ class DontAct(PlayableAction):
     authorized_keys = set()
     attr_list_vect = []
 
-    def __init__(self):
+    def __init__(self, _names_chronics_to_backend: Optional[Dict[Literal["loads", "prods", "lines"], Dict[str, str]]]=None):
         """
         INTERNAL
 
@@ -38,7 +39,7 @@ class DontAct(PlayableAction):
         more is done in this constructor.
 
         """
-        PlayableAction.__init__(self)
+        PlayableAction.__init__(self, _names_chronics_to_backend)
 
     def update(self, dict_):
         """

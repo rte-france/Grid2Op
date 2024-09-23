@@ -18,7 +18,7 @@ from grid2op.tests.helper_path_test import *
 from grid2op.Action import PlayableAction
 
 from grid2op.gym_compat import GymActionSpace, GymObservationSpace
-from grid2op.gym_compat import GymEnv
+from grid2op.gym_compat import GymEnv  # TODO GYMENV
 from grid2op.gym_compat import ContinuousToDiscreteConverter
 from grid2op.gym_compat import ScalerAttrConverter
 from grid2op.gym_compat import MultiToTupleConverter
@@ -793,9 +793,8 @@ class _AuxTestBoxGymObsSpace:
                 action_class=PlayableAction,
                 _add_to_name=type(self).__name__
             )
-        self.env.seed(0)
-        self.env.reset()  # seed part !
-        self.obs_env = self.env.reset()
+        self.env.reset()
+        self.obs_env = self.env.reset(seed=0, options={"time serie id": 0})
         self.env_gym = self._aux_GymEnv_cls()(self.env)
 
     def test_assert_raises_creation(self):
@@ -888,7 +887,7 @@ class _AuxTestBoxGymObsSpace:
         assert observation_space._attr_to_keep == kept_attr
         assert len(obs_gym) == 17
         # the substract are calibrated so that the maximum is really close to 0
-        assert obs_gym.max() <= 0
+        assert obs_gym.max() <= 0, f"{obs_gym.max()} should be 0."
         assert obs_gym.max() >= -0.5
 
     def test_functs(self):
@@ -1871,8 +1870,41 @@ class _AuxTestAllGymActSpaceWithAlarm:
                 raise RuntimeError(
                     f"Some property of the actions are not modified for attr {attr_nm}"
                 )
-
-
+                
+    def test_discrete_multidiscrete_set(self):
+        """test that discrete with only set_bus has the same number of actions as mmultidiscrete with one_sub_set"""
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env_gym.action_space = self._aux_DiscreteActSpace_cls()(
+                self.env.action_space, attr_to_keep=["set_bus"]
+            )
+        n_disc = 1 * self.env_gym.action_space.n
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env_gym.action_space = self._aux_MultiDiscreteActSpace_cls()(
+                self.env.action_space, attr_to_keep=["one_sub_set"]
+            )
+        n_multidisc = 1 * self.env_gym.action_space.nvec[0]
+        assert n_disc == n_multidisc, f"discrepency between discrete[set_bus] (size : {n_disc}) and multidisc[one_sub_set] (size {n_multidisc})"
+        
+                
+    def test_discrete_multidiscrete_change(self):
+        """test that discrete with only change_bus has the same number of actions as mmultidiscrete with one_sub_change"""
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env_gym.action_space = self._aux_DiscreteActSpace_cls()(
+                self.env.action_space, attr_to_keep=["change_bus"]
+            )
+        n_disc = 1 * self.env_gym.action_space.n
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self.env_gym.action_space = self._aux_MultiDiscreteActSpace_cls()(
+                self.env.action_space, attr_to_keep=["one_sub_change"]
+            )
+        n_multidisc = 1 * self.env_gym.action_space.nvec[0]
+        assert n_disc == n_multidisc, f"discrepency between discrete[change_bus] (size : {n_disc}) and multidisc[one_sub_change] (size {n_multidisc})"
+        
+        
 class _AuxTestGOObsInRange:
     def setUp(self) -> None:
         self._skip_if_no_gym()

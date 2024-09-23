@@ -1,0 +1,4 @@
+{
+    "change_bus": {"lines_or_id": ["0_2_1", "0_3_2"], "loads_id": ["load_0_0"]},
+    "change_line_status": ["2_3_5"]
+}

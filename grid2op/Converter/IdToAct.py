@@ -26,7 +26,7 @@ class IdToAct(Converter):
     A "unary action" is an action that consists only in acting on one "concept" it includes:
 
     - disconnecting a single powerline
-    - reconnecting a single powerline and connect it to bus xxx on its origin end and yyy on its extremity end
+    - reconnecting a single powerline and connect it to bus xxx on its origin side and yyy on its extremity side
     - changing the topology of a single substation
     - performing redispatching on a single generator
     - performing curtailment on a single generator
@@ -70,6 +70,7 @@ class IdToAct(Converter):
     def __init__(self, action_space):
         Converter.__init__(self, action_space)
         self.__class__ = IdToAct.init_grid(action_space)
+        self.init_action_space = action_space
         self.all_actions = []
         # add the do nothing topology
         self.all_actions.append(super().__call__())

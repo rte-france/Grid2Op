@@ -800,6 +800,48 @@ class EpisodeData:
                 dict_ = {"version": f"{grid2op.__version__}"}
                 json.dump(obj=dict_, fp=f, indent=4, sort_keys=True)
 
+    def _aux_make_obs_space_serializable(self):
+        """I put it here because it's also used by CompactEpisodeData.
+        
+        The only requirement is that `self` has an attribute `observation_space` which is a
+        valid grid2op ObservationSpace"""
+        if self.observation_space is None:
+            return
+        from grid2op.Environment._obsEnv import _ObsEnv
+        # remove the observation_env of the observation_space
+        self.observation_space = self.observation_space.copy(copy_backend=True)
+        self.observation_space._backend_obs.close()
+        self.observation_space._backend_obs = None
+        self.observation_space.obs_env.close()
+        self.observation_space.obs_env = None
+        self.observation_space._ObsEnv_class = _ObsEnv
+        self.observation_space._real_env_kwargs = None
+        self.observation_space._template_obj._obs_env = None
+        self.observation_space._template_obj._ptr_kwargs_env = None
+        self.observation_space._empty_obs._obs_env = None
+        self.observation_space._empty_obs._ptr_kwargs_env = None
+        self.observation_space._deactivate_simulate(None)
+        
+    def make_serializable(self):
+        """
+        INTERNAL
+
+         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+            Used by he runner to serialize properly an episode
+
+        Called in the _aux_run_one_episode (one of the Runner auxilliary function) to make 
+        sure the EpisodeData can be sent back to the main process withtout issue (otherwise
+        there is a complain about the _ObsEnv)
+        """
+        self._aux_make_obs_space_serializable()
+        # remove the observation_env of the observation
+        for el in self.observations.objects:
+            if el is not None:
+                el._obs_env = None
+                el._ptr_kwargs_env = None
+        
+        self.observations.helper = self.observation_space                
+            
     @staticmethod
     def get_grid2op_version(path_episode):
         """

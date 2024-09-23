@@ -22,9 +22,9 @@ class Parameters:
     Attributes
     ----------
     NO_OVERFLOW_DISCONNECTION: ``bool``
-        If set to ``True`` then the :class:`grid2op.Environment.Environment` will not disconnect powerline above their
-        thermal
-        limit. Default is ``False``
+        If set to ``True`` then the :class:`grid2op.Environment.Environment` will **NOT** disconnect powerline above their
+        thermal limit. Default is ``False``, meaning that grid2op will disconnect powerlines above their limits
+        for too long or for "too much".
 
     NB_TIMESTEP_OVERFLOW_ALLOWED: ``int``
         Number of timesteps for which a soft overflow is allowed, default 2. This means that a powerline will be
@@ -148,6 +148,19 @@ class Parameters:
     MAX_SIMULATE_PER_EPISODE: ``int``
         Maximum number of calls to `obs.simuate(...)` allowed per episode (reset each "env.simulate(...)"). Defaults to -1 meaning "as much as you want".
 
+    IGNORE_INITIAL_STATE_TIME_SERIE: ``bool``
+        If set to True (which is NOT the default), then the initial state of the grid
+        will always be "everything connected" and "everything connected to busbar 1"
+        regardless of the information present in the time series (see 
+        :func:`grid2op.Chronics.GridValue.get_init_action`)
+        
+        .. versionadded:: 1.10.2
+        
+        .. note:: 
+            This flag has no impact if an initial state is set through a call to
+            `env.reset(options={"init state": ...})` (see doc of :func:`grid2op.Environment.Environment.reset` 
+            for more information)
+
     """
 
     def __init__(self, parameters_path=None):
@@ -227,6 +240,8 @@ class Parameters:
             else:
                 warn_msg = "Parameters: the file {} is not found. Continuing with default parameters."
                 warnings.warn(warn_msg.format(parameters_path))
+                
+        self.IGNORE_INITIAL_STATE_TIME_SERIE = False
 
     @staticmethod
     def _isok_txt(arg):
@@ -368,6 +383,11 @@ class Parameters:
         if "MAX_SIMULATE_PER_EPISODE" in dict_:
             self.MAX_SIMULATE_PER_EPISODE = dt_int(dict_["MAX_SIMULATE_PER_EPISODE"])
 
+        if "IGNORE_INITIAL_STATE_TIME_SERIE" in dict_:
+            self.IGNORE_INITIAL_STATE_TIME_SERIE = Parameters._isok_txt(
+                dict_["IGNORE_INITIAL_STATE_TIME_SERIE"]
+            )
+            
         authorized_keys = set(self.__dict__.keys())
         authorized_keys = authorized_keys | {
             "NB_TIMESTEP_POWERFLOW_ALLOWED",
@@ -416,6 +436,7 @@ class Parameters:
         res["ALERT_TIME_WINDOW"] = int(self.ALERT_TIME_WINDOW)
         res["MAX_SIMULATE_PER_STEP"] = int(self.MAX_SIMULATE_PER_STEP)
         res["MAX_SIMULATE_PER_EPISODE"] = int(self.MAX_SIMULATE_PER_EPISODE)
+        res["IGNORE_INITIAL_STATE_TIME_SERIE"] = int(self.IGNORE_INITIAL_STATE_TIME_SERIE)
         return res
 
     def init_from_json(self, json_path):
@@ -470,8 +491,10 @@ class Parameters:
 
         Raises
         -------
-        An exception if the parameter is not valid
+        An exception (`RuntimeError`) if the parameter is not valid
+        
         """
+        
         try:
             if not isinstance(self.NO_OVERFLOW_DISCONNECTION, (bool, dt_bool)):
                 raise RuntimeError("NO_OVERFLOW_DISCONNECTION should be a boolean")
@@ -479,7 +502,7 @@ class Parameters:
         except Exception as exc_:
             raise RuntimeError(
                 f'Impossible to convert NO_OVERFLOW_DISCONNECTION to bool with error \n:"{exc_}"'
-            )
+            ) from exc_
 
         try:
             self.NB_TIMESTEP_OVERFLOW_ALLOWED = int(
@@ -491,7 +514,7 @@ class Parameters:
         except Exception as exc_:
             raise RuntimeError(
                 f'Impossible to convert NB_TIMESTEP_OVERFLOW_ALLOWED to int with error \n:"{exc_}"'
-            )
+            ) from exc_
 
         if self.NB_TIMESTEP_OVERFLOW_ALLOWED < 0:
             raise RuntimeError(
@@ -505,7 +528,7 @@ class Parameters:
         except Exception as exc_:
             raise RuntimeError(
                 f'Impossible to convert NB_TIMESTEP_RECONNECTION to int with error \n:"{exc_}"'
-            )
+            ) from exc_
         if self.NB_TIMESTEP_RECONNECTION < 0:
             raise RuntimeError("NB_TIMESTEP_RECONNECTION < 0., this should be >= 0.")
         try:
@@ -514,7 +537,7 @@ class Parameters:
         except Exception as exc_:
             raise RuntimeError(
                 f'Impossible to convert NB_TIMESTEP_COOLDOWN_LINE to int with error \n:"{exc_}"'
-            )
+            ) from exc_
         if self.NB_TIMESTEP_COOLDOWN_LINE < 0:
             raise RuntimeError("NB_TIMESTEP_COOLDOWN_LINE < 0., this should be >= 0.")
         try:
@@ -525,7 +548,7 @@ class Parameters:
         except Exception as exc_:
             raise RuntimeError(
                 f'Impossible to convert NB_TIMESTEP_COOLDOWN_SUB to int with error \n:"{exc_}"'
-            )
+            ) from exc_
         if self.NB_TIMESTEP_COOLDOWN_SUB < 0:
             raise RuntimeError("NB_TIMESTEP_COOLDOWN_SUB < 0., this should be >= 0.")
         try:
@@ -536,7 +559,7 @@ class Parameters:
         except Exception as exc_:
             raise RuntimeError(
                 f'Impossible to convert HARD_OVERFLOW_THRESHOLD to float with error \n:"{exc_}"'
-            )
+            ) from exc_
         if self.HARD_OVERFLOW_THRESHOLD < 1.0:
             raise RuntimeError(
                 "HARD_OVERFLOW_THRESHOLD < 1., this should be >= 1. (use env.set_thermal_limit "
@@ -551,7 +574,7 @@ class Parameters:
         except Exception as exc_:
             raise RuntimeError(
                 f'Impossible to convert SOFT_OVERFLOW_THRESHOLD to float with error \n:"{exc_}"'
-            )
+            ) from exc_
         if self.SOFT_OVERFLOW_THRESHOLD < 1.0:
             raise RuntimeError(
                 "SOFT_OVERFLOW_THRESHOLD < 1., this should be >= 1. (use env.set_thermal_limit "
@@ -570,14 +593,14 @@ class Parameters:
         except Exception as exc_:
             raise RuntimeError(
                 f'Impossible to convert ENV_DC to bool with error \n:"{exc_}"'
-            )
+            ) from exc_
         try:
             self.MAX_SUB_CHANGED = int(self.MAX_SUB_CHANGED)  # to raise if numpy array
             self.MAX_SUB_CHANGED = dt_int(self.MAX_SUB_CHANGED)
         except Exception as exc_:
             raise RuntimeError(
                 f'Impossible to convert MAX_SUB_CHANGED to int with error \n:"{exc_}"'
-            )
+            ) from exc_
         if self.MAX_SUB_CHANGED < 0:
             raise RuntimeError(
                 "MAX_SUB_CHANGED should be >=0 (or -1 if you want to be able to change every "
@@ -591,7 +614,7 @@ class Parameters:
         except Exception as exc_:
             raise RuntimeError(
                 f'Impossible to convert MAX_LINE_STATUS_CHANGED to int with error \n:"{exc_}"'
-            )
+            ) from exc_
         if self.MAX_LINE_STATUS_CHANGED < 0:
             raise RuntimeError(
                 "MAX_LINE_STATUS_CHANGED should be >=0 "
@@ -604,7 +627,7 @@ class Parameters:
         except Exception as exc_:
             raise RuntimeError(
                 f'Impossible to convert IGNORE_MIN_UP_DOWN_TIME to bool with error \n:"{exc_}"'
-            )
+            ) from exc_
         try:
             if not isinstance(self.ALLOW_DISPATCH_GEN_SWITCH_OFF, (bool, dt_bool)):
                 raise RuntimeError("ALLOW_DISPATCH_GEN_SWITCH_OFF should be a boolean")
@@ -614,7 +637,7 @@ class Parameters:
         except Exception as exc_:
             raise RuntimeError(
                 f'Impossible to convert ALLOW_DISPATCH_GEN_SWITCH_OFF to bool with error \n:"{exc_}"'
-            )
+            ) from exc_
         try:
             if not isinstance(
                 self.LIMIT_INFEASIBLE_CURTAILMENT_STORAGE_ACTION, (bool, dt_bool)
@@ -628,7 +651,7 @@ class Parameters:
         except Exception as exc_:
             raise RuntimeError(
                 f'Impossible to convert LIMIT_INFEASIBLE_CURTAILMENT_STORAGE_ACTION to bool with error \n:"{exc_}"'
-            )
+            ) from exc_
 
         try:
             self.INIT_STORAGE_CAPACITY = float(
@@ -638,16 +661,16 @@ class Parameters:
         except Exception as exc_:
             raise RuntimeError(
                 f'Impossible to convert INIT_STORAGE_CAPACITY to float with error \n:"{exc_}"'
-            )
+            ) from exc_
 
         if self.INIT_STORAGE_CAPACITY < 0.0:
             raise RuntimeError(
                 "INIT_STORAGE_CAPACITY < 0., this should be within range [0., 1.]"
-            )
+            ) from exc_
         if self.INIT_STORAGE_CAPACITY > 1.0:
             raise RuntimeError(
                 "INIT_STORAGE_CAPACITY > 1., this should be within range [0., 1.]"
-            )
+            ) from exc_
 
         try:
             if not isinstance(self.ACTIVATE_STORAGE_LOSS, (bool, dt_bool)):
@@ -656,26 +679,26 @@ class Parameters:
         except Exception as exc_:
             raise RuntimeError(
                 f'Impossible to convert ACTIVATE_STORAGE_LOSS to bool with error \n:"{exc_}"'
-            )
+            ) from exc_
 
         try:
             self.ALARM_WINDOW_SIZE = dt_int(self.ALARM_WINDOW_SIZE)
         except Exception as exc_:
             raise RuntimeError(
                 f'Impossible to convert ALARM_WINDOW_SIZE to int with error \n:"{exc_}"'
-            )
+            ) from exc_
         try:
             self.ALARM_BEST_TIME = dt_int(self.ALARM_BEST_TIME)
         except Exception as exc_:
             raise RuntimeError(
                 f'Impossible to convert ALARM_BEST_TIME to int with error \n:"{exc_}"'
-            )
+            ) from exc_
         try:
             self.ALERT_TIME_WINDOW = dt_int(self.ALERT_TIME_WINDOW)
         except Exception as exc_:
             raise RuntimeError(
                 f'Impossible to convert ALERT_TIME_WINDOW to int with error \n:"{exc_}"'
-            )
+            ) from exc_
 
         if self.ALARM_WINDOW_SIZE <= 0:
             raise RuntimeError("self.ALARM_WINDOW_SIZE should be a positive integer !")
@@ -692,7 +715,7 @@ class Parameters:
         except Exception as exc_:
             raise RuntimeError(
                 f'Impossible to convert MAX_SIMULATE_PER_STEP to int with error \n:"{exc_}"'
-            )
+            ) from exc_
         if self.MAX_SIMULATE_PER_STEP <= -2:
             raise RuntimeError(
                 f"self.MAX_SIMULATE_PER_STEP should be a positive integer or -1, we found {self.MAX_SIMULATE_PER_STEP}"
@@ -706,8 +729,15 @@ class Parameters:
         except Exception as exc_:
             raise RuntimeError(
                 f'Impossible to convert MAX_SIMULATE_PER_EPISODE to int with error \n:"{exc_}"'
-            )
+            ) from exc_
         if self.MAX_SIMULATE_PER_EPISODE <= -2:
             raise RuntimeError(
                 f"self.MAX_SIMULATE_PER_EPISODE should be a positive integer or -1, we found {self.MAX_SIMULATE_PER_EPISODE}"
             )
+            
+        try:
+            self.IGNORE_INITIAL_STATE_TIME_SERIE = dt_bool(self.IGNORE_INITIAL_STATE_TIME_SERIE)
+        except Exception as exc_:
+            raise RuntimeError(
+                f'Impossible to convert IGNORE_INITIAL_STATE_TIME_SERIE to bool with error \n:"{exc_}"'
+            ) from exc_

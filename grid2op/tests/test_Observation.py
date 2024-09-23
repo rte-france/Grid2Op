@@ -52,6 +52,7 @@ class TestBasisObsBehaviour(unittest.TestCase):
             
         self.dict_ = {
             "name_gen": ["gen_1_0", "gen_2_1", "gen_5_2", "gen_7_3", "gen_0_4"],
+            "n_busbar_per_sub": "2",
             "name_load": [
                 "load_1_0",
                 "load_2_1",
@@ -297,7 +298,7 @@ class TestBasisObsBehaviour(unittest.TestCase):
             "alertable_line_names": [],
             "alertable_line_ids": [],
             "assistant_warning_type": None,
-            "_PATH_ENV": None,
+            "_PATH_GRID_CLASSES": None,
         }
 
         self.json_ref = {
@@ -1785,7 +1786,7 @@ class TestBasisObsBehaviour(unittest.TestCase):
         obs, reward, done, info = self.env.step(
             self.env.action_space({"set_bus": {"lines_or_id": [(13, 2), (14, 2)]}})
         )
-        assert not done
+        assert not done, f"failed with error {info['exception']}"
         assert obs.bus_connectivity_matrix(as_csr).shape == (15, 15)
         assert (
             obs.bus_connectivity_matrix(as_csr)[14, 11] == 1.0
@@ -2199,9 +2200,9 @@ class TestBasisObsBehaviour(unittest.TestCase):
             val = dict_[el]
             val_res = self.dict_[el]
             if val is None and val_res is not None:
-                raise AssertionError(f"val is None and val_res is not None: val_res: {val_res}")
+                raise AssertionError(f"{el}: val is None and val_res is not None: val_res: {val_res}")
             if val is not None and val_res is None:
-                raise AssertionError(f"val is not None and val_res is None: val {val}")
+                raise AssertionError(f"{el}: val is not None and val_res is None: val {val}")
             if val is None and val_res is None:
                 continue
             
@@ -2974,9 +2975,13 @@ class TestSimulateEqualsStepStorageCurtail(TestSimulateEqualsStep):
                 "educ_case14_storage", test=True, action_class=PlayableAction,
                 _add_to_name=type(self).__name__
             )
+        self.env.reset(seed=0, options={"time serie id": 0})
         self.obs = self._make_forecast_perfect(self.env)
         self.sim_obs = None
         self.step_obs = None
+        
+    def tearDown(self):
+        self.env.close()
 
     def test_storage_act(self):
         """test i can do storage actions in simulate"""

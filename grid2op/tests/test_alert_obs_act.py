@@ -148,11 +148,13 @@ class TestAction(unittest.TestCase):
         act2 = self.env.action_space()
         try:
             act2.raise_alert = [self.env.dim_alerts]
-        except Exception as e:
-            assert e.args[0] ==  'Impossible to modify the alert with your input. Please consult the documentation. The error was:\n"Grid2OpException IllegalAction "Impossible to change a raise alert id 10 because there are only 10 on the grid (and in python id starts at 0)""'
-
-        # TODO : is it really illicit or rather ambiguous ? 
-        #assert act.is_ambiguous()[0]
+        except Exception as exc_:
+            assert exc_.args[0] ==  ('Impossible to modify the alert with your input. '
+                                     'Please consult the documentation. The error '
+                                     'was:\n"Grid2OpException AmbiguousAction '
+                                     '"Impossible to change a raise alert id 10 '
+                                     'because there are only 10 on the grid (and in '
+                                     'python id starts at 0)""')
 
 
 

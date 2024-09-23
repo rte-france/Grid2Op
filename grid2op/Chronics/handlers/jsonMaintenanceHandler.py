@@ -40,6 +40,13 @@ class JSONMaintenanceHandler(BaseHandler):
     - "max_daily_number_per_month_maintenance": maximum number of powerlines
       allowed in maintenance at the same time.
     
+    .. warning::
+        Use this class only for the MAINTENANCE and not for environment
+        data ("load_p", "load_q", "prod_p" or "prod_v") nor for 
+        forecast (in this case use :class:`CSVForecastHandler`) 
+        nor for setting the initial state state (in this case use 
+        :class:`JSONInitStateHandler`)
+        
     """
     def __init__(self,
                  array_name="maintenance",
@@ -56,7 +63,8 @@ class JSONMaintenanceHandler(BaseHandler):
         self.n_line = None  # used in one of the GridStateFromFileWithForecastsWithMaintenance functions
         self._duration_episode_default = _duration_episode_default
         self.current_index = 0
-    
+        self._order_backend_arrays = None
+        
     def get_maintenance_time_1d(self, maintenance):
         return GridValue.get_maintenance_time_1d(maintenance)
     
@@ -75,7 +83,8 @@ class JSONMaintenanceHandler(BaseHandler):
             self.dict_meta_data["maintenance_ending_hour"],
             self.dict_meta_data["daily_proba_per_month_maintenance"],
             self.dict_meta_data["max_daily_number_per_month_maintenance"],
-            self.space_prng
+            self.space_prng,
+            self.dict_meta_data["maintenance_day_of_week"] if "maintenance_day_of_week" in self.dict_meta_data else None
         )
         GridStateFromFileWithForecastsWithMaintenance._fix_maintenance_format(self)
         
@@ -122,3 +131,7 @@ class JSONMaintenanceHandler(BaseHandler):
     def done(self):
         # maintenance can be generated on the fly so they are never "done"
         return False
+    
+    def regenerate_with_new_seed(self):
+        if self.dict_meta_data is not None:
+            self._create_maintenance_arrays(self.init_datetime)

@@ -41,6 +41,28 @@ from grid2op.Reward import ConstantReward
 from grid2op.Opponent import BaseOpponent
 
 
+class PandaPowerBackendNoShunt(PandaPowerBackend):
+    shunts_data_available = False
+    
+
+def create_action(env, backend, action):
+    """this is done internally by grid2op.
+    
+    The idea is to generate a "backend action" (which again is provided by grid2op)
+    easily
+    """
+    # bk_act = env._backend_action_class()
+    # bk_act += action  # action for pandapower backend
+    # bk_act.reorder(env.backend._load_sr2tg,
+    #                env.backend._gen_sr2tg,
+    #                env.backend._topo_sr2tg,
+    #                env.backend._storage_sr2tg,
+    #                env.backend._shunt_sr2tg)
+    bk_act = type(backend).my_bk_act_class()
+    bk_act += action
+    return bk_act
+    
+    
 def make_env_for_backend(env_name, backend_class):
     # env_name: one of:
     # - rte_case5_example: the grid in the documentation (completely fake grid)
@@ -65,8 +87,9 @@ def make_env_for_backend(env_name, backend_class):
                            action_class=CompleteAction,  # we tell grid2op we will manipulate all type of actions
                            reward_class=ConstantReward,  # we don't have yet redispatching data, that might be use by the reward
                            opponent_class=BaseOpponent,  # we deactivate the opponents
+                        #    backend=backend_class() 
                            backend=BackendConverter(source_backend_class=backend_class,
-                                                    target_backend_class=PandaPowerBackend,
+                                                    target_backend_class=PandaPowerBackendNoShunt,
                                                     use_target_backend_name=True)
                           )
     obs = env.reset()

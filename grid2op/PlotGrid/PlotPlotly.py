@@ -144,8 +144,10 @@ class PlotPlotly(BasePlot):
                 format="png", width=self.width, height=self.height, scale=1
             )
             return imageio.imread(img_bytes, format="png")
-        except:
-            warnings.warn("Plotly need additional dependencies for offline rendering")
+        except Exception as exc_:
+            warnings.warn(f"Plotly need additional dependencies for "
+                          f"offline rendering. Error was: "
+                          f"\n{exc_}")
             return np.full((self.height, self.width, 3), 255, dtype=np.unit8)
 
     def _draw_substation_txt(self, name, pos_x, pos_y, text):
@@ -564,7 +566,7 @@ class PlotPlotly(BasePlot):
         capacity = observation.rho[line_id]
         capacity = np.clip(capacity, 0.0, 1.0)
         color = color_scheme[int(capacity * float(len(color_scheme) - 1))]
-        if capacity == 0.0:
+        if np.abs(capacity) <= 1e-7:
             color = "black"
         line_style = dict(dash=None if connected else "dash", color=color)
         line_text = ""
@@ -613,7 +615,7 @@ class PlotPlotly(BasePlot):
         capacity = min(observation.rho[line_id], 1.0)
         color_idx = int(capacity * (len(color_scheme) - 1))
         color = color_scheme[color_idx]
-        if capacity == 0.0:
+        if np.abs(capacity) <= 1e-7:
             color = "black"
         if line_value is not None:
             line_text = pltu.format_value_unit(line_value, line_unit)

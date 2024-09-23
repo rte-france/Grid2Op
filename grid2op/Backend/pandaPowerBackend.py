@@ -17,11 +17,16 @@ from typing import Optional, Union, Tuple
 
 import pandapower as pp
 import scipy
+# check that pandapower does not introduce some 
+from packaging import version
 
+import grid2op
 from grid2op.dtypes import dt_int, dt_float, dt_bool
-from grid2op.Backend.backend import Backend
 from grid2op.Action import BaseAction
-from grid2op.Exceptions import *
+from grid2op.Exceptions import BackendError
+from grid2op.Backend.backend import Backend
+
+MIN_LS_VERSION_VM_PU = version.parse("0.6.0")
 
 try:
     import numba
@@ -63,31 +68,31 @@ class PandaPowerBackend(Backend):
         The ratio that allow the conversion from pair-unit to kv for the loads
 
     lines_or_pu_to_kv: :class:`numpy.array`, dtype:float
-        The ratio that allow the conversion from pair-unit to kv for the origin end of the powerlines
+        The ratio that allow the conversion from pair-unit to kv for the origin side of the powerlines
 
     lines_ex_pu_to_kv: :class:`numpy.array`, dtype:float
-        The ratio that allow the conversion from pair-unit to kv for the extremity end of the powerlines
+        The ratio that allow the conversion from pair-unit to kv for the extremity side of the powerlines
 
     p_or: :class:`numpy.array`, dtype:float
-        The active power flowing at the origin end of each powerline
+        The active power flowing at the origin side of each powerline
 
     q_or: :class:`numpy.array`, dtype:float
-        The reactive power flowing at the origin end of each powerline
+        The reactive power flowing at the origin side of each powerline
 
     v_or: :class:`numpy.array`, dtype:float
         The voltage magnitude at the origin bus of the powerline
 
     a_or: :class:`numpy.array`, dtype:float
-        The current flowing at the origin end of each powerline
+        The current flowing at the origin side of each powerline
 
     p_ex: :class:`numpy.array`, dtype:float
-        The active power flowing at the extremity end of each powerline
+        The active power flowing at the extremity side of each powerline
 
     q_ex: :class:`numpy.array`, dtype:float
-        The reactive power flowing at the extremity end of each powerline
+        The reactive power flowing at the extremity side of each powerline
 
     a_ex: :class:`numpy.array`, dtype:float
-        The current flowing at the extremity end of each powerline
+        The current flowing at the extremity side of each powerline
 
     v_ex: :class:`numpy.array`, dtype:float
         The voltage magnitude at the extremity bus of the powerline
@@ -118,6 +123,12 @@ class PandaPowerBackend(Backend):
         can_be_copied: bool=True,
         with_numba: bool=NUMBA_,
     ):
+        from grid2op.MakeEnv.Make import _force_test_dataset
+        if _force_test_dataset():
+            if with_numba:
+                warnings.warn(f"Forcing `test=True` will disable numba for {type(self)}")
+            with_numba = False
+            
         Backend.__init__(
             self,
             detailed_infos_for_cascading_failures=detailed_infos_for_cascading_failures,
@@ -169,7 +180,6 @@ class PandaPowerBackend(Backend):
         self._number_true_line = -1
         self._corresp_name_fun = {}
         self._get_vector_inj = {}
-        self.dim_topo = -1
         self._vars_action = BaseAction.attr_list_vect
         self._vars_action_set = BaseAction.attr_list_vect
         self.cst_1 = dt_float(1.0)
@@ -214,6 +224,10 @@ class PandaPowerBackend(Backend):
         self._lightsim2grid : bool = lightsim2grid
         self._dist_slack : bool = dist_slack
         self._max_iter : bool = max_iter
+        self._in_service_line_col_id = None
+        self._in_service_trafo_col_id = None
+        self._in_service_storage_cold_id = None
+        self.div_exception = None
 
     def _check_for_non_modeled_elements(self):
         """This function check for elements in the pandapower grid that will have no impact on grid2op.
@@ -329,6 +343,7 @@ class PandaPowerBackend(Backend):
         are set as "out of service" unless a topological action acts on these specific substations.
 
         """
+        self.can_handle_more_than_2_busbar()
         full_path = self.make_complete_path(path, filename)
 
         with warnings.catch_warnings():
@@ -343,30 +358,15 @@ class PandaPowerBackend(Backend):
         i_ref = None
         self._iref_slack = None
         self._id_bus_added = None
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore")
-            try:
-                pp.runpp(
-                    self._grid,
-                    numba=self.with_numba,
-                    lightsim2grid=self._lightsim2grid,
-                    distributed_slack=self._dist_slack,
-                    max_iteration=self._max_iter,
-                )
-            except pp.powerflow.LoadflowNotConverged:
-                pp.rundcpp(
-                    self._grid,
-                    numba=self.with_numba,
-                    lightsim2grid=self._lightsim2grid,
-                    distributed_slack=self._dist_slack,
-                    max_iteration=self._max_iter,
-                )
+        
+        self._aux_run_pf_init()  # run an intiail powerflow, just in case
+        
         new_pp_version = False
         if not "slack_weight" in self._grid.gen:
             self._grid.gen["slack_weight"] = 1.0
         else:
             new_pp_version = True
-
+            
         if np.all(~self._grid.gen["slack"]):
             # there are not defined slack bus on the data, i need to hack it up a little bit
             pd2ppc = self._grid._pd2ppc_lookups["bus"]  # pd2ppc[pd_id] = ppc_id
@@ -426,26 +426,9 @@ class PandaPowerBackend(Backend):
                         # TODO here i force the distributed slack bus too, by removing the other from the ext_grid...
                         self._grid.ext_grid = self._grid.ext_grid.iloc[:1]
         else:
-            self.slack_id = np.where(self._grid.gen["slack"])[0]
+            self.slack_id = (self._grid.gen["slack"].values).nonzero()[0]
 
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore")
-            try:
-                pp.runpp(
-                    self._grid,
-                    numba=self.with_numba,
-                    lightsim2grid=self._lightsim2grid,
-                    distributed_slack=self._dist_slack,
-                    max_iteration=self._max_iter,
-                )
-            except pp.powerflow.LoadflowNotConverged:
-                pp.rundcpp(
-                    self._grid,
-                    numba=self.with_numba,
-                    lightsim2grid=self._lightsim2grid,
-                    distributed_slack=self._dist_slack,
-                    max_iteration=self._max_iter,
-                )
+        self._aux_run_pf_init()  # run another powerflow with the added generator
 
         self.__nb_bus_before = self._grid.bus.shape[0]
         self.__nb_powerline = self._grid.line.shape[0]
@@ -543,16 +526,56 @@ class PandaPowerBackend(Backend):
         self.name_sub = ["sub_{}".format(i) for i, row in self._grid.bus.iterrows()]
         self.name_sub = np.array(self.name_sub)
 
+        if type(self).shunts_data_available:
+            self.n_shunt = self._grid.shunt.shape[0]
+        else:
+            self.n_shunt = None
+            
         # "hack" to handle topological changes, for now only 2 buses per substation
         add_topo = copy.deepcopy(self._grid.bus)
-        add_topo.index += add_topo.shape[0]
-        add_topo["in_service"] = False
-        # self._grid.bus = pd.concat((self._grid.bus, add_topo))
-        for ind, el in add_topo.iterrows():
-            pp.create_bus(self._grid, index=ind, **el)
-
+        # TODO n_busbar: what if non contiguous indexing ???
+        for _ in range(self.n_busbar_per_sub - 1):   # self.n_busbar_per_sub and not type(self) here otherwise it erases can_handle_more_than_2_busbar / cannot_handle_more_than_2_busbar
+            add_topo.index += add_topo.shape[0]
+            add_topo["in_service"] = False
+            for ind, el in add_topo.iterrows():
+                pp.create_bus(self._grid, index=ind, **el)
         self._init_private_attrs()
-
+        self._aux_run_pf_init()  # run yet another powerflow with the added buses
+        
+        # do this at the end
+        self._in_service_line_col_id = int((self._grid.line.columns == "in_service").nonzero()[0][0])
+        self._in_service_trafo_col_id = int((self._grid.trafo.columns == "in_service").nonzero()[0][0])
+        self._in_service_storage_cold_id = int((self._grid.storage.columns == "in_service").nonzero()[0][0])
+        self.comp_time = 0.
+        
+        # hack for backward compat with oldest lightsim2grid version
+        try:
+            import lightsim2grid
+            if version.parse(lightsim2grid.__version__) < MIN_LS_VERSION_VM_PU:
+                warnings.warn("You are using a really old version of lightsim2grid. Consider upgrading.")
+                if "_options" in self._grid and "init_vm_pu" in self._grid["_options"]:
+                    try:
+                        float(self._grid["_options"]["init_vm_pu"])
+                    except ValueError as exc_:
+                        # we delete it because lightsim2grid uses it
+                        # to init its internal "GridModel" and did not check that
+                        # this is a float until MIN_LS_VERSION_VM_PU
+                        del self._grid["_options"]["init_vm_pu"]
+        except ImportError:
+            # lightsim2grid is not installed, so no risk to contaminate it
+            pass
+        
+    def _aux_run_pf_init(self):
+        """run a powerflow when the file is being loaded. This is called three times for each call to "load_grid" """
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            try:
+                self._aux_runpf_pp(False)
+                if not self._grid.converged:
+                    raise pp.powerflow.LoadflowNotConverged
+            except pp.powerflow.LoadflowNotConverged:
+                self._aux_runpf_pp(True)
+        
     def _init_private_attrs(self) -> None:
         #  number of elements per substation
         self.sub_info = np.zeros(self.n_sub, dtype=dt_int)
@@ -637,6 +660,21 @@ class PandaPowerBackend(Backend):
                 self._what_object_where[sub_id].append(("storage", "bus", i))
 
         self.dim_topo = self.sub_info.sum()
+        
+        # shunts data
+        if type(self).shunts_data_available:
+            self.shunt_to_subid = np.zeros(self.n_shunt, dtype=dt_int) - 1
+            name_shunt = []
+            # TODO read name from the grid if provided
+            for i, (_, row) in enumerate(self._grid.shunt.iterrows()):
+                bus = int(row["bus"])
+                name_shunt.append("shunt_{bus}_{index_shunt}".format(**row, index_shunt=i))
+                self.shunt_to_subid[i] = bus
+            self.name_shunt = np.array(name_shunt).astype(str)
+            self._sh_vnkv = self._grid.bus["vn_kv"][self.shunt_to_subid].values.astype(
+                dt_float
+            )
+        
         self._compute_pos_big_topo()
 
         # utilities for imeplementing apply_action
@@ -656,23 +694,23 @@ class PandaPowerBackend(Backend):
             "prod_v"
         ] = self._load_grid_gen_vm_pu  # lambda grid: grid.gen["vm_pu"]
 
-        self.load_pu_to_kv = self._grid.bus["vn_kv"][self.load_to_subid].values.astype(
+        self.load_pu_to_kv = 1. * self._grid.bus["vn_kv"][self.load_to_subid].values.astype(
             dt_float
         )
-        self.prod_pu_to_kv = self._grid.bus["vn_kv"][self.gen_to_subid].values.astype(
+        self.prod_pu_to_kv = 1. * self._grid.bus["vn_kv"][self.gen_to_subid].values.astype(
             dt_float
         )
-        self.lines_or_pu_to_kv = self._grid.bus["vn_kv"][
+        self.lines_or_pu_to_kv = 1. * self._grid.bus["vn_kv"][
             self.line_or_to_subid
         ].values.astype(dt_float)
-        self.lines_ex_pu_to_kv = self._grid.bus["vn_kv"][
+        self.lines_ex_pu_to_kv = 1. * self._grid.bus["vn_kv"][
             self.line_ex_to_subid
         ].values.astype(dt_float)
-        self.storage_pu_to_kv = self._grid.bus["vn_kv"][
+        self.storage_pu_to_kv = 1. * self._grid.bus["vn_kv"][
             self.storage_to_subid
         ].values.astype(dt_float)
 
-        self.thermal_limit_a = 1000 * np.concatenate(
+        self.thermal_limit_a = 1000. * np.concatenate(
             (
                 self._grid.line["max_i_ka"].values,
                 self._grid.trafo["sn_mva"].values
@@ -700,21 +738,6 @@ class PandaPowerBackend(Backend):
         self.storage_q = np.full(self.n_storage, dtype=dt_float, fill_value=np.NaN)
         self.storage_v = np.full(self.n_storage, dtype=dt_float, fill_value=np.NaN)
         self._nb_bus_before = None
-
-        # shunts data
-        self.n_shunt = self._grid.shunt.shape[0]
-        self.shunt_to_subid = np.zeros(self.n_shunt, dtype=dt_int) - 1
-        name_shunt = []
-        # TODO read name from the grid if provided
-        for i, (_, row) in enumerate(self._grid.shunt.iterrows()):
-            bus = int(row["bus"])
-            name_shunt.append("shunt_{bus}_{index_shunt}".format(**row, index_shunt=i))
-            self.shunt_to_subid[i] = bus
-        self.name_shunt = np.array(name_shunt)
-        self._sh_vnkv = self._grid.bus["vn_kv"][self.shunt_to_subid].values.astype(
-            dt_float
-        )
-        # self.shunts_data_available = True  # TODO shunts_data_available
 
         # store the topoid -> objid
         self._big_topo_to_obj = [(None, None) for _ in range(self.dim_topo)]
@@ -776,7 +799,12 @@ class PandaPowerBackend(Backend):
             )  # will be initialized in the "assert_grid_correct"
 
     def storage_deact_for_backward_comaptibility(self) -> None:
-        self._init_private_attrs()
+        cls = type(self)
+        self.storage_theta = np.full(cls.n_storage, fill_value=np.NaN, dtype=dt_float)
+        self.storage_p = np.full(cls.n_storage, dtype=dt_float, fill_value=np.NaN)
+        self.storage_q = np.full(cls.n_storage, dtype=dt_float, fill_value=np.NaN)
+        self.storage_v = np.full(cls.n_storage, dtype=dt_float, fill_value=np.NaN)
+        self._topo_vect = self._get_topo_vect()
 
     def _convert_id_topo(self, id_big_topo):
         """
@@ -802,7 +830,7 @@ class PandaPowerBackend(Backend):
         """
         if backendAction is None:
             return
-        
+    
         cls = type(self)
         
         (
@@ -813,11 +841,12 @@ class PandaPowerBackend(Backend):
         ) = backendAction()
 
         # handle bus status
-        bus_is = self._grid.bus["in_service"]
-        for i, (bus1_status, bus2_status) in enumerate(active_bus):
-            bus_is[i] = bus1_status  # no iloc for bus, don't ask me why please :-/
-            bus_is[i + self.__nb_bus_before] = bus2_status
-            
+        self._grid.bus["in_service"] = pd.Series(data=active_bus.T.reshape(-1),
+                                                 index=np.arange(cls.n_sub * cls.n_busbar_per_sub),
+                                                 dtype=bool)
+        # TODO n_busbar what if index is not continuous
+        
+        # handle generators
         tmp_prod_p = self._get_vector_inj["prod_p"](self._grid)
         if (prod_p.changed).any():
             tmp_prod_p.iloc[prod_p.changed] = prod_p.values[prod_p.changed]
@@ -840,7 +869,7 @@ class PandaPowerBackend(Backend):
         if (load_q.changed).any():
             tmp_load_q.iloc[load_q.changed] = load_q.values[load_q.changed]
 
-        if self.n_storage > 0:
+        if cls.n_storage > 0:
             # active setpoint
             tmp_stor_p = self._grid.storage["p_mw"]
             if (storage.changed).any():
@@ -848,19 +877,18 @@ class PandaPowerBackend(Backend):
 
             # topology of the storage
             stor_bus = backendAction.get_storages_bus()
-            new_bus_id = stor_bus.values[stor_bus.changed]  # id of the busbar 1 or 2 if
-            activated = new_bus_id > 0  # mask of storage that have been activated
-            new_bus_num = (
-                self.storage_to_subid[stor_bus.changed] + (new_bus_id - 1) * self.n_sub
-            )  # bus number
-            new_bus_num[~activated] = self.storage_to_subid[stor_bus.changed][
-                ~activated
-            ]
-            self._grid.storage["in_service"].values[stor_bus.changed] = activated
-            self._grid.storage["bus"].values[stor_bus.changed] = new_bus_num
-            self._topo_vect[self.storage_pos_topo_vect[stor_bus.changed]] = new_bus_num
+            new_bus_num = dt_int(1) * self._grid.storage["bus"].values
+            new_bus_id = stor_bus.values[stor_bus.changed]
+            new_bus_num[stor_bus.changed] = cls.local_bus_to_global(new_bus_id, cls.storage_to_subid[stor_bus.changed])
+            deactivated = new_bus_num <= -1
+            deact_and_changed = deactivated & stor_bus.changed
+            new_bus_num[deact_and_changed] = cls.storage_to_subid[deact_and_changed]
+            self._grid.storage.loc[stor_bus.changed & deactivated, "in_service"] = False
+            self._grid.storage.loc[stor_bus.changed & ~deactivated, "in_service"] = True
+            self._grid.storage["bus"] = new_bus_num
+            self._topo_vect[cls.storage_pos_topo_vect[stor_bus.changed]] = new_bus_id
             self._topo_vect[
-                self.storage_pos_topo_vect[stor_bus.changed][~activated]
+                cls.storage_pos_topo_vect[deact_and_changed]
             ] = -1
 
         if type(backendAction).shunts_data_available:
@@ -879,7 +907,7 @@ class PandaPowerBackend(Backend):
                 self._grid.shunt["in_service"].iloc[shunt_bus.changed] = sh_service           
                 chg_and_in_service = sh_service & shunt_bus.changed
                 self._grid.shunt["bus"].loc[chg_and_in_service] = cls.local_bus_to_global(shunt_bus.values[chg_and_in_service],
-                                                                                         cls.shunt_to_subid[chg_and_in_service])
+                                                                                          cls.shunt_to_subid[chg_and_in_service])
 
         # i made at least a real change, so i implement it in the backend
         for id_el, new_bus in topo__:
@@ -888,7 +916,7 @@ class PandaPowerBackend(Backend):
             if type_obj is not None:
                 # storage unit are handled elsewhere
                 self._type_to_bus_set[type_obj](new_bus, id_el_backend, id_topo)
-        
+
     def _apply_load_bus(self, new_bus, id_el_backend, id_topo):
         new_bus_backend = type(self).local_bus_to_global_int(
             new_bus, self._init_bus_load[id_el_backend]
@@ -979,6 +1007,71 @@ class PandaPowerBackend(Backend):
         )
         return res
 
+    def _aux_runpf_pp(self, is_dc: bool):
+        with warnings.catch_warnings():
+            # remove the warning if _grid non connex. And it that case load flow as not converged
+            warnings.filterwarnings(
+                "ignore", category=scipy.sparse.linalg.MatrixRankWarning
+            )
+            warnings.filterwarnings("ignore", category=RuntimeWarning)
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            self._pf_init = "dc"
+            # nb_bus = self.get_nb_active_bus()
+            # if self._nb_bus_before is None:
+            #     self._pf_init = "dc"
+            # elif nb_bus == self._nb_bus_before:
+            #     self._pf_init = "results"
+            # else:
+            #     self._pf_init = "auto"
+
+            if (~self._grid.load["in_service"]).any():
+                # TODO see if there is a better way here -> do not handle this here, but rather in Backend._next_grid_state
+                raise pp.powerflow.LoadflowNotConverged("Disconnected load: for now grid2op cannot handle properly"
+                                                        " disconnected load. If you want to disconnect one, say it"
+                                                        " consumes 0. instead. Please check loads: "
+                                                        f"{(~self._grid.load['in_service'].values).nonzero()[0]}"
+                                                        )
+            if (~self._grid.gen["in_service"]).any():
+                # TODO see if there is a better way here -> do not handle this here, but rather in Backend._next_grid_state
+                raise pp.powerflow.LoadflowNotConverged("Disconnected gen: for now grid2op cannot handle properly"
+                                                        " disconnected generators. If you want to disconnect one, say it"
+                                                        " produces 0. instead. Please check generators: "
+                                                        f"{(~self._grid.gen['in_service'].values).nonzero()[0]}"
+                                                        )
+            try:
+                if is_dc:
+                    pp.rundcpp(self._grid, check_connectivity=True, init="flat")
+                    # if I put check_connectivity=False then the test AAATestBackendAPI.test_22_islanded_grid_make_divergence
+                    # does not pass
+                    
+                    # if dc i start normally next time i call an ac powerflow
+                    self._nb_bus_before = None
+                else:
+                    pp.runpp(
+                        self._grid,
+                        check_connectivity=False,
+                        init=self._pf_init,
+                        numba=self.with_numba,
+                        lightsim2grid=self._lightsim2grid,
+                        max_iteration=self._max_iter,
+                        distributed_slack=self._dist_slack,
+                    )
+            except IndexError as exc_:
+                raise pp.powerflow.LoadflowNotConverged(f"Surprising behaviour of pandapower when a bus is not connected to "
+                                                        f"anything but present on the bus (with check_connectivity=False). "
+                                                        f"Error was {exc_}"
+                                                        )
+                    
+            # stores the computation time
+            if "_ppc" in self._grid:
+                if "et" in self._grid["_ppc"]:
+                    self.comp_time += self._grid["_ppc"]["et"]
+            if self._grid.res_gen.isnull().values.any():
+                # TODO see if there is a better way here -> do not handle this here, but rather in Backend._next_grid_state
+                # sometimes pandapower does not detect divergence and put Nan.
+                raise pp.powerflow.LoadflowNotConverged("Divergence due to Nan values in res_gen table (most likely due to "
+                                                        "a non connected grid).")
+                            
     def runpf(self, is_dc : bool=False) -> Tuple[bool, Union[Exception, None]]:
         """
         INTERNAL
@@ -990,74 +1083,15 @@ class PandaPowerBackend(Backend):
         buses has not changed between two calls, the previous results are re used. This speeds up the computation
         in case of "do nothing" action applied.
         """
-        nb_bus = self.get_nb_active_bus()
         try:
-            with warnings.catch_warnings():
-                # remove the warning if _grid non connex. And it that case load flow as not converged
-                warnings.filterwarnings(
-                    "ignore", category=scipy.sparse.linalg.MatrixRankWarning
-                )
-                warnings.filterwarnings("ignore", category=RuntimeWarning)
-                warnings.filterwarnings("ignore", category=DeprecationWarning)
-                if self._nb_bus_before is None:
-                    self._pf_init = "dc"
-                elif nb_bus == self._nb_bus_before:
-                    self._pf_init = "results"
-                else:
-                    self._pf_init = "auto"
-
-                if (~self._grid.load["in_service"]).any():
-                    # TODO see if there is a better way here -> do not handle this here, but rather in Backend._next_grid_state
-                    raise pp.powerflow.LoadflowNotConverged("Disconnected load: for now grid2op cannot handle properly"
-                                                            " disconnected load. If you want to disconnect one, say it"
-                                                            " consumes 0. instead. Please check loads: "
-                                                            f"{np.where(~self._grid.load['in_service'])[0]}"
-                                                            )
-                if (~self._grid.gen["in_service"]).any():
-                    # TODO see if there is a better way here -> do not handle this here, but rather in Backend._next_grid_state
-                    raise pp.powerflow.LoadflowNotConverged("Disconnected gen: for now grid2op cannot handle properly"
-                                                            " disconnected generators. If you want to disconnect one, say it"
-                                                            " produces 0. instead. Please check generators: "
-                                                            f"{np.where(~self._grid.gen['in_service'])[0]}"
-                                                            )
-                try:
-                    if is_dc:
-                        pp.rundcpp(self._grid, check_connectivity=True, init="flat")
-                        # if I put check_connectivity=False then the test AAATestBackendAPI.test_22_islanded_grid_make_divergence
-                        # does not pass
-                        
-                        # if dc i start normally next time i call an ac powerflow
-                        self._nb_bus_before = None
-                    else:
-                        pp.runpp(
-                            self._grid,
-                            check_connectivity=False,
-                            init=self._pf_init,
-                            numba=self.with_numba,
-                            lightsim2grid=self._lightsim2grid,
-                            max_iteration=self._max_iter,
-                            distributed_slack=self._dist_slack,
-                        )
-                except IndexError as exc_:
-                    raise pp.powerflow.LoadflowNotConverged(f"Surprising behaviour of pandapower when a bus is not connected to "
-                                                            f"anything but present on the bus (with check_connectivity=False). "
-                                                            f"Error was {exc_}"
-                                                            )
-                        
-                # stores the computation time
-                if "_ppc" in self._grid:
-                    if "et" in self._grid["_ppc"]:
-                        self.comp_time += self._grid["_ppc"]["et"]
-                if self._grid.res_gen.isnull().values.any():
-                    # TODO see if there is a better way here -> do not handle this here, but rather in Backend._next_grid_state
-                    # sometimes pandapower does not detect divergence and put Nan.
-                    raise pp.powerflow.LoadflowNotConverged("Divergence due to Nan values in res_gen table (most likely due to "
-                                                            "a non connected grid).")
-                
+            self._aux_runpf_pp(is_dc)
+            cls = type(self)     
             # if a connected bus has a no voltage, it's a divergence (grid was not connected)
             if self._grid.res_bus.loc[self._grid.bus["in_service"]]["va_degree"].isnull().any():
-                raise pp.powerflow.LoadflowNotConverged("Isolated bus")
-                        
+                buses_ko = self._grid.res_bus.loc[self._grid.bus["in_service"]]["va_degree"].isnull()
+                buses_ko = buses_ko.values.nonzero()[0]
+                raise pp.powerflow.LoadflowNotConverged(f"Isolated bus, check buses {buses_ko} with `env.backend._grid.res_bus.iloc[{buses_ko}, :]`")
+                                           
             (
                 self.prod_p[:],
                 self.prod_q[:],
@@ -1075,7 +1109,7 @@ class PandaPowerBackend(Backend):
                 if not np.isfinite(self.load_v).all():
                     # TODO see if there is a better way here
                     # some loads are disconnected: it's a game over case!
-                    raise pp.powerflow.LoadflowNotConverged("Isolated load")
+                    raise pp.powerflow.LoadflowNotConverged(f"Isolated load: check loads {np.isfinite(self.load_v).nonzero()[0]}")
             else:
                 # fix voltages magnitude that are always "nan" for dc case
                 # self._grid.res_bus["vm_pu"] is always nan when computed in DC
@@ -1083,15 +1117,15 @@ class PandaPowerBackend(Backend):
                 # need to assign the correct value when a generator is present at the same bus
                 # TODO optimize this ugly loop
                 # see https://github.com/e2nIEE/pandapower/issues/1996 for a fix
-                for l_id in range(self.n_load):
-                    if self.load_to_subid[l_id] in self.gen_to_subid:
-                        ind_gens = np.where(
-                            self.gen_to_subid == self.load_to_subid[l_id]
-                        )[0]
+                for l_id in range(cls.n_load):
+                    if cls.load_to_subid[l_id] in cls.gen_to_subid:
+                        ind_gens = (
+                            cls.gen_to_subid == cls.load_to_subid[l_id]
+                        ).nonzero()[0]
                         for g_id in ind_gens:
                             if (
-                                self._topo_vect[self.load_pos_topo_vect[l_id]]
-                                == self._topo_vect[self.gen_pos_topo_vect[g_id]]
+                                self._topo_vect[cls.load_pos_topo_vect[l_id]]
+                                == self._topo_vect[cls.gen_pos_topo_vect[g_id]]
                             ):
                                 self.load_v[l_id] = self.prod_v[g_id]
                                 break
@@ -1101,7 +1135,7 @@ class PandaPowerBackend(Backend):
             self.p_or[:] = self._aux_get_line_info("p_from_mw", "p_hv_mw")
             self.q_or[:] = self._aux_get_line_info("q_from_mvar", "q_hv_mvar")
             self.v_or[:] = self._aux_get_line_info("vm_from_pu", "vm_hv_pu")
-            self.a_or[:] = self._aux_get_line_info("i_from_ka", "i_hv_ka") * 1000
+            self.a_or[:] = self._aux_get_line_info("i_from_ka", "i_hv_ka") * 1000.
             self.theta_or[:] = self._aux_get_line_info(
                 "va_from_degree", "va_hv_degree"
             )
@@ -1111,7 +1145,7 @@ class PandaPowerBackend(Backend):
             self.p_ex[:] = self._aux_get_line_info("p_to_mw", "p_lv_mw")
             self.q_ex[:] = self._aux_get_line_info("q_to_mvar", "q_lv_mvar")
             self.v_ex[:] = self._aux_get_line_info("vm_to_pu", "vm_lv_pu")
-            self.a_ex[:] = self._aux_get_line_info("i_to_ka", "i_lv_ka") * 1000
+            self.a_ex[:] = self._aux_get_line_info("i_to_ka", "i_lv_ka") * 1000.
             self.theta_ex[:] = self._aux_get_line_info(
                 "va_to_degree", "va_lv_degree"
             )
@@ -1129,7 +1163,9 @@ class PandaPowerBackend(Backend):
             self.theta_ex[~np.isfinite(self.theta_ex)] = 0.0
 
             self._nb_bus_before = None
-            self._grid._ppc["gen"][self._iref_slack, 1] = 0.0
+            if self._iref_slack is not None:
+                # a gen has been added to represent the slack, modeled as an "ext_grid"
+                self._grid._ppc["gen"][self._iref_slack, 1] = 0.0
 
             # handle storage units
             # note that we have to look ourselves for disconnected storage
@@ -1150,23 +1186,17 @@ class PandaPowerBackend(Backend):
             self._grid.storage["in_service"].values[deact_storage] = False
 
             self._topo_vect[:] = self._get_topo_vect()
-            return self._grid.converged, None
+            if not self._grid.converged:
+                raise pp.powerflow.LoadflowNotConverged("Divergence without specific reason (self._grid.converged is False)")
+            self.div_exception = None
+            return True, None
 
         except pp.powerflow.LoadflowNotConverged as exc_:
             # of the powerflow has not converged, results are Nan
+            self.div_exception = exc_
             self._reset_all_nan()
             msg = exc_.__str__()
-            return False, BackendError(f'powerflow diverged with error :"{msg}"')
-
-    def assert_grid_correct(self) -> None:
-        """
-        INTERNAL
-
-        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
-
-            This is done as it should be by the Environment
-        """
-        super().assert_grid_correct()
+            return False, BackendError(f'powerflow diverged with error :"{msg}", you can check `env.backend.div_exception` for more information')
 
     def _reset_all_nan(self) -> None:
         self.p_or[:] = np.NaN
@@ -1202,7 +1232,6 @@ class PandaPowerBackend(Backend):
 
         This should return a deep copy of the Backend itself and not just the `self._grid`
         """
-        # res = copy.deepcopy(self)  # this was really slow...
         res = type(self)(**self._my_kwargs)
 
         # copy from base class (backend)
@@ -1279,11 +1308,10 @@ class PandaPowerBackend(Backend):
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", FutureWarning)  
             res.__pp_backend_initial_grid = copy.deepcopy(self.__pp_backend_initial_grid)
-
-        res.tol = (
-            self.tol
-        )  # this is NOT the pandapower tolerance !!!! this is used to check if a storage unit
+        
+        # this is NOT the pandapower tolerance !!!! this is used to check if a storage unit
         # produce / absorbs anything
+        res.tol = self.tol
 
         # TODO storage doc (in grid2op rst) of the backend
         res.can_output_theta = self.can_output_theta  # I support the voltage angle
@@ -1292,7 +1320,12 @@ class PandaPowerBackend(Backend):
         res.load_theta = copy.deepcopy(self.load_theta)
         res.gen_theta = copy.deepcopy(self.gen_theta)
         res.storage_theta = copy.deepcopy(self.storage_theta)
-
+        
+        res._in_service_line_col_id = self._in_service_line_col_id
+        res._in_service_trafo_col_id = self._in_service_trafo_col_id
+        
+        res._missing_two_busbars_support_info = self._missing_two_busbars_support_info
+        res.div_exception = self.div_exception
         return res
 
     def close(self) -> None:
@@ -1347,88 +1380,47 @@ class PandaPowerBackend(Backend):
 
     def _disconnect_line(self, id_):
         if id_ < self._number_true_line:
-            self._grid.line["in_service"].iloc[id_] = False
+            self._grid.line.iloc[id_, self._in_service_line_col_id] = False
         else:
-            self._grid.trafo["in_service"].iloc[id_ - self._number_true_line] = False
+            self._grid.trafo.iloc[id_ - self._number_true_line, self._in_service_trafo_col_id]  = False
         self._topo_vect[self.line_or_pos_topo_vect[id_]] = -1
         self._topo_vect[self.line_ex_pos_topo_vect[id_]] = -1
         self.line_status[id_] = False
 
     def _reconnect_line(self, id_):
         if id_ < self._number_true_line:
-            self._grid.line["in_service"].iloc[id_] = True
+            self._grid.line.iloc[id_, self._in_service_line_col_id] = True
         else:
-            self._grid.trafo["in_service"].iloc[id_ - self._number_true_line] = True
+            self._grid.trafo.iloc[id_ - self._number_true_line, self._in_service_trafo_col_id] = True
         self.line_status[id_] = True
 
     def get_topo_vect(self) -> np.ndarray:
         return self._topo_vect
 
     def _get_topo_vect(self):
-        res = np.full(self.dim_topo, fill_value=np.iinfo(dt_int).max, dtype=dt_int)
+        cls = type(self)
+        res = np.full(cls.dim_topo, fill_value=np.iinfo(dt_int).max, dtype=dt_int)
 
+        # lines / trafo
         line_status = self.get_line_status()
-
-        i = 0
-        for row in self._grid.line[["from_bus", "to_bus"]].values:
-            bus_or_id = row[0]
-            bus_ex_id = row[1]
-            if line_status[i]:
-                res[self.line_or_pos_topo_vect[i]] = (
-                    1 if bus_or_id == self.line_or_to_subid[i] else 2
-                )
-                res[self.line_ex_pos_topo_vect[i]] = (
-                    1 if bus_ex_id == self.line_ex_to_subid[i] else 2
-                )
-            else:
-                res[self.line_or_pos_topo_vect[i]] = -1
-                res[self.line_ex_pos_topo_vect[i]] = -1
-            i += 1
-
-        nb = self._number_true_line
-        i = 0
-        for row in self._grid.trafo[["hv_bus", "lv_bus"]].values:
-            bus_or_id = row[0]
-            bus_ex_id = row[1]
-
-            j = i + nb
-            if line_status[j]:
-                res[self.line_or_pos_topo_vect[j]] = (
-                    1 if bus_or_id == self.line_or_to_subid[j] else 2
-                )
-                res[self.line_ex_pos_topo_vect[j]] = (
-                    1 if bus_ex_id == self.line_ex_to_subid[j] else 2
-                )
-            else:
-                res[self.line_or_pos_topo_vect[j]] = -1
-                res[self.line_ex_pos_topo_vect[j]] = -1
-            i += 1
-
-        i = 0
-        for bus_id in self._grid.gen["bus"].values:
-            res[self.gen_pos_topo_vect[i]] = 1 if bus_id == self.gen_to_subid[i] else 2
-            i += 1
-
-        i = 0
-        for bus_id in self._grid.load["bus"].values:
-            res[self.load_pos_topo_vect[i]] = (
-                1 if bus_id == self.load_to_subid[i] else 2
-            )
-            i += 1
-
-        if self.n_storage:
-            # storage can be deactivated by the environment for backward compatibility
-            i = 0
-            for bus_id in self._grid.storage["bus"].values:
-                status = self._grid.storage["in_service"].values[i]
-                if status:
-                    res[self.storage_pos_topo_vect[i]] = (
-                        1 if bus_id == self.storage_to_subid[i] else 2
-                    )
-                else:
-                    res[self.storage_pos_topo_vect[i]] = -1
-                i += 1
-
+        glob_bus_or = np.concatenate((self._grid.line["from_bus"].values, self._grid.trafo["hv_bus"].values))
+        res[cls.line_or_pos_topo_vect] = cls.global_bus_to_local(glob_bus_or, cls.line_or_to_subid)
+        res[cls.line_or_pos_topo_vect[~line_status]] = -1
+        glob_bus_ex = np.concatenate((self._grid.line["to_bus"].values, self._grid.trafo["lv_bus"].values))
+        res[cls.line_ex_pos_topo_vect] = cls.global_bus_to_local(glob_bus_ex, cls.line_ex_to_subid)
+        res[cls.line_ex_pos_topo_vect[~line_status]] = -1
+        # load, gen
+        load_status = self._grid.load["in_service"].values
+        res[cls.load_pos_topo_vect] = cls.global_bus_to_local(self._grid.load["bus"].values, cls.load_to_subid)
+        res[cls.load_pos_topo_vect[~load_status]] = -1
+        gen_status = self._grid.gen["in_service"].values
+        res[cls.gen_pos_topo_vect] = cls.global_bus_to_local(self._grid.gen["bus"].values, cls.gen_to_subid)
+        res[cls.gen_pos_topo_vect[~gen_status]] = -1
+        # storage
+        if cls.n_storage:
+            storage_status = self._grid.storage["in_service"].values
+            res[cls.storage_pos_topo_vect] = cls.global_bus_to_local(self._grid.storage["bus"].values, cls.storage_to_subid)
+            res[cls.storage_pos_topo_vect[~storage_status]] = -1
         return res
 
     def _gens_info(self):

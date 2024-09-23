@@ -15,7 +15,7 @@ import warnings
 
 import grid2op
 from grid2op.Backend.educPandaPowerBackend import EducPandaPowerBackend
-from grid2op.Exceptions import EnvError
+from grid2op.Exceptions import Grid2OpException
 
 
 class TestAuxFunctions(unittest.TestCase):
@@ -72,8 +72,8 @@ class TestAuxFunctions(unittest.TestCase):
         bk_cls.line_or_pos_topo_vect = None
         bk_cls.line_ex_pos_topo_vect = None
 
-        # test that the grid is not correct now
-        with self.assertRaises(EnvError):
+        # test that the grid should not be correct at this stage
+        with self.assertRaises(Grid2OpException):
             bk_cls.assert_grid_correct_cls()
 
         # fill the _compute_sub_elements
@@ -152,7 +152,45 @@ class TestAuxFunctions(unittest.TestCase):
         )
         # this should pass
         bk_cls.assert_grid_correct_cls()
-
+    
+    def test_topo_vect_element(self):
+        """
+        .. newinversion:: 1.10.0
+            Test this utilitary function 
+        """
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = grid2op.make(
+                "educ_case14_storage",
+                test=True,
+                _add_to_name=type(self).__name__+"test_gridobjects_testauxfunctions",
+            )
+        cls = type(env)
+        for el_id, el_pos_topo_vect in enumerate(cls.load_pos_topo_vect):
+            res = cls.topo_vect_element(el_pos_topo_vect)
+            assert "load_id" in res
+            assert res["load_id"] == el_id
+        for el_id, el_pos_topo_vect in enumerate(cls.gen_pos_topo_vect):
+            res = cls.topo_vect_element(el_pos_topo_vect)
+            assert "gen_id" in res
+            assert res["gen_id"] == el_id
+        for el_id, el_pos_topo_vect in enumerate(cls.storage_pos_topo_vect):
+            res = cls.topo_vect_element(el_pos_topo_vect)
+            assert "storage_id" in res
+            assert res["storage_id"] == el_id
+        for el_id, el_pos_topo_vect in enumerate(cls.line_or_pos_topo_vect):
+            res = cls.topo_vect_element(el_pos_topo_vect)
+            assert "line_id" in res
+            assert res["line_id"] == {"or": el_id}
+            assert "line_or_id" in res
+            assert res["line_or_id"] == el_id
+        for el_id, el_pos_topo_vect in enumerate(cls.line_ex_pos_topo_vect):
+            res = cls.topo_vect_element(el_pos_topo_vect)
+            assert "line_id" in res
+            assert res["line_id"] == {"ex": el_id}
+            assert "line_ex_id" in res
+            assert res["line_ex_id"] == el_id
+            
 
 if __name__ == "__main__":
     unittest.main()

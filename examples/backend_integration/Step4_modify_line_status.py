@@ -178,7 +178,7 @@ class CustomBackend_Step4(CustomBackend_Step3):
 if __name__ == "__main__":
     import grid2op
     import os
-    from Step0_make_env import make_env_for_backend
+    from Step0_make_env import make_env_for_backend, create_action
     
     path_grid2op = grid2op.__file__
     path_data_test = os.path.join(os.path.split(path_grid2op)[0], "data")
@@ -205,8 +205,7 @@ if __name__ == "__main__":
     action = env.action_space({"set_line_status": [(0, -1)]})
     
     # this is technical to grid2op
-    bk_act = env._backend_action_class()
-    bk_act += action
+    bk_act = create_action(env, backend, action)
     #############
     
     # this is what the backend receive:
@@ -224,10 +223,10 @@ if __name__ == "__main__":
     print(f"{q_or = }")
     print(f"{v_or = }")
     print(f"{a_or = }")
-    assert p_or[0] == 0.
-    assert q_or[0] == 0.
-    assert v_or[0] == 0.
-    assert a_or[0] == 0.
+    assert np.abs(p_or[0]) <= 1e-7
+    assert np.abs(q_or[0]) <= 1e-7
+    assert np.abs(v_or[0]) <= 1e-7
+    assert np.abs(a_or[0]) <= 1e-7
     
     # this is how "user" manipute the grid
     # in this I reconnect powerline 0
@@ -280,7 +279,7 @@ if __name__ == "__main__":
     print(f"{q_or = }")
     print(f"{v_or = }")
     print(f"{a_or = }")
-    assert p_or[line_id] == 0.
-    assert q_or[line_id] == 0.
-    assert v_or[line_id] == 0.
-    assert a_or[line_id] == 0.
+    assert np.abs(p_or[line_id]) <= 1e-7
+    assert np.abs(q_or[line_id]) <= 1e-7
+    assert np.abs(v_or[line_id]) <= 1e-7
+    assert np.abs(a_or[line_id]) <= 1e-7

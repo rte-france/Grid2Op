@@ -3,6 +3,15 @@
 Model Based / Planning methods
 ====================================
 
+
+This page is organized as follow:
+
+.. contents:: Table of Contents
+    :depth: 3
+
+Objectives
+----------------
+
 .. warning::
     This page is in progress. We welcome any contribution :-)
 
@@ -369,3 +378,5 @@ And for the `ExampleAgent2`:
                     res = strat[0]  # action is the first one of the best strategy
                     highest_score = ts_survived
             return res
+
+.. include:: final.rst

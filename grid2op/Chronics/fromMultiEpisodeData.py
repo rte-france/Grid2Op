@@ -11,7 +11,7 @@ import os
 import numpy as np
 import copy
 import warnings
-from typing import Optional, Union, List
+from typing import Optional, Union, List, Dict, Literal
 from pathlib import Path
 
 from grid2op.Exceptions import (
@@ -30,7 +30,7 @@ class FromMultiEpisodeData(GridValue):
     It is an extension of the class :class:`FromOneEpisodeData` but with multiple episodes.
     
     .. seealso::
-        :class:`grid2op.Chronics.FromOneEpisodeData`if you want to use only one episode
+        :class:`grid2op.Chronics.FromOneEpisodeData` if you want to use only one episode
         
     .. warning::
         It has the same limitation as :class:`grid2op.Chronics.FromOneEpisodeData`, including:
@@ -152,6 +152,9 @@ class FromMultiEpisodeData(GridValue):
             names_chronics_to_backend=names_chronics_to_backend,
         )
         self._episode_data = self.data._episode_data 
+        if self.action_space is not None:
+            if self.data.action_space is None:
+                self.data.action_space = self.action_space
         
     def done(self):
         return self.data.done()
@@ -186,3 +189,10 @@ class FromMultiEpisodeData(GridValue):
     
     def fast_forward(self, nb_timestep):
         self.data.fast_forward(nb_timestep)
+        
+    def get_init_action(self, names_chronics_to_backend: Optional[Dict[Literal["loads", "prods", "lines"], Dict[str, str]]]=None) -> Union["grid2op.Action.playableAction.PlayableAction", None]:
+        return self.data.get_init_action(names_chronics_to_backend)
+    
+    def cleanup_action_space(self):
+        super().cleanup_action_space()
+        self.data.cleanup_action_space()

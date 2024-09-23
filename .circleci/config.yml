@@ -28,7 +28,7 @@ executors:
 jobs:
     test:
         executor: grid2op-executor
-        resource_class: medium
+        resource_class: medium+
         parallelism: 4
         steps:
             - checkout
@@ -47,13 +47,17 @@ jobs:
                   export _GRID2OP_FORCE_TEST=1
                   cd grid2op/tests/
                   python3 helper_list_test.py | circleci tests split > /tmp/tests_run
+            - run:
+                command: |
+                  source venv_test/bin/activate
+                  pip freeze
             - run: cat /tmp/tests_run
             - run:
                 command: |
                   source venv_test/bin/activate
                   cd grid2op/tests/
                   export _GRID2OP_FORCE_TEST=1
-                  python3 -m unittest $(cat /tmp/tests_run)
+                  python3 -m unittest -v $(cat /tmp/tests_run)
                   
     install36:
         executor: python36
@@ -136,38 +140,108 @@ jobs:
             - run:
                command: |
                    source venv_test/bin/activate
-                   python -m pip install -U "numpy>=1.20,<1.21"
-                   python -m pip install -U .[test]
+                   python -m pip install -U "numpy>=1.20,<1.21" "pandas<2.2" "scipy<1.12" numba "pillow<10.4.0" .[test]
+                   pip freeze
+            - run:
+                command: |
+                   source venv_test/bin/activate
                    export _GRID2OP_FORCE_TEST=1
+                   cd /tmp
                    grid2op.testinstall
-            # - run:
-            #    command: |
-            #        source venv_test/bin/activate
-            #        python -m pip install -U "numpy>=1.21,<1.22"
-            #        python -m pip install -U .[test]
-            #        export _GRID2OP_FORCE_TEST=1
-            #        grid2op.testinstall
-            # - run:
-            #    command: |
-            #        source venv_test/bin/activate
-            #        python -m pip install -U "numpy>=1.22,<1.23"
-            #        python -m pip install -U .[test]
-            #        export _GRID2OP_FORCE_TEST=1
-            #        grid2op.testinstall
-            # - run:
-            #    command: |
-            #        source venv_test/bin/activate
-            #        python -m pip install -U "numpy>=1.23,<1.24"
-            #        python -m pip install -U .[test]
-            #        export _GRID2OP_FORCE_TEST=1
-            #        grid2op.testinstall
             - run:
                command: |
                    source venv_test/bin/activate
-                   python -m pip install -U "numpy>=1.24,<1.25"
-                   python -m pip install -U .[test]
+                   python -m pip install -U "numpy>=1.24,<1.25" "pandas<2.2" "scipy<1.12" numba "pillow<10.4.0" .[test]
+            - run:
+                command: |
+                   source venv_test/bin/activate
+                   pip freeze
+            - run:
+                command: |
+                   source venv_test/bin/activate
                    export _GRID2OP_FORCE_TEST=1
+                   cd /tmp
                    grid2op.testinstall
+
+    legacy_lightsim_old_pp:               
+        executor: python38  # needs to be 38: whl of lightsim were not released for 3.10 at the time
+        resource_class: small
+        steps:
+            - checkout
+            - run: 
+                command: |
+                    apt-get update
+                    apt-get install -y coinor-cbc
+            - run: python -m pip install virtualenv
+            - run: python -m virtualenv venv_test
+            - run:
+               command: |
+                   source venv_test/bin/activate
+                   python -m pip install -U pip setuptools wheel
+                   python -m pip install -U lightsim2grid==0.5.3 gymnasium "numpy<1.22"
+            - run:
+               command: |
+                   source venv_test/bin/activate
+                   python -m pip install -e .
+                   pip freeze
+            - run:
+                command: |
+                   source venv_test/bin/activate
+                   export _GRID2OP_FORCE_TEST=1
+                   python -m unittest grid2op/tests/test_basic_env_ls.py
+
+    legacy_lightsim:               
+        executor: python38  # needs to be 38: whl of lightsim were not released for 3.10 at the time
+        resource_class: small
+        steps:
+            - checkout
+            - run: 
+                command: |
+                    apt-get update
+                    apt-get install -y coinor-cbc
+            - run: python -m pip install virtualenv
+            - run: python -m virtualenv venv_test
+            - run:
+               command: |
+                   source venv_test/bin/activate
+                   python -m pip install -U pip setuptools wheel
+                   python -m pip install -U lightsim2grid==0.6.0 gymnasium "numpy<1.22"
+            - run:
+               command: |
+                   source venv_test/bin/activate
+                   python -m pip install -e . 
+                   pip freeze
+            - run:
+                command: |
+                   source venv_test/bin/activate
+                   export _GRID2OP_FORCE_TEST=1
+                   python -m unittest grid2op/tests/test_basic_env_ls.py
+
+    test_chronix2grid:               
+        executor: python310  # needs to be 38: whl of lightsim were not released for 3.10 at the time
+        resource_class: small
+        steps:
+            - checkout
+            - run: 
+                command: |
+                    apt-get update
+                    apt-get install -y coinor-cbc
+            - run: python -m pip install virtualenv
+            - run: python -m virtualenv venv_test
+            - run:
+               command: |
+                   source venv_test/bin/activate
+                   python -m pip install -U pip setuptools wheel "numpy==1.26.4"
+            - run:
+               command: |
+                   source venv_test/bin/activate
+                   python -m pip install -e .[chronix2grid] "linopy==0.3.8" "scs==3.2.4.post1" "ecos==2.0.13" "pillow==10.3.0" "numpy==1.26.4" "xarray==2024.3.0"
+                   pip freeze
+            - run:
+                command: |
+                   source venv_test/bin/activate
+                   export _GRID2OP_FORCE_TEST=1
+                   python -m unittest grid2op/tests/fromChronix2grid.py
 
     install39:
         executor: python39
@@ -184,62 +258,29 @@ jobs:
                command: |
                    export _GRID2OP_FORCE_TEST=1
                    source venv_test/bin/activate
-                   python -m pip install -U pip setuptools wheel
-                   python -m pip install chronix2grid>="1.1.0.post1"
+                   python -m pip install -U pip setuptools wheel "numpy>=1.20,<1.21" "pandas<2.2" "scipy==1.10.1" "pillow<10.4.0" numba
                    python -m pip uninstall -y grid2op
-            # - run:
-            #    command: |
-            #        source venv_test/bin/activate
-            #        python -m pip install -U numba
-            #        python -m pip install -U .[test]
-            # - run:
-            #    command: |
-            #        source venv_test/bin/activate
-            #        python -m pip install -U "numpy>=1.20,<1.21"
-            #        python -m pip install -U .[test]
-            #        export _GRID2OP_FORCE_TEST=1
-            #        grid2op.testinstall
-            # - run:
-            #    command: |
-            #        source venv_test/bin/activate
-            #        python -m pip install -U "numpy>=1.21,<1.22"
-            #        python -m pip install -U .[test]
-            #        export _GRID2OP_FORCE_TEST=1
-            #        grid2op.testinstall
-            # - run:
-            #    command: |
-            #        source venv_test/bin/activate
-            #        python -m pip install -U "numpy>=1.22,<1.23"
-            #        python -m pip install -U .[test]
-            #        export _GRID2OP_FORCE_TEST=1
-            #        grid2op.testinstall
-            # - run:
-            #    command: |
-            #        source venv_test/bin/activate
-            #        python -m pip install -U "numpy>=1.23,<1.24"
-            #        python -m pip install -U .[test]
-            #        export _GRID2OP_FORCE_TEST=1
-            #        grid2op.testinstall
-            # - run:
-            #    command: |
-            #        source venv_test/bin/activate
-            #        python -m pip install -U "numpy>=1.24,<1.25"
-            #        python -m pip install -U .[test]
-            #        export _GRID2OP_FORCE_TEST=1
-            #        grid2op.testinstall
-            # - run:
-            #    command: |
-            #        source venv_test/bin/activate
-            #        python -m pip install -U "numpy>=1.25,<1.26"
-            #        python -m pip install -U .[test]
-            #        export _GRID2OP_FORCE_TEST=1
-            #        grid2op.testinstall
+            - run:
+               command: |  # issue with previous more simple install, so I fix some versions
+                   source venv_test/bin/activate
+                   python -m pip install "numpy>=1.20,<1.21" "pandas<2.2" "scipy==1.10.1" numba .
+                   pip freeze
+            - run:
+                command: |
+                   source venv_test/bin/activate
+                   export _GRID2OP_FORCE_TEST=1
+                   cd /tmp
+                   grid2op.testinstall
             - run:
                command: |
                    source venv_test/bin/activate
-                   python -m pip install -U "numpy>=1.26,<1.27"
-                   python -m pip install -U .[test]
+                   python -m pip install "numpy>=1.26,<1.27" "pandas<2.2" "scipy<1.12" numba "pillow<10.4.0"
+                   pip freeze
+            - run:
+                command: |
+                   source venv_test/bin/activate
                    export _GRID2OP_FORCE_TEST=1
+                   cd /tmp
                    grid2op.testinstall
 
     install310:
@@ -261,44 +302,24 @@ jobs:
             - run:
                command: |
                    source venv_test/bin/activate
-                   python -m pip install -U "numpy>=1.21,<1.22"
-                   python -m pip install -U .[test]
+                   python -m pip install -U "numpy>=1.21,<1.22" "pandas<2.2" "scipy<1.12" numba .
+                   pip freeze
+            - run:
+                command: |
+                   source venv_test/bin/activate
                    export _GRID2OP_FORCE_TEST=1
+                   cd /tmp
                    grid2op.testinstall
-            # - run:
-            #    command: |
-            #        source venv_test/bin/activate
-            #        python -m pip install -U "numpy>=1.22,<1.23"
-            #        python -m pip install -U .[test]
-            #        export _GRID2OP_FORCE_TEST=1
-            #        grid2op.testinstall
-            # - run:
-            #    command: |
-            #        source venv_test/bin/activate
-            #        python -m pip install -U "numpy>=1.23,<1.24"
-            #        python -m pip install -U .[test]
-            #        export _GRID2OP_FORCE_TEST=1
-            #        grid2op.testinstall
-            # - run:
-            #    command: |
-            #        source venv_test/bin/activate
-            #        python -m pip install -U "numpy>=1.24,<1.25"
-            #        python -m pip install -U .[test]
-            #        export _GRID2OP_FORCE_TEST=1
-            #        grid2op.testinstall
-            # - run:
-            #    command: |
-            #        source venv_test/bin/activate
-            #        python -m pip install -U "numpy>=1.25,<1.26"
-            #        python -m pip install -U .[test]
-            #        export _GRID2OP_FORCE_TEST=1
-            #        grid2op.testinstall
             - run:
                command: |
                    source venv_test/bin/activate
-                   python -m pip install -U "numpy>=1.26,<1.27"
-                   python -m pip install -U .[test]
+                   python -m pip install -U "numpy>=1.26,<1.27" "pandas<2.2" "scipy<1.12" numba
+                   pip freeze
+            - run:
+                command: |
+                   source venv_test/bin/activate
                    export _GRID2OP_FORCE_TEST=1
+                   cd /tmp
                    grid2op.testinstall
 
     install311:
@@ -316,34 +337,27 @@ jobs:
                command: |
                    source venv_test/bin/activate
                    python -m pip install -U pip setuptools wheel
-                   python -m pip install -U numba
             - run:
                command: |
                    source venv_test/bin/activate
-                   python -m pip install -U "numpy>=1.23,<1.24"
-                   python -m pip install -U .[test]
+                   python -m pip install -U "numpy>=1.23,<1.24" "pandas<2.2" "scipy<1.12" numba .
+                   pip freeze
+            - run:
+                command: |
+                   source venv_test/bin/activate
                    export _GRID2OP_FORCE_TEST=1
+                   cd /tmp
                    grid2op.testinstall
-            # - run:
-            #    command: |
-            #        source venv_test/bin/activate
-            #        python -m pip install -U "numpy>=1.24,<1.25"
-            #        python -m pip install -U .[test]
-            #        export _GRID2OP_FORCE_TEST=1
-            #        grid2op.testinstall
-            # - run:
-            #    command: |
-            #        source venv_test/bin/activate
-            #        python -m pip install -U "numpy>=1.25,<1.26"
-            #        python -m pip install -U .[test]
-            #        export _GRID2OP_FORCE_TEST=1
-            #        grid2op.testinstall
             - run:
                command: |
                    source venv_test/bin/activate
-                   python -m pip install -U "numpy>=1.26,<1.27"
-                   python -m pip install -U .[test]
+                   python -m pip install -U "numpy>=1.26,<1.27" "pandas<2.2" "scipy<1.12" numba
+                   pip freeze
+            - run:
+                command: |
+                   source venv_test/bin/activate
                    export _GRID2OP_FORCE_TEST=1
+                   cd /tmp
                    grid2op.testinstall
     install312:
         executor: python312
@@ -364,9 +378,13 @@ jobs:
             - run:
                command: |
                    source venv_test/bin/activate
-                   python -m pip install -U "numpy>=1.26,<1.27"
-                   python -m pip install -U .[test]
+                   python -m pip install -U "numpy>=1.26,<1.27" "pandas<2.2" "scipy<1.12" .
+                   pip freeze
+            - run:
+                command: |
+                   source venv_test/bin/activate
                    export _GRID2OP_FORCE_TEST=1
+                   cd /tmp
                    grid2op.testinstall
 
 workflows:
@@ -374,10 +392,14 @@ workflows:
     test:
         jobs:
           - test
+          - legacy_lightsim_old_pp
+          - legacy_lightsim
+          - test_chronix2grid
+
     install:
         jobs:
           - install38
           - install39
           - install310
           - install311
-          - install312  # failing because of dependencies of numba, torch etc. Tired of it so ignoring it !
+          - install312

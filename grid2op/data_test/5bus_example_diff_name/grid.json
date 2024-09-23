@@ -72,7 +72,7 @@
     "gen": {
       "_module": "pandas.core.frame",
       "_class": "DataFrame",
-      "_object": "{\"columns\":[\"name\",\"bus\",\"p_mw\",\"vm_pu\",\"sn_mva\",\"min_q_mvar\",\"max_q_mvar\",\"scaling\",\"slack\",\"in_service\",\"type\"],\"index\":[0,1],\"data\":[[\"gen_0_0\",0,10.0,1.02,null,null,null,1.0,false,true,null],[\"gen_1_1\",1,20.0,1.02,null,null,null,1.0,true,true,null]]}",
+      "_object": "{\"columns\":[\"name\",\"bus\",\"p_mw\",\"vm_pu\",\"sn_mva\",\"min_q_mvar\",\"max_q_mvar\",\"scaling\",\"slack\",\"in_service\",\"type\"],\"index\":[0,1],\"data\":[[\"othername_0_0\",0,10.0,1.02,null,null,null,1.0,false,true,null],[\"othername_1_1\",1,20.0,1.02,null,null,null,1.0,true,true,null]]}",
       "dtype": {
         "name": "object",
         "bus": "uint32",
@@ -135,7 +135,7 @@
     "line": {
       "_module": "pandas.core.frame",
       "_class": "DataFrame",
-      "_object": "{\"columns\":[\"name\",\"std_type\",\"from_bus\",\"to_bus\",\"length_km\",\"r_ohm_per_km\",\"x_ohm_per_km\",\"c_nf_per_km\",\"g_us_per_km\",\"max_i_ka\",\"df\",\"parallel\",\"type\",\"in_service\"],\"index\":[0,1,2,3,4,5,6,7],\"data\":[[null,\"NAYY 4x50 SE\",0,1,4.0,0.642,0.083,210.0,0.0,0.6,1.0,1,\"cs\",true],[\"0_2_2\",\"NAYY 4x50 SE\",0,2,4.47,0.642,0.083,210.0,0.0,0.22,1.0,1,\"cs\",true],[\"0_3_3\",\"NAYY 4x50 SE\",0,3,5.65,0.642,0.083,210.0,0.0,0.16,1.0,1,\"cs\",true],[\"0_4_4\",\"NAYY 4x50 SE\",0,4,4.0,0.642,0.083,210.0,0.0,0.16,1.0,1,\"cs\",true],[\"1_2_5\",\"NAYY 4x50 SE\",1,2,2.0,0.642,0.083,210.0,0.0,0.6,1.0,1,\"cs\",true],[\"2_3_6\",\"NAYY 4x50 SE\",2,3,2.0,0.642,0.083,210.0,0.0,0.3,1.0,1,\"cs\",true],[\"2_3_7\",\"NAYY 4x50 SE\",2,3,2.0,0.642,0.083,210.0,0.0,0.3,1.0,1,\"cs\",true],[\"3_4_8\",\"NAYY 4x50 SE\",3,4,4.0,0.642,0.083,210.0,0.0,0.16,1.0,1,\"cs\",true]]}",
+      "_object": "{\"columns\":[\"name\",\"std_type\",\"from_bus\",\"to_bus\",\"length_km\",\"r_ohm_per_km\",\"x_ohm_per_km\",\"c_nf_per_km\",\"g_us_per_km\",\"max_i_ka\",\"df\",\"parallel\",\"type\",\"in_service\"],\"index\":[0,1,2,3,4,5,6,7],\"data\":[[\"l_0_1_0\",\"NAYY 4x50 SE\",0,1,4.0,0.642,0.083,210.0,0.0,0.6,1.0,1,\"cs\",true],[\"l_0_2_1\",\"NAYY 4x50 SE\",0,2,4.47,0.642,0.083,210.0,0.0,0.22,1.0,1,\"cs\",true],[\"l_0_3_2\",\"NAYY 4x50 SE\",0,3,5.65,0.642,0.083,210.0,0.0,0.16,1.0,1,\"cs\",true],[\"l_0_4_3\",\"NAYY 4x50 SE\",0,4,4.0,0.642,0.083,210.0,0.0,0.16,1.0,1,\"cs\",true],[\"l_1_2_4\",\"NAYY 4x50 SE\",1,2,2.0,0.642,0.083,210.0,0.0,0.6,1.0,1,\"cs\",true],[\"l_2_3_5\",\"NAYY 4x50 SE\",2,3,2.0,0.642,0.083,210.0,0.0,0.3,1.0,1,\"cs\",true],[\"l_2_3_6\",\"NAYY 4x50 SE\",2,3,2.0,0.642,0.083,210.0,0.0,0.3,1.0,1,\"cs\",true],[\"l_3_4_7\",\"NAYY 4x50 SE\",3,4,4.0,0.642,0.083,210.0,0.0,0.16,1.0,1,\"cs\",true]]}",
       "dtype": {
         "name": "object",
         "std_type": "object",

@@ -8,7 +8,10 @@
 
 import warnings
 import copy
+from typing import Dict, List, Any, Literal, Optional
 
+import grid2op
+from grid2op.typing_variables import DICT_ACT_TYPING
 from grid2op.Action.baseAction import BaseAction
 from grid2op.Action.serializableActionSpace import SerializableActionSpace
 
@@ -41,6 +44,7 @@ class ActionSpace(SerializableActionSpace):
         gridobj,
         legal_action,
         actionClass=BaseAction,  # need to be a base grid2op type (and not a type generated on the fly)
+        _local_dir_cls=None,
     ):
         """
         INTERNAL USE ONLY
@@ -68,11 +72,15 @@ class ActionSpace(SerializableActionSpace):
         """
         actionClass._add_shunt_data()
         actionClass._update_value_set()
-        SerializableActionSpace.__init__(self, gridobj, actionClass=actionClass)
+        SerializableActionSpace.__init__(self, gridobj, actionClass=actionClass, _local_dir_cls=_local_dir_cls)
         self.legal_action = legal_action
 
     def __call__(
-        self, dict_: dict = None, check_legal: bool = False, env: "BaseEnv" = None
+        self,
+        dict_: DICT_ACT_TYPING = None,
+        check_legal: bool = False,
+        env: "grid2op.Environment.BaseEnv" = None,
+        _names_chronics_to_backend: Optional[Dict[Literal["loads", "prods", "lines"], Dict[str, str]]]=None,
     ) -> BaseAction:
         """
         This utility allows you to build a valid action, with the proper sizes if you provide it with a valid
@@ -115,11 +123,19 @@ class ActionSpace(SerializableActionSpace):
             An action that is valid and corresponds to what the agent want to do with the formalism defined in
             see :func:`Action.udpate`.
 
+        Notes
+        -----
+        
+        This function is not in the "SerializableActionSpace" because the
+        "legal_action" is not serialized. TODO ?
+        
         """
-
-        res = self.actionClass()
+        # build the action
+        res : BaseAction = self.actionClass(_names_chronics_to_backend)
+        
         # update the action
         res.update(dict_)
+        
         if check_legal:
             is_legal, reason = self._is_legal(res, env)
             if not is_legal:

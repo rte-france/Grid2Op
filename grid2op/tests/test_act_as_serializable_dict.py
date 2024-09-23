@@ -24,6 +24,7 @@ import pdb
 
 
 def _get_action_grid_class():
+    GridObjects._clear_class_attribute()
     GridObjects.env_name = "test_action_serial_dict"
     GridObjects.n_gen = 5
     GridObjects.name_gen = np.array(["gen_{}".format(i) for i in range(5)])
@@ -96,7 +97,7 @@ def _get_action_grid_class():
         np.arange(GridObjects.n_sub), repeats=GridObjects.sub_info
     )
     GridObjects.glop_version = grid2op.__version__
-    GridObjects._PATH_ENV = None
+    GridObjects._PATH_GRID_CLASSES = None
 
     GridObjects.shunts_data_available = True
     GridObjects.n_shunt = 2
@@ -108,6 +109,7 @@ def _get_action_grid_class():
     GridObjects.alarms_lines_area = {el: ["all"] for el in GridObjects.name_line}
     GridObjects.dim_alarms = 1
     my_cls = GridObjects.init_grid(GridObjects, force=True)
+    GridObjects._clear_class_attribute()
     return my_cls
 
 

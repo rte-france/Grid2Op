@@ -191,8 +191,8 @@ class ReadPypowNetData(GridStateFromFileWithForecasts):
         self.start_datetime = datetime.strptime(datetimes_.iloc[0, 0], "%Y-%b-%d")
 
         # there are maintenance and hazards only if the value in the file is not 0.
-        self.maintenance = self.maintenance != 0.0
-        self.hazards = self.hazards != 0.0
+        self.maintenance = np.abs(self.maintenance) >= 1e-7
+        self.hazards = np.abs(self.hazards) >= 1e-7
 
         self.curr_iter = 0
         if self.max_iter == -1:
@@ -294,9 +294,8 @@ class ReadPypowNetData(GridStateFromFileWithForecasts):
             self.hazard_duration[:, line_id] = self.get_maintenance_duration_1d(
                 self.hazards[:, line_id]
             )
-
-        self.maintenance_forecast = self.maintenance != 0.0
-
+        self.maintenance_forecast = np.abs(self.maintenance) >= 1e-7
+        
         self.curr_iter = 0
         if self.maintenance is not None:
             n_ = self.maintenance.shape[0]

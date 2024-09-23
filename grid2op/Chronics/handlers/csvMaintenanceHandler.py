@@ -41,10 +41,11 @@ class CSVMaintenanceHandler(CSVHandler):
       no string etc.
       
     .. warning::
-        Use this class only for the ENVIRONMENT data ("load_p", "load_q",
-        "prod_p" or "prod_v") and not for maintenance (in this case
-        use :class:`CSVMaintenanceHandler`) nor for 
+        Use this class only for the MAINTENANCE and not for environment
+        data ("load_p", "load_q", "prod_p" or "prod_v") nor for 
         forecast (in this case use :class:`CSVForecastHandler`) 
+        nor for setting the initial state state (in this case use 
+        :class:`JSONInitStateHandler`)
     
     This is the default way to provide data to grid2op and its used for
     most l2rpn environments.
@@ -79,7 +80,7 @@ class CSVMaintenanceHandler(CSVHandler):
             ] = GridValue.get_maintenance_duration_1d(self.array[:, line_id])
 
         # there are _maintenance and hazards only if the value in the file is not 0.
-        self.array = self.array != 0.0
+        self.array = np.abs(self.array) >= 1e-7
         self.array = self.array.astype(dt_bool)
     
     def load_next_maintenance(self) -> Tuple[np.ndarray, np.ndarray]:

@@ -1,6 +1,7 @@
 __all__ = ["EpisodeData"]
 
 from grid2op.Episode.EpisodeData import EpisodeData
+from grid2op.Episode.CompactEpisodeData import CompactEpisodeData
 
 # Try to import optional module
 try:

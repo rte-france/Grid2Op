@@ -36,7 +36,6 @@ class Issue511Tester(unittest.TestCase):
 
         topo_action = self.env.action_space(act)
         as_dict =  topo_action.as_dict()
-        print(as_dict)
         assert len(as_dict['set_bus_vect']['0']) == 2  # two objects modified
 
     def test_issue_change_bus(self):

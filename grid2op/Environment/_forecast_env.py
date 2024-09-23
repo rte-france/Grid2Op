@@ -21,6 +21,7 @@ class _ForecastEnv(Environment):
         if "_update_obs_after_reward" not in kwargs:
             kwargs["_update_obs_after_reward"] = False
         super().__init__(*args, **kwargs)
+        self._do_not_erase_local_dir_cls = True
         
     def step(self, action: BaseAction) -> Tuple[BaseObservation, float, bool, dict]:
         self._highres_sim_counter += 1
