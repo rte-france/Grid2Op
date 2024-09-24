@@ -683,12 +683,15 @@ class DetailedTopoDescription(object):
         # perf optim
         # loop through elements in a given order:
         # first start by element that are the most constrained
-        # order_pos = np.argsort(li_bbs)
-        order_pos = np.arange(len(li_bbs))  # debug
+        order_pos = np.argsort(li_bbs)
+        # order_pos = np.arange(len(li_bbs))  # debug
         # end perf optim
         # TODO detailed topo: be even smarter by looking at object bus after bus
         # and not in a "random" order
+        
+        cn_can_be_connected = np.ones((nb_conn_node, self.busbar_section_to_subid.shape[0]))
         try:
+            # TODO detailed topo: in the df_compute_switches, make clearer what is const and what is not
             res = self._dfs_compute_switches_position(topo_vect, 
                                                       self._connectivity_graph[sub_id],
                                                       main_obj_id, 
@@ -697,7 +700,9 @@ class DetailedTopoDescription(object):
                                                       switches_state, 
                                                       conn_node_visited,
                                                       conn_node_to_bus_id,
-                                                      order_pos)
+                                                      order_pos,
+                                                    #   cn_can_be_connected
+                                                      )
         except RecursionError as exc_:
             raise ImpossibleTopology(f"For substation {sub_id}: "
                                      "No topology found, maybe the substation is "
@@ -808,7 +813,7 @@ class DetailedTopoDescription(object):
         # if cn_bbs not in li_nodes_ok:
         #     # no way to connect both busbar in this case
         #     continue                 
-           
+        
         for debug_id, other_bbs_cn in enumerate(other_bbs_cn_ids):
             # I try to conenct cn_bbs to other_bbs_cn by avoiding all
             # connectiviy nodes connected to other buses
@@ -866,7 +871,7 @@ class DetailedTopoDescription(object):
                     # I found a solution by connecting the 
                     # busbar cn_bbs to other_bbs_cn
                     return this_res
-                print(f"\t\t for bbs {debug_id}: {debug_id2} fail to connect bbs {cn_bbs} and {other_bbs_cn}")
+                # print(f"\t\t for bbs {debug_id}: {debug_id2} fail to connect bbs {cn_bbs} and {other_bbs_cn}")
         # I cannot connect cn_bbs
         # to a busbar connected to bus `my_bus`
         # for all other `other_bbs_cn` so 
@@ -896,8 +901,8 @@ class DetailedTopoDescription(object):
         
         # TODO detailed topo: compute this once and for all
         bbs_cn_this_sub = [el 
-                            for el in self.busbar_section_to_conn_node_id 
-                            if el in conn_graph_this_sub.nodes]   
+                           for el in self.busbar_section_to_conn_node_id 
+                           if el in conn_graph_this_sub.nodes]   
         bbs_cn_this_sub = self._cn_pos_in_sub[bbs_cn_this_sub]
         # end todo
         
@@ -908,10 +913,10 @@ class DetailedTopoDescription(object):
 
         # TODO detailed topo: speed optim: this is probably copied too many times
         # DEBUG: make sure input data are not modified
-        switch_visited = copy.deepcopy(switch_visited)
-        switches_state = copy.deepcopy(switches_state)
-        conn_node_to_bus_id = copy.deepcopy(conn_node_to_bus_id)
-        conn_node_visited = copy.deepcopy(conn_node_visited)
+        # switch_visited = copy.deepcopy(switch_visited)
+        # switches_state = copy.deepcopy(switches_state)
+        # conn_node_to_bus_id = copy.deepcopy(conn_node_to_bus_id)
+        # conn_node_visited = copy.deepcopy(conn_node_visited)
         
         str_debug = main_obj_id * "  "
         if conn_node_visited[el_cn_id_is]:
@@ -964,6 +969,8 @@ class DetailedTopoDescription(object):
         
         for cn_bbs in better_order:  # chose a busbar section                
             # TODO detailed topo: speed optim: this is probably copied too many times
+            if main_obj_id <= 5:
+                print(f"obj {main_obj_id}, bbs {cn_bbs}, bus : {my_bus}, {conn_node_to_bus_id}")
             n_switch_visited = copy.deepcopy(switch_visited)
             n_switches_state = copy.deepcopy(switches_state)
             n_conn_node_to_bus_id = copy.deepcopy(conn_node_to_bus_id)
@@ -981,8 +988,11 @@ class DetailedTopoDescription(object):
                 # and return it 
                 
             elif (n_conn_node_to_bus_id == my_bus).any():
-                if main_obj_id <= 2:
-                    print(f"{str_debug} obj {main_obj_id}, bbs {cn_bbs}, bus : {my_bus}, {conn_node_to_bus_id}: connect busbars")
+                # n_conn_node_visited[cn_bbs_is] = True
+                # n_conn_node_to_bus_id[cn_bbs_is] = my_bus
+                # # me
+                # n_conn_node_visited[el_cn_id_is] = True
+                # n_conn_node_to_bus_id[el_cn_id_is] = my_bus
                 tmp = self._aux_dfs_compute_switches_position_connect_bbs(
                                                        n_conn_node_to_bus_id,
                                                        my_bus,
@@ -1048,8 +1058,8 @@ class DetailedTopoDescription(object):
                 
                 nn_switch_visited[path] = True
                 nn_switches_state[path] = True
-                nn_conn_node_to_bus_id[cn_path] = True
-                nn_conn_node_visited[cn_path] = my_bus
+                nn_conn_node_to_bus_id[cn_path] = my_bus
+                nn_conn_node_visited[cn_path] = True
                 is_working = True
                 
                 if False:
