@@ -31,9 +31,9 @@ class _PPBkForTestDetTopo(AddDetailedTopoIEEE, PandaPowerBackend):
 
 
 class TestComputeSwitchPos(unittest.TestCase):
-    # TODO detailed topo: not tested in case of shunt
-    def _aux_read_case(self, case_id):
-        path_data = os.path.join(PATH_DATA_TEST, "test_detailed_topo")
+    # TODO detailed topo: test the "from_switch" with these data too!
+    def _aux_read_case(self, case_id, dir=PATH_DATA_TEST, nm_dir="test_detailed_topo"):
+        path_data = os.path.join(dir, nm_dir)
         switches = pd.read_csv(os.path.join(path_data, f"test_topo_connections{case_id}.txt"),
                                sep=" ")
         elements = pd.read_csv(os.path.join(path_data, f"test_topo_elements{case_id}.txt"),
@@ -43,13 +43,15 @@ class TestComputeSwitchPos(unittest.TestCase):
         dtd = DetailedTopoDescription()
         dtd._n_sub = 1
         all_nodes = np.unique(np.concatenate((switches["node1"].values, switches["node2"].values)))
+        all_node_cont = np.zeros(max(all_nodes) + 1, dtype=int) -1
+        all_node_cont[all_nodes] = np.arange(len(all_nodes))
         nb_switch = switches.shape[0]
         dtd.conn_node_name = np.array([None for _ in all_nodes], dtype=str)
         dtd.conn_node_to_subid = np.zeros(len(all_nodes), dtype=int)
         dtd.switches = np.zeros((nb_switch, 3), dtype=int)
         dtd.switches[:, 0] = 0
-        dtd.switches[:, 1] = switches["node1"].values
-        dtd.switches[:, 2] = switches["node2"].values
+        dtd.switches[:, 1] = all_node_cont[switches["node1"].values]
+        dtd.switches[:, 2] = all_node_cont[switches["node2"].values]
         # fill the elements
         # we do as if everything is a line here
         dtd.load_to_conn_node_id = np.array([], dtype=int)
@@ -59,7 +61,7 @@ class TestComputeSwitchPos(unittest.TestCase):
         dtd.shunt_to_conn_node_id = np.array([], dtype=int)
         # now fill the line part
         mask_el = elements["element_id"] == "'el'"
-        dtd.line_or_to_conn_node_id = elements["node"].loc[mask_el].values
+        dtd.line_or_to_conn_node_id = all_node_cont[elements["node"].loc[mask_el].values]
         # assign the topo vect infoconn_node_to_shunt_id
         dtd.conn_node_to_topovect_id = np.zeros(len(all_nodes), dtype=int) - 1
         dtd.conn_node_to_topovect_id[dtd.line_or_to_conn_node_id] = np.arange(dtd.line_or_to_conn_node_id.shape[0])
@@ -67,22 +69,25 @@ class TestComputeSwitchPos(unittest.TestCase):
         
         # fill the busbars
         mask_el = elements["element_id"] == "'bbs'"
-        dtd.busbar_section_to_conn_node_id = elements["node"].loc[mask_el].values
+        dtd.busbar_section_to_conn_node_id = all_node_cont[elements["node"].loc[mask_el].values]
         dtd.busbar_section_to_subid = np.zeros(dtd.busbar_section_to_conn_node_id.shape[0], dtype=int)
         dtd._from_ieee_grid = False
         
-        # now get the results
+        # now get the target
         small_df = target_bus.loc[np.isin(target_bus["node"], dtd.line_or_to_conn_node_id)]
-        results = np.zeros(dtd.line_or_to_conn_node_id.shape[0], dtype=int) -1
+        target = np.zeros(dtd.line_or_to_conn_node_id.shape[0], dtype=int) -1
         for line_id in range(dtd.line_or_to_conn_node_id.shape[0]):
-            results[line_id] = small_df.loc[small_df["node"] == dtd.line_or_to_conn_node_id[line_id], "bus_id"].values[0]
-        results[results >= 0] += 1  # encoding starts at 0 for input data
+            target[line_id] = small_df.loc[small_df["node"] == dtd.line_or_to_conn_node_id[line_id], "bus_id"].values[0]
+        target[target >= 0] += 1  # encoding starts at 0 for input data
         
         # specific because it's not checked
         dtd._dim_topo = dtd.line_or_to_conn_node_id.shape[0]
         dtd._n_shunt = 0
         dtd._n_sub = 1
-        return dtd, results
+        
+        # results
+        result = ~switches["open"].sort_index().values.astype(bool)
+        return dtd, target, result
     
     def setUp(self):
         super().setUp()
@@ -117,35 +122,35 @@ class TestComputeSwitchPos(unittest.TestCase):
                     
     def test_case1_standard(self):
         """test I can compute this for the reference test case"""
-        dtd, results = self._aux_read_case("1")
+        dtd, target, result = self._aux_read_case("1")
         dtd._aux_compute_busbars_sections()
-        switches = dtd.compute_switches_position(results)
-        self._aux_test_switch_topo(dtd, results, switches)
+        switches = dtd.compute_switches_position(target)
+        self._aux_test_switch_topo(dtd, target, switches)
                     
     def test_case1_all_samebus(self):
         """test I can connect every element to the same bus, even if the said bus is not 1"""
-        dtd, results = self._aux_read_case("1")
+        dtd, target, result = self._aux_read_case("1")
         dtd._aux_compute_busbars_sections()
         for bus in range(dtd.busbar_section_to_subid.shape[0]):
-            results[:] = bus + 1
-            switches = dtd.compute_switches_position(results)
-            self._aux_test_switch_topo(dtd, results, switches)
+            target[:] = bus + 1
+            switches = dtd.compute_switches_position(target)
+            self._aux_test_switch_topo(dtd, target, switches)
     
     def test_case1_impossible_toomuch_buses(self):
         """test that when someone ask to connect something to a bus too high (too many buses) then it does not work"""
-        dtd, results = self._aux_read_case("1")
+        dtd, target, result = self._aux_read_case("1")
         dtd._aux_compute_busbars_sections()
         bus_id_too_high = dtd.busbar_section_to_subid.shape[0] + 1
-        for el_id in range(len(results)):
+        for el_id in range(len(target)):
             els = np.array(list(dtd._conn_node_to_bbs_conn_node_id[dtd.line_or_to_conn_node_id[el_id]]))
-            results[el_id] = (dtd.busbar_section_to_conn_node_id == els[el_id % len(els)]).nonzero()[0][0] + 1
+            target[el_id] = (dtd.busbar_section_to_conn_node_id == els[el_id % len(els)]).nonzero()[0][0] + 1
         # test that it works in general case with all possible buses
-        switches = dtd.compute_switches_position(results)
-        self._aux_test_switch_topo(dtd, results, switches)
+        switches = dtd.compute_switches_position(target)
+        self._aux_test_switch_topo(dtd, target, switches)
         
         # now test that it breaks if the index of a bus it too high
-        for el_id in range(len(results)):
-            tmp = 1 * results
+        for el_id in range(len(target)):
+            tmp = 1 * target
             tmp[el_id] = bus_id_too_high
             with self.assertRaises(ImpossibleTopology):
                 switches = dtd.compute_switches_position(tmp)
@@ -153,35 +158,35 @@ class TestComputeSwitchPos(unittest.TestCase):
     def test_case1_impossible_connectivity(self):
         """test for some more cases where it would be impossible (forced to connect busbar breaker 
         for some elements but not for others)"""
-        dtd, results = self._aux_read_case("1")
+        dtd, target, result = self._aux_read_case("1")
         dtd._aux_compute_busbars_sections()
-        results[0] = 1  # to force busbar sec 0
-        results[1] = 2  # to force busbar sec 1
-        results[2] = 3  # to force busbar sec 3
-        results[3] = 4  # to force busbar sec 4
-        results[4] = 2  # is directly connected to busbar sec 1 or 3, in this first example I force it to 1
+        target[0] = 1  # to force busbar sec 0
+        target[1] = 2  # to force busbar sec 1
+        target[2] = 3  # to force busbar sec 3
+        target[3] = 4  # to force busbar sec 4
+        target[4] = 2  # is directly connected to busbar sec 1 or 3, in this first example I force it to 1
         
         # now i force every element to a busbar to which it is directly connected
         # so as to make sure it works
-        for el_id in range(4, len(results)):
+        for el_id in range(4, len(target)):
             els = np.array(list(dtd._conn_node_to_bbs_conn_node_id[dtd.line_or_to_conn_node_id[el_id]]))
-            results[el_id] = (dtd.busbar_section_to_conn_node_id == els[0]).nonzero()[0][0] + 1
+            target[el_id] = (dtd.busbar_section_to_conn_node_id == els[0]).nonzero()[0][0] + 1
         # should work
-        switches = dtd.compute_switches_position(results)
-        self._aux_test_switch_topo(dtd, results, switches)
+        switches = dtd.compute_switches_position(target)
+        self._aux_test_switch_topo(dtd, target, switches)
         
         # here I force to connect bbs 1 or 3 to bbs 0
         # which contradicts the 4 other constraints above
-        results[4] = 1
+        target[4] = 1
         with self.assertRaises(ImpossibleTopology):
-            switches = dtd.compute_switches_position(results)
+            switches = dtd.compute_switches_position(target)
                 
     def test_case1_with_disconnected_element(self):
-        dtd, results = self._aux_read_case("1")
+        dtd, target, result = self._aux_read_case("1")
         dtd._aux_compute_busbars_sections()
         # disconnect element one by one and check it works
-        for el_id in range(len(results)):
-            tmp = 1 * results
+        for el_id in range(len(target)):
+            tmp = 1 * target
             tmp[el_id] = -1
             switches = dtd.compute_switches_position(tmp)
             self._aux_test_switch_topo(dtd, tmp, switches, f"when disconnecting element {el_id}")
@@ -323,6 +328,42 @@ class TestComputeSwitchPos_AddDetailedTopoIEEE(unittest.TestCase):
         shunt_bus = 1 * obs._shunt_bus
         el_id = 0
         shunt_bus[el_id] = 2
+        switches_state = dtd.compute_switches_position(obs.topo_vect, shunt_bus)
+        self._aux_test_switch_topo(gridobj_cls, dtd, obs.topo_vect, shunt_bus, switches_state)
+        
+        # and now elements per elements (disco)
+        # load 3
+        topo_vect = 1 * obs.topo_vect
+        topo_vect[type(obs).load_pos_topo_vect[3]] = -1
+        switches_state = dtd.compute_switches_position(topo_vect, obs._shunt_bus)
+        self._aux_test_switch_topo(gridobj_cls, dtd, topo_vect, obs._shunt_bus, switches_state)
+        # gen 1 
+        topo_vect = 1 * obs.topo_vect
+        topo_vect[type(obs).gen_pos_topo_vect[1]] = -1
+        switches_state = dtd.compute_switches_position(topo_vect, obs._shunt_bus)
+        self._aux_test_switch_topo(gridobj_cls, dtd, topo_vect, obs._shunt_bus, switches_state)
+        # line or 6 
+        topo_vect = 1 * obs.topo_vect
+        el_id = 6
+        topo_vect[type(obs).line_or_pos_topo_vect[el_id]] = -1
+        switches_state = dtd.compute_switches_position(topo_vect, obs._shunt_bus)
+        self._aux_test_switch_topo(gridobj_cls, dtd, topo_vect, obs._shunt_bus, switches_state)
+        # line ex 9
+        topo_vect = 1 * obs.topo_vect
+        el_id = 9
+        topo_vect[type(obs).line_ex_pos_topo_vect[el_id]] = -1
+        switches_state = dtd.compute_switches_position(topo_vect, obs._shunt_bus)
+        self._aux_test_switch_topo(gridobj_cls, dtd, topo_vect, obs._shunt_bus, switches_state)
+        # storage 0 
+        topo_vect = 1 * obs.topo_vect
+        el_id = 0
+        topo_vect[type(obs).storage_pos_topo_vect[el_id]] = -1
+        switches_state = dtd.compute_switches_position(topo_vect, obs._shunt_bus)
+        self._aux_test_switch_topo(gridobj_cls, dtd, topo_vect, obs._shunt_bus, switches_state)
+        # shunt 0
+        shunt_bus = 1 * obs._shunt_bus
+        el_id = 0
+        shunt_bus[el_id] = -1
         switches_state = dtd.compute_switches_position(obs.topo_vect, shunt_bus)
         self._aux_test_switch_topo(gridobj_cls, dtd, obs.topo_vect, shunt_bus, switches_state)
 
