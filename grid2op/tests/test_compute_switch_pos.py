@@ -97,8 +97,9 @@ class TestComputeSwitchPos(unittest.TestCase):
         graph = nx.Graph()
         graph.add_edges_from([(el[1], el[2], {"id": switch_id}) for switch_id, el in enumerate(dtd.switches) if switches[switch_id]])
         tmp = list(nx.connected_components(graph))
+        tmp = [el for el in tmp if np.any(np.isin(dtd.line_or_to_conn_node_id, list(el)))]
         expected_buses = np.unique(results[results != -1])
-        assert len(tmp) == expected_buses.shape[0], f"found {len(tmp)} buses when asking for {np.unique(results).shape[0]}"
+        assert len(tmp) == expected_buses.shape[0], f"found {len(tmp)} buses when asking for {expected_buses.shape[0]}"
         # check that element in results connected together are connected together
         # and check that the elements that are not connected together are not
         for el_1 in range(results.shape[0]):

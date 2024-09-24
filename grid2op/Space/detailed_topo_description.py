@@ -689,7 +689,7 @@ class DetailedTopoDescription(object):
         # TODO detailed topo: be even smarter by looking at object bus after bus
         # and not in a "random" order
         
-        cn_can_be_connected = np.ones((nb_conn_node, self.busbar_section_to_subid.shape[0]))
+        # cn_can_be_connected = np.ones((nb_conn_node, self.busbar_section_to_subid.shape[0]))
         try:
             # TODO detailed topo: in the df_compute_switches, make clearer what is const and what is not
             res = self._dfs_compute_switches_position(topo_vect, 
@@ -969,8 +969,8 @@ class DetailedTopoDescription(object):
         
         for cn_bbs in better_order:  # chose a busbar section                
             # TODO detailed topo: speed optim: this is probably copied too many times
-            if main_obj_id <= 5:
-                print(f"obj {main_obj_id}, bbs {cn_bbs}, bus : {my_bus}, {conn_node_to_bus_id}")
+            # if main_obj_id <= 5:
+                # print(f"obj {main_obj_id}, bbs {cn_bbs}, bus : {my_bus}, {conn_node_to_bus_id}")
             n_switch_visited = copy.deepcopy(switch_visited)
             n_switches_state = copy.deepcopy(switches_state)
             n_conn_node_to_bus_id = copy.deepcopy(conn_node_to_bus_id)
@@ -1046,8 +1046,8 @@ class DetailedTopoDescription(object):
             this_res = None
             this_tmp_g = conn_graph_this_sub
             
-            if main_obj_id <= 2:
-                print(f"{str_debug} obj {main_obj_id}, bbs {cn_bbs}, bus : {my_bus}, {conn_node_to_bus_id}: connect element {len(new_order)} different trials")
+            # if main_obj_id <= 2:
+                # print(f"{str_debug} obj {main_obj_id}, bbs {cn_bbs}, bus : {my_bus}, {conn_node_to_bus_id}: connect element {len(new_order)} different trials")
             # this_tmp_g : nx.Graph = copy.deepcopy(conn_graph_this_sub)
             # this_tmp_g.remove_nodes_from([el for el in this_tmp_g.nodes if n_conn_node_to_bus_id[self._cn_pos_in_sub[el]] != 0 and n_conn_node_to_bus_id[self._cn_pos_in_sub[el]] != my_bus])
             for path, cn_path in new_order:      
