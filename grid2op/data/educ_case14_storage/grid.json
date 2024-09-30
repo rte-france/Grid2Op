@@ -137,7 +137,7 @@
     "gen": {
       "_module": "pandas.core.frame",
       "_class": "DataFrame",
-      "_object": "{\"columns\":[\"name\",\"bus\",\"p_mw\",\"vm_pu\",\"sn_mva\",\"min_q_mvar\",\"max_q_mvar\",\"scaling\",\"slack\",\"in_service\",\"type\",\"controllable\",\"min_p_mw\",\"max_p_mw\",\"slack_weight\",\"power_station_trafo\"],\"index\":[0,1,2,3,4,5],\"data\":[[null,1,40.0,1.045,null,-40.0,50.0,1.0,false,true,null,true,0.0,140.0,0.0,null],[null,2,0.0,1.01,null,0.0,40.0,1.0,false,true,null,true,0.0,100.0,0.0,null],[null,5,0.0,1.07,null,-6.0,24.0,1.0,false,true,null,true,0.0,100.0,0.0,null],[null,5,0.0,1.07,null,-6.0,24.0,1.0,false,true,null,true,0.0,100.0,0.0,null],[null,7,0.0,1.09,null,-6.0,24.0,1.0,false,true,null,true,0.0,100.0,0.0,null],[\"gen_0_5\",0,-219.0,1.06,null,-9999.0,9999.0,1.0,true,true,null,true,null,null,1.0,null]]}",
+      "_object": "{\"columns\":[\"name\",\"bus\",\"p_mw\",\"vm_pu\",\"sn_mva\",\"min_q_mvar\",\"max_q_mvar\",\"scaling\",\"slack\",\"in_service\",\"type\",\"controllable\",\"min_p_mw\",\"max_p_mw\",\"slack_weight\",\"power_station_trafo\"],\"index\":[0,1,2,3,4,5],\"data\":[[null,1,40.0,1.045,null,-40.0,50.0,1.0,false,true,null,true,0.0,140.0,0.0,null],[null,2,0.0,1.01,null,0.0,40.0,1.0,false,true,null,true,0.0,100.0,0.0,null],[null,5,0.0,1.07,null,-6.0,24.0,1.0,false,true,null,true,0.0,100.0,0.0,null],[null,5,0.0,1.07,null,-6.0,24.0,1.0,false,true,null,true,0.0,100.0,0.0,null],[null,7,0.0,1.09,null,-6.0,24.0,1.0,false,true,null,true,0.0,100.0,0.0,null],[\"gen_0_5\",0,219.0,1.06,null,-9999.0,9999.0,1.0,true,true,null,true,null,null,1.0,null]]}",
       "orient": "split",
       "dtype": {
         "name": "object",
