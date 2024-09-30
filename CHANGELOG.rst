@@ -71,6 +71,9 @@ Next release
 - [FIXED] an issue in the backend: if the backend failed to be
   created the `_grid` attribute was set to `None` and not set back to
 - [FIXED] the `self.skip_if_needed()` was missing for one of the test suite.
+- [FIXED] an error in the descirption of the `educ_case14_storage` environment
+  (wrong sign for the slack generator)
+- [IMPROVED] error message when forecasts are not correctly set-up
 
 [1.10.3] - 2024-07-12
 -------------------------
