@@ -75,6 +75,7 @@ Next release
 - [FIXED] the correct `AmbiguousAction` is now raised when grid2op does not understand
   what an action should be doing (an incorrect `IllegalAction` used to be sent)
 - [FIXED] a test in `test_ActionProperties` did not test the correct property
+- [IMPROVED] an error message when loading a grid with forecasts
 
 [1.10.3] - 2024-07-12
 -------------------------
