@@ -71,10 +71,10 @@ class GridStateFromFileWithForecasts(GridStateFromFile):
         self._order_prod_p_forecasted = None
         self._order_prod_v_forecasted = None
         self._data_already_in_mem = False  # says if the "main" value from the base class had to be reloaded (used for chunk)
+
         self._nb_forecast = len(h_forecast)
         self._h_forecast = copy.deepcopy(h_forecast)
         self._check_hs_consistent(self._h_forecast, time_interval)
-        
         # init base class
         GridStateFromFile.__init__(
             self,
@@ -83,7 +83,7 @@ class GridStateFromFileWithForecasts(GridStateFromFile):
             time_interval=time_interval,
             max_iter=max_iter,
             chunk_size=chunk_size,
-        )
+        )        
     
     def _clear(self):
         super()._clear()
@@ -106,7 +106,9 @@ class GridStateFromFileWithForecasts(GridStateFromFile):
             if prev.total_seconds() // 60 != h:
                 raise ChronicsError("For now you cannot build non contiuguous forecast. "
                                     "Forecast should look like [5, 10, 15, 20] "
-                                    "but not [10, 15, 20] (missing h=5mins) or [5, 10, 20] (missing h=15)")
+                                    "but not [10, 15, 20] (missing h=5mins) or [5, 10, 20] "
+                                    f"(missing h=15 in this example). Missing h={prev} "
+                                    f"at position {i}, found {h}")
         
     def _get_next_chunk_forecasted(self):
         load_p = None
