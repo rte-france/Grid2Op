@@ -1728,7 +1728,7 @@ class Runner(object):
                     )
                 else:
                     if add_detailed_output and (_IS_WINDOWS or _IS_MACOS):
-                        self.logger.warn(
+                        self.logger.warning(
                             "Parallel run are not fully supported on windows or macos when "
                             '"add_detailed_output" is True. So we decided '
                             "to fully deactivate them."

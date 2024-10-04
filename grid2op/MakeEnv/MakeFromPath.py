@@ -1060,6 +1060,8 @@ def make_from_dataset_path(
         
     # Set graph layout if not None and not an empty dict
     if graph_layout is not None and graph_layout:
-        env.attach_layout(graph_layout)
-
+        try:
+            env.attach_layout(graph_layout)
+        except EnvError as exc_:
+            warnings.warn(f"Error {exc_} while setting the environment layout.")
     return env
