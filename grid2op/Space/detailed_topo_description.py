@@ -685,10 +685,31 @@ class DetailedTopoDescription(object):
         # first start by element that are the most constrained
         li_bbs = [len(self._conn_node_to_bbs_conn_node_id[el]) for el in all_pos]
         order_pos = np.argsort(li_bbs)
-        # order_pos = np.arange(len(li_bbs))  # debug
+        # perf optim 2
+        # assign all elements at the same bus
+        # then deal with second bus etc.
+        tmp = {}  #  key: bus, value: order_pos
+        for el in order_pos:
+            el_bus = topo_vect[el]
+            if el_bus not in tmp:
+                tmp[el_bus] = []
+            tmp[el_bus].append(el)
+        nb_indep_buses = len(tmp)
+        new_order = []   
+        bus_treated = set()
+        if -1 in tmp:
+            new_order = tmp[-1]
+            bus_treated.add(-1)
+            nb_indep_buses -= 1
+        for el in order_pos:
+            el_bus = topo_vect[el]
+            if el_bus in bus_treated:
+                continue
+            new_order += tmp[el_bus]
+            bus_treated.add(el_bus)
+
+        # new_order = np.arange(len(li_bbs))  # debug
         # end perf optim
-        # TODO detailed topo: be even smarter by looking at object bus after bus
-        # and not in a "random" order
         
         # cn_can_be_connected = np.ones((nb_conn_node, self.busbar_section_to_subid.shape[0]))
         try:
@@ -701,7 +722,8 @@ class DetailedTopoDescription(object):
                                                       switches_state, 
                                                       conn_node_visited,
                                                       conn_node_to_bus_id,
-                                                      order_pos,
+                                                      new_order,
+                                                      nb_indep_buses
                                                     #   cn_can_be_connected
                                                       )
         except RecursionError as exc_:
@@ -751,7 +773,8 @@ class DetailedTopoDescription(object):
                                                  switch_visited,
                                                  switches_state,
                                                  main_obj_id,
-                                                 order_pos):
+                                                 order_pos,
+                                                 nb_indep_buses):
         # the object is disconnected, I suppose here that there exist
         # a switch that directly control this element.
         # With this hyp. this switch will never be changed
@@ -777,7 +800,8 @@ class DetailedTopoDescription(object):
                                                            switches_state,
                                                            conn_node_visited,
                                                            conn_node_to_bus_id,
-                                                           order_pos)
+                                                           order_pos,
+                                                           nb_indep_buses)
             return this_res
         # all elements have been visited
         return switches_state
@@ -794,7 +818,8 @@ class DetailedTopoDescription(object):
                                                        topo_vect,
                                                        main_obj_id,
                                                        all_pos,
-                                                       order_pos
+                                                       order_pos,
+                                                       nb_indep_buses
                                                        ):               
         # there is already an element connected to "my" bus, so I need to connect 
         # cn_bbs to some busbar sections, which are of the right color
@@ -888,7 +913,8 @@ class DetailedTopoDescription(object):
                                                             nn_switches_state,
                                                             nn_conn_node_visited,
                                                             nn_conn_node_to_bus_id,
-                                                            order_pos)
+                                                            order_pos,
+                                                            nb_indep_buses)
                 if this_res is not None:
                     # I found a solution by connecting the 
                     # busbar cn_bbs to other_bbs_cn
@@ -909,7 +935,8 @@ class DetailedTopoDescription(object):
                                        switches_state,  # in the sub
                                        conn_node_visited,  # in the sub
                                        conn_node_to_bus_id,  # in the sub
-                                       order_pos
+                                       order_pos,
+                                       nb_indep_buses
                                        ):
         """should be use for one substation only, otherwise it will not work !"""
         # print(f"_dfs_compute_switches_position: {main_obj_id} / {len(all_pos)}")
@@ -933,6 +960,19 @@ class DetailedTopoDescription(object):
         my_bus = topo_vect[self.conn_node_to_topovect_id[el_cn_id]]
         cn_bbs_possible = self._conn_node_to_bbs_conn_node_id[el_cn_id]
 
+        # check that I have enough remaining busbars to affect other buses
+        cn_bbs_for_check = conn_node_to_bus_id[bbs_cn_this_sub]
+        assigned_buses = np.unique(cn_bbs_for_check)
+        assigned_buses = assigned_buses[assigned_buses != 0]
+        assigned_buses = assigned_buses[assigned_buses != -1]
+        nb_assigned_buses = assigned_buses.shape[0]
+        nb_free_bbs = (cn_bbs_for_check == 0).sum()
+        if nb_assigned_buses + nb_free_bbs < nb_indep_buses:
+            # I would need to affect nb_indep_buses - nb_free_bbs other buses
+            # but I have only nb_free_bbs free busbar section
+            # print("error from here")
+            return None
+        
         # TODO detailed topo: speed optim: this is probably copied too many times
         # DEBUG: make sure input data are not modified
         # switch_visited = copy.deepcopy(switch_visited)
@@ -963,7 +1003,8 @@ class DetailedTopoDescription(object):
                                                            switches_state,
                                                            conn_node_visited,
                                                            conn_node_to_bus_id,
-                                                           order_pos)     
+                                                           order_pos,
+                                                           nb_indep_buses)     
             else:
                 # a solution has been found
                 return switches_state    
@@ -983,7 +1024,8 @@ class DetailedTopoDescription(object):
                                                  switch_visited,
                                                  switches_state,
                                                  main_obj_id,
-                                                 order_pos)
+                                                 order_pos,
+                                                 nb_indep_buses)
             
         # speed optim: reorder the exploration of the busbar section
         better_order = self._order_bbs(cn_bbs_possible, conn_node_to_bus_id, my_bus)
@@ -991,8 +1033,8 @@ class DetailedTopoDescription(object):
         
         for cn_bbs in better_order:  # chose a busbar section                
             # TODO detailed topo: speed optim: this is probably copied too many times
-            if main_obj_id <= 4:
-                print(f"{str_debug}obj {main_obj_id}, bbs {cn_bbs}, bus : {my_bus}, {conn_node_to_bus_id}")
+            # if main_obj_id <= 4:
+                # print(f"{str_debug}obj {main_obj_id}, bbs {cn_bbs}, bus : {my_bus}, {conn_node_to_bus_id}")
             n_switch_visited = copy.deepcopy(switch_visited)
             n_switches_state = copy.deepcopy(switches_state)
             n_conn_node_to_bus_id = copy.deepcopy(conn_node_to_bus_id)
@@ -1027,7 +1069,8 @@ class DetailedTopoDescription(object):
                                                        topo_vect,
                                                        main_obj_id,
                                                        all_pos,
-                                                       order_pos)
+                                                       order_pos,
+                                                       nb_indep_buses)
                 if tmp is not None:
                     # a solution has been found that connect 
                     # cn_bbs to another busbar
@@ -1142,6 +1185,11 @@ class DetailedTopoDescription(object):
                             nn_switches_state[tmp_path] = True
                             nn_conn_node_visited[cns_tmp[0]] = True
                             nn_conn_node_to_bus_id[cns_tmp[0]] = my_bus 
+                    if solve_constraints:
+                        print("One constraint solved")
+                    # else:
+                        # print("stop trying to add constraints")
+                            
                 if not is_working:
                     # this path is not working, I don't use it
                     continue
@@ -1160,7 +1208,8 @@ class DetailedTopoDescription(object):
                                                                        nn_switches_state,
                                                                        nn_conn_node_visited,
                                                                        nn_conn_node_to_bus_id,
-                                                                       order_pos)
+                                                                       order_pos,
+                                                                       nb_indep_buses)
                     else:
                         # I found a correct path
                         return nn_switches_state
