@@ -21,9 +21,6 @@ from grid2op.Episode import EpisodeData
 from grid2op.Parameters import Parameters
 from grid2op.Opponent import BaseOpponent, GeometricOpponent
 from grid2op.Action import BaseAction, PlayableAction
-import sys
-from pathlib import Path
-sys.path.append(str(Path(__file__).parent))
 from _aux_opponent_for_test_alerts import (_get_steps_attack,
                                            TestOpponent
                                            )
