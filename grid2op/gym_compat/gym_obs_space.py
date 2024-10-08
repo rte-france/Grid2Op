@@ -411,13 +411,13 @@ class __AuxGymObservationSpace:
                 my_type = self._generic_gym_space(dt, sh)
             dict_[attr_nm] = my_type
 
-    def from_gym(self, gymlike_observation: spaces.dict.OrderedDict) -> BaseObservation:
+    def from_gym(self, gymlike_observation: spaces.dict.Dict) -> BaseObservation:
         """
         This function convert the gym-like representation of an observation to a grid2op observation.
 
         Parameters
         ----------
-        gymlike_observation: :class:`gym.spaces.dict.OrderedDict`
+        gymlike_observation: :class:`gym.spaces.dict.Dict`
             The observation represented as a gym ordered dict
 
         Returns
@@ -434,7 +434,7 @@ class __AuxGymObservationSpace:
                               f"This key is ignored.")
         return res
 
-    def to_gym(self, grid2op_observation: BaseObservation) -> spaces.dict.OrderedDict:
+    def to_gym(self, grid2op_observation: BaseObservation) -> spaces.dict.Dict:
         """
         Convert a grid2op observation into a gym ordered dict.
 
@@ -445,7 +445,7 @@ class __AuxGymObservationSpace:
 
         Returns
         -------
-        gymlike_observation: :class:`gym.spaces.dict.OrderedDict`
+        gymlike_observation: :class:`gym.spaces.dict.Dict`
            The corresponding gym ordered dict
 
         """
