@@ -30,9 +30,11 @@ class _PPBkForTestDetTopo(AddDetailedTopoIEEE, PandaPowerBackend):
         self.detailed_topo_desc._from_ieee_grid = False
 
 
-class TestComputeSwitchPos(unittest.TestCase):
+class AuxTestComputeSwitchPos:
+    
     # TODO detailed topo: test the "from_switch" with these data too!
-    def _aux_read_case(self, case_id, dir=PATH_DATA_TEST, nm_dir="test_detailed_topo"):
+    @staticmethod
+    def _aux_read_case(case_id, dir=PATH_DATA_TEST, nm_dir="test_detailed_topo"):
         path_data = os.path.join(dir, nm_dir)
         switches = pd.read_csv(os.path.join(path_data, f"test_topo_connections{case_id}.txt"),
                                sep=" ")
@@ -45,6 +47,13 @@ class TestComputeSwitchPos(unittest.TestCase):
         all_nodes = np.unique(np.concatenate((switches["node1"].values, switches["node2"].values)))
         all_node_cont = np.zeros(max(all_nodes) + 1, dtype=int) -1
         all_node_cont[all_nodes] = np.arange(len(all_nodes))
+        if (~np.isin(elements.loc[elements["element_id"] == "'bbs'", "node"].values, all_nodes)).any():
+            # some busbar is not connected to any switch
+            return None
+        if (~np.isin(elements.loc[elements["element_id"] == "'el'", "node"].values, all_nodes)).any():
+            # some element is not connected to any switch
+            return None
+        
         nb_switch = switches.shape[0]
         dtd.conn_node_name = np.array([None for _ in all_nodes], dtype=str)
         dtd.conn_node_to_subid = np.zeros(len(all_nodes), dtype=int)
@@ -74,10 +83,10 @@ class TestComputeSwitchPos(unittest.TestCase):
         dtd._from_ieee_grid = False
         
         # now get the target
-        small_df = target_bus.loc[np.isin(target_bus["node"], dtd.line_or_to_conn_node_id)]
+        small_df = target_bus.loc[np.isin(all_node_cont[target_bus["node"]], dtd.line_or_to_conn_node_id)]
         target = np.zeros(dtd.line_or_to_conn_node_id.shape[0], dtype=int) -1
         for line_id in range(dtd.line_or_to_conn_node_id.shape[0]):
-            target[line_id] = small_df.loc[small_df["node"] == dtd.line_or_to_conn_node_id[line_id], "bus_id"].values[0]
+            target[line_id] = small_df.loc[all_node_cont[small_df["node"]] == dtd.line_or_to_conn_node_id[line_id], "bus_id"].values[0]
         target[target >= 0] += 1  # encoding starts at 0 for input data
         
         # specific because it's not checked
@@ -98,6 +107,7 @@ class TestComputeSwitchPos(unittest.TestCase):
         graph.add_edges_from([(el[1], el[2], {"id": switch_id}) for switch_id, el in enumerate(dtd.switches) if switches[switch_id]])
         tmp = list(nx.connected_components(graph))
         tmp = [el for el in tmp if np.any(np.isin(dtd.line_or_to_conn_node_id, list(el)))]
+        tmp = [el for el in tmp if np.any(np.isin(dtd.busbar_section_to_conn_node_id, list(el)))]
         expected_buses = np.unique(results[results != -1])
         assert len(tmp) == expected_buses.shape[0], f"found {len(tmp)} buses when asking for {expected_buses.shape[0]}"
         # check that element in results connected together are connected together
@@ -192,6 +202,9 @@ class TestComputeSwitchPos(unittest.TestCase):
             switches = dtd.compute_switches_position(tmp)
             self._aux_test_switch_topo(dtd, tmp, switches, f"when disconnecting element {el_id}")
 
+
+class TestComputeSwitchPos(unittest.TestCase):
+    pass
 
 class TestComputeSwitchPos_AddDetailedTopoIEEE(unittest.TestCase):
     def _aux_n_bb_per_sub(self):

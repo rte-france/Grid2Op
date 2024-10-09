@@ -1,0 +1,22 @@
+node element_id 
+0 'bbs'
+1 'bbs'
+2 'bbs'
+3 'bbs'
+4 'bbs'
+5 
+6 'el'
+7 
+8 
+9 
+10 'el'
+11 
+12 'el'
+13 
+14 'el'
+15 
+16 'el'
+17 'el'
+18 
+19 'el'
+20 

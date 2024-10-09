@@ -11,7 +11,6 @@ from typing import List, Optional
 import numpy as np
 import networkx as nx
 import copy
-from functools import lru_cache
 
 import grid2op
 from grid2op.dtypes import dt_int, dt_bool
@@ -710,6 +709,7 @@ class DetailedTopoDescription(object):
 
         # new_order = np.arange(len(li_bbs))  # debug
         # end perf optim
+        # TODO another speed optim: put together the objects that can be connected to the same busbars
         
         # cn_can_be_connected = np.ones((nb_conn_node, self.busbar_section_to_subid.shape[0]))
         try:
@@ -1033,8 +1033,8 @@ class DetailedTopoDescription(object):
         
         for cn_bbs in better_order:  # chose a busbar section                
             # TODO detailed topo: speed optim: this is probably copied too many times
-            # if main_obj_id <= 4:
-                # print(f"{str_debug}obj {main_obj_id}, bbs {cn_bbs}, bus : {my_bus}, {conn_node_to_bus_id}")
+            # if main_obj_id <= 200:
+                # print(f"{str_debug} obj {main_obj_id}, order {order_pos[main_obj_id]}, bbs {cn_bbs}, bus : {my_bus}, {conn_node_to_bus_id}")
             n_switch_visited = copy.deepcopy(switch_visited)
             n_switches_state = copy.deepcopy(switches_state)
             n_conn_node_to_bus_id = copy.deepcopy(conn_node_to_bus_id)
@@ -1123,7 +1123,7 @@ class DetailedTopoDescription(object):
                 try:
                     debug_id2, (path, cn_path) = next(generator_path)
                 except StopIteration:
-                    # cannot conenct cn_bbs to other_bbs_cn
+                    # cannot connect cn_bbs to other_bbs_cn
                     # move to another
                     break
                
@@ -1163,7 +1163,19 @@ class DetailedTopoDescription(object):
                             # nothing to do if the object is not on the same bus
                             # TODO detailed topo: actually we can do something if an element
                             # in this case is forced to be connected on my_bus it is not possible
-                            continue      
+                            if bus_other == -1:
+                                continue
+                            # continue
+                            possible_bbs_other = list(self._conn_node_to_bbs_conn_node_id[other_cn_id])
+                            possible_bbs_other_is = self._cn_pos_in_sub[possible_bbs_other]
+                            possible_bus_this = nn_conn_node_to_bus_id[possible_bbs_other_is]
+                            if (possible_bus_this != 0).all() and (possible_bus_this != bus_other).all():
+                                # this element cannot be connected to the right bus
+                                is_working = False
+                                break
+                            # feasibility checks are done, do not study this bus
+                            continue
+                              
                         ps_tmp, cns_tmp = self._aux_connect_el_to_switch(conn_graph_this_sub,
                                                                          other_cn_id,
                                                                          cn_bbs,
@@ -1179,14 +1191,23 @@ class DetailedTopoDescription(object):
                             # both objects are on the same bus and there is only one path 
                             # to connect this object to the main object, so I necessarily
                             # toggle all switches on this path and continue
+                            # print(f"adding conn nodes {cns_tmp[0]} to bus {my_bus} when studying cn {other_cn_id}")
                             solve_constraints = True
                             tmp_path = ps_tmp[0]
                             nn_switch_visited[tmp_path] = True
                             nn_switches_state[tmp_path] = True
                             nn_conn_node_visited[cns_tmp[0]] = True
                             nn_conn_node_to_bus_id[cns_tmp[0]] = my_bus 
-                    if solve_constraints:
-                        print("One constraint solved")
+                            
+                            this_topo_vect = nn_conn_node_to_bus_id[all_pos]
+                            assigned_this = this_topo_vect != 0
+                            if (this_topo_vect[assigned_this] != topo_vect[assigned_this]).any():
+                                # solving the constraints would for sure create a problem
+                                # as one element would not be assigned to the right bus
+                                is_working = False
+                                break
+                    # if solve_constraints:
+                        # print("One constraint solved")
                     # else:
                         # print("stop trying to add constraints")
                             
@@ -1197,7 +1218,7 @@ class DetailedTopoDescription(object):
                     # this seems to work, I try to see if I can 
                     # handle all the remaining elements
                     main_obj_id_new = self._aux_find_next_el_id(main_obj_id, all_pos, nn_conn_node_visited, order_pos)
-                    assert main_obj_id_new != main_obj_id  # TODO detailed topo debug
+                    # assert main_obj_id_new != main_obj_id  # TODO detailed topo debug
                     if main_obj_id_new is not None:
                         # I still need to visit some other elements
                         this_res = self._dfs_compute_switches_position(topo_vect,
