@@ -266,7 +266,11 @@ class __AuxBaseGymSpaceConverter:
         of openAI gym
         """
         seeds = super(type(self)._DictType, self).seed(seed)
-        sub_seeds = seeds
+        if isinstance(seeds, (int, dt_int)):
+            # newer gymansium version returns int and not a list
+            sub_seeds = [seeds]
+        else:
+            sub_seeds = seeds
         max_ = np.iinfo(dt_int).max
         for i, space_key in enumerate(sorted(self.spaces.keys())):
             sub_seed = sample_seed(max_, self.np_random)
