@@ -181,16 +181,17 @@ class __AuxGymEnv(Generic[ObsType, ActType]):
     def _aux_reset_new(self,
                        seed: Optional[int]=None,
                        options: RESET_OPTIONS_TYPING=None) -> Tuple[ObsType,RESET_INFO_GYM_TYPING]:
-        # used for gym > 0.26
-        if (self._shuffle_chronics and 
-            isinstance(self.init_env.chronics_handler.real_data, Multifolder) and 
-            (options is not None and _TIME_SERIE_ID not in options)):
-            self.init_env.chronics_handler.sample_next_chronics()
         
         super().reset(seed=seed)  # seed gymnasium env
         if seed is not None:
             self._aux_seed_spaces()
             seed, next_seed, underlying_env_seeds = self._aux_seed_g2op(seed)
+            
+        # used for gym > 0.26
+        if (self._shuffle_chronics and 
+            isinstance(self.init_env.chronics_handler.real_data, Multifolder) and 
+            (not (options is not None and _TIME_SERIE_ID in options))):
+            self.init_env.chronics_handler.sample_next_chronics()
         
         # we don't seed grid2op with reset as it is done
         # earlier
