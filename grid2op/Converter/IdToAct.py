@@ -274,7 +274,16 @@ class IdToAct(Converter):
                         "grid2op action. The error was:\n{}".format(e)
                     ) from exc_
         else:
-            raise RuntimeError("Impossible to load the action provided.")
+            # first make sure that all action is "correct"
+            try:
+                nb = len(all_actions)  # assert I can compute the "len"
+                for i in range(nb):
+                    act = all_actions[i]  # assert I can use the `[]` operator
+                    assert isinstance(act, BaseAction)  # assert what's in there is a BaseAction
+            except Exception as exc_:
+                raise RuntimeError("Impossible to load the action provided.") from exc_
+            # does not copy here (to save memory in case of shared memory setting)
+            self.all_actions = all_actions
         self.n = len(self.all_actions)
 
     def filter_action(self, filtering_fun):
