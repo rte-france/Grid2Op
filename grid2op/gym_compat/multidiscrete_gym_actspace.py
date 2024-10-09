@@ -24,7 +24,7 @@ from grid2op.gym_compat.utils import (ALL_ATTR,
 
 class __AuxMultiDiscreteActSpace:
     """
-    This class allows to convert a grid2op action space into a gym "MultiDiscrete". This means that the action are
+    This class allows to convert a grid2op action space into a gymnasium "MultiDiscrete". This means that the action are
     labeled, and instead of describing the action itself, you provide only its ID.
 
     .. note::
@@ -302,7 +302,7 @@ class __AuxMultiDiscreteActSpace:
             self._aux_check_continuous_elements(el, attr_to_keep, nb_bins, act_sp)
             
         self._dims = None
-        self._functs = None  # final functions that is applied to the gym action to map it to a grid2Op action
+        self._functs = None  # final functions that is applied to the gymnasium action to map it to a grid2Op action
         self._binarizers = None  # contains all the kwarg to binarize the data
         self._types = None
         nvec = self._get_info()
@@ -343,7 +343,7 @@ class __AuxMultiDiscreteActSpace:
         
     @staticmethod
     def _funct_set(vect):
-        # gym encodes:
+        # gymnasium encodes:
         # for set_bus: 0 -> -1, 1-> 0 (don't change)), 2-> 1, 3 -> 2
         # for set_status: 0 -> -1, 1-> 0 (don't change)), 2-> 1 [3 do not exist for set_line_status !]
         vect -= 1
@@ -351,7 +351,7 @@ class __AuxMultiDiscreteActSpace:
 
     @staticmethod
     def _funct_change(vect):
-        # gym encodes 0 -> False, 1 -> True
+        # gymnasium encodes 0 -> False, 1 -> True
         vect = vect.astype(dt_bool)
         return vect
 
@@ -550,14 +550,14 @@ class __AuxMultiDiscreteActSpace:
 
     def from_gym(self, gym_act):
         """
-        This is the function that is called to transform a gym action (in this case a numpy array!)
+        This is the function that is called to transform a gymnasium action (in this case a numpy array!)
         sent by the agent
         and convert it to a grid2op action that will be sent to the underlying grid2op environment.
 
         Parameters
         ----------
         gym_act: ``numpy.ndarray``
-            the gym action
+            the gymnasium action
 
         Returns
         -------

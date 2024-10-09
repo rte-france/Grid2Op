@@ -24,10 +24,10 @@ class __AuxDiscreteActSpace:
     """
     TODO the documentation of this class is in progress.
 
-    This class allows to convert a grid2op action space into a gym "Discrete". This means that the action are
+    This class allows to convert a grid2op action space into a gymnasium "Discrete". This means that the action are
     labeled, and instead of describing the action itself, you provide only its ID.
     
-    Let's take an example of line disconnection. In the "standard" gym representation you need to:
+    Let's take an example of line disconnection. In the "standard" gymnasium representation you need to:
     
     .. code-block:: python
 
@@ -113,7 +113,7 @@ class __AuxDiscreteActSpace:
 
     .. note::
         This class is really closely related to the :class:`grid2op.Converter.IdToAct`. It basically "maps"
-        this "IdToAct" into a type of gym space, which, in this case, will be a `Discrete` one.
+        this "IdToAct" into a type of gymnasium space, which, in this case, will be a `Discrete` one.
         
     .. note::
         By default, the "do nothing" action is encoded by the integer '0'.
@@ -322,14 +322,14 @@ class __AuxDiscreteActSpace:
 
     def from_gym(self, gym_act: int) -> BaseAction:
         """
-        This is the function that is called to transform a gym action (in this case a numpy array!)
+        This is the function that is called to transform a gymnasium action (in this case a numpy array!)
         sent by the agent
         and convert it to a grid2op action that will be sent to the underlying grid2op environment.
 
         Parameters
         ----------
         gym_act: ``int``
-            the gym action (a single integer for this action space)
+            the gymnasium action (a single integer for this action space)
 
         Returns
         -------

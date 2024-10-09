@@ -20,7 +20,7 @@ class __AuxBaseGymSpaceConverter:
     INTERNAL
 
     .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
-        Used as a base class to convert grid2op state to gym state (wrapper for some useful function
+        Used as a base class to convert grid2op state to gymnasium state (wrapper for some useful function
         for both the action space and the observation space).
 
     .. warning::
@@ -107,7 +107,7 @@ class __AuxBaseGymSpaceConverter:
         return res
 
     def _base_to_gym(self, keys, obj, dtypes, converter=None):
-        """convert the obj (grid2op object) into a gym observation / action space"""
+        """convert the obj (grid2op object) into a gymnasium observation / action space"""
         res = OrderedDict()
         for k in keys:
             if k in self.__func:
@@ -139,7 +139,7 @@ class __AuxBaseGymSpaceConverter:
     def add_key(self, key_name, function, return_type):
         """
 
-        Allows to add arbitrary function to the representation, as a gym environment of
+        Allows to add arbitrary function to the representation, as a gymnasium environment of
         the action space of the observation space.
 
         TODO
@@ -165,7 +165,7 @@ class __AuxBaseGymSpaceConverter:
         Examples
         ---------
         In the example below, we explain how to add the "connectivity_matrix" as part of the observation space
-        (when converted to gym). The new key "connectivity matrix" will be added to the gym observation.
+        (when converted to gym). The new key "connectivity matrix" will be added to the gymnasium observation.
 
         .. code-block:: python
 
@@ -181,7 +181,7 @@ class __AuxBaseGymSpaceConverter:
             from grid2op.gym_compat import GymEnv
             env_gym = GymEnv(env_glop)
 
-            # default gym environment, the connectivity matrix is not computed
+            # default gymnasium environment, the connectivity matrix is not computed
             obs_gym = env_gym.reset()
             print(f"Is the connectivity matrix part of the observation in gym: {'connectivity_matrix' in obs_gym}")
 
