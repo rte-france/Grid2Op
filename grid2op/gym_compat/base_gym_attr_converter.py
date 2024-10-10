@@ -72,12 +72,12 @@ class __AuxBaseGymAttrConverter(object):
 
     def gym_to_g2op(self, gym_object):
         """
-        Convert a gym object to a grid2op object
+        Convert a gymnasium object to a grid2op object
 
         Parameters
         ----------
         gym_object:
-            An object (action or observation) represented as a gym "ordered dictionary"
+            An object (action or observation) represented as a gymnasium "dictionary"
 
         Returns
         -------
@@ -86,13 +86,13 @@ class __AuxBaseGymAttrConverter(object):
         """
         if self._my_gym_to_g2op is None:
             raise NotImplementedError(
-                "Unable to convert gym object to grid2op object with this converter"
+                "Unable to convert gymnasium object to grid2op object with this converter"
             )
         return self._my_gym_to_g2op(gym_object)
 
     def g2op_to_gym(self, g2op_object):
         """
-        Convert a gym object to a grid2op object
+        Convert a gymnasium object to a grid2op object
 
         Parameters
         ----------
@@ -102,12 +102,12 @@ class __AuxBaseGymAttrConverter(object):
 
         Returns
         -------
-        The same object, represented as a gym "ordered dictionary"
+        The same object, represented as a gymnasium "ordered dictionary"
 
         """
         if self._my_g2op_to_gym is None:
             raise NotImplementedError(
-                "Unable to convert grid2op object to gym object with this converter"
+                "Unable to convert grid2op object to gymnasium object with this converter"
             )
         return self._my_g2op_to_gym(g2op_object)
 
