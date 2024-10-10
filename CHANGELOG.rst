@@ -77,8 +77,12 @@ Next release
 - [FIXED] a test in `test_ActionProperties` did not test the correct property
 - [FIXED] an error in the descirption of the `educ_case14_storage` environment
   (wrong sign for the slack generator)
-- [IMPROVED] an error message when loading a grid with forecasts
+- [FIXED] the environment would not load in case of an incorrect "layout.json"
+  instead of raising a warning.
+- [FIXED] some issue with gym_compat module for "newest" version of 
+  gymnasium (1.0.0)
 - [IMPROVED] error message when forecasts are not correctly set-up
+- [IMPROVED] an error message when loading a grid with forecasts
 
 [1.10.3] - 2024-07-12
 -------------------------

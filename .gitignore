@@ -424,6 +424,7 @@ grid2op/tests/parse_res_35.txt
 grid2op/tests/res_algo_topo_35.txt
 grid2op/tests/test_topo_ampl/
 grid2op/tests/test_topo_ampl2/
+venv_312
 
 # profiling files
 **.prof

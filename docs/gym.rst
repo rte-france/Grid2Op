@@ -29,7 +29,7 @@ your base code.
 
     More information on the section :ref:`gymnasium_gym`
 
-Before grid2op 1.2.0 only some classes fully implemented the open AI gym interface:
+Before grid2op 1.2.0 only some classes fully implemented the gymnasium interface:
 
 - the :class:`grid2op.Environment` (with methods such as `env.reset`, `env.step` etc.)
 - the :class:`grid2op.Agent` (with the `agent.act` etc.)
@@ -37,12 +37,12 @@ Before grid2op 1.2.0 only some classes fully implemented the open AI gym interfa
 
 
 Starting from 1.2.0 we implemented some automatic converters that are able to automatically map
-grid2op representation for the action space and the observation space into open AI gym "spaces". More precisely these
+grid2op representation for the action space and the observation space into gymnasium "spaces". More precisely these
 are represented as gym.spaces.Dict.
 
-As of grid2op 1.4.0 we tighten the gap between openAI gym and grid2op by introducing the dedicated module
+As of grid2op 1.4.0 we tighten the gap between gymnasium and grid2op by introducing the dedicated module
 `grid2op.gym_compat` . Withing this module there are lots of functionalities to convert a grid2op environment
-into a gym environment (that inherit `gym.Env` instead of "simply" implementing the open ai gym interface).
+into a gymnasium environment (that inherit `gymnasium.Env` instead of "simply" implementing the gymnasium interface).
 
 
 A simple usage is:
@@ -55,12 +55,12 @@ A simple usage is:
     env_name = "l2rpn_case14_sandbox"  # or any other grid2op environment name
     g2op_env = grid2op.make(env_name)  # create the gri2op environment
 
-    gym_env = GymEnv(g2op_env)  # create the gym environment
+    gym_env = GymEnv(g2op_env)  # create the gymnasium environment
 
-    # check that this is a properly defined gym environment:
+    # check that this is a properly defined gymnasium environment:
     import gym
-    print(f"Is gym_env and open AI gym environment: {isinstance(gym_env, gym.Env)}")
-    # it shows "Is gym_env and open AI gym environment: True"
+    print(f"Is gym_env a gymnasium environment: {isinstance(gym_env, gym.Env)}")
+    # it shows "Is gym_env a gymnasium environment: True"
 
 .. note::
 
@@ -73,9 +73,9 @@ A simple usage is:
 .. warning::
     The `gym` package has some breaking API change since its version 0.26. We attempted, 
     in grid2op, to maintain compatibility both with former versions and later ones. This makes **this
-    class behave differently depending on the version of gym you have installed** !
+    class behave differently depending on the version of gymnasium you have installed** !
     
-    The main changes involve the functions `env.step` and `env.reset` (core gym functions)
+    The main changes involve the functions `env.step` and `env.reset` (core gymnasium functions)
     
 This page is organized as follow:
 
@@ -164,7 +164,7 @@ You can transform the observation space as you wish. There are some examples in 
 
 Default Action space
 ******************************
-The default action space is also a type of gym Dict. As for the observation space above, it is a
+The default action space is also a type of gymnasium Dict. As for the observation space above, it is a
 straight translation from the attribute of the action to the key of the dictionary. This gives:
 
 - "change_bus": MultiBinary(`env.dim_topo`)
@@ -177,7 +177,7 @@ straight translation from the attribute of the action to the key of the dictiona
 - "raise_alarm": MultiBinary(`env.dim_alarms`)
 - "raise_alert": MultiBinary(`env.dim_alerts`)
 
-For example you can create a "gym action" (for the default encoding) like:
+For example you can create a "gymnasium action" (for the default encoding) like:
 
 .. code-block:: python
 
@@ -191,7 +191,7 @@ For example you can create a "gym action" (for the default encoding) like:
     gym_env = GymEnv(env)
 
     seed = ...
-    obs, info = gym_env.reset(seed)  # for new gym interface
+    obs, info = gym_env.reset(seed)  # for new gymnasium interface
 
     # do nothing
     gym_act = {}
@@ -199,19 +199,19 @@ For example you can create a "gym action" (for the default encoding) like:
 
     #change the bus of the element 6 and 7 of the "topo_vect"
     gym_act = {}
-    gym_act["change_bus"] = np.zeros(env.dim_topo, dtype=np.int8)   # gym encoding of a multi binary
+    gym_act["change_bus"] = np.zeros(env.dim_topo, dtype=np.int8)   # gymnasium encoding of a multi binary
     gym_act["change_bus"][[6, 7]] = 1
     obs, reward, done, truncated, info = gym_env.step(gym_act)
 
     # redispatch generator 2 of 1.7MW
     gym_act = {}
-    gym_act["redispatch"] = np.zeros(env.n_gen, dtype=np.float32)   # gym encoding of a Box
+    gym_act["redispatch"] = np.zeros(env.n_gen, dtype=np.float32)   # gymnasium encoding of a Box
     gym_act["redispatch"][2] = 1.7
     obs, reward, done, truncated, info = gym_env.step(gym_act)
 
     # set the bus of element 8 and 9 to bus 2
     gym_act = {}
-    gym_act["set_bus"] = np.zeros(env.dim_topo, dtype=int)   # gym encoding of a Box
+    gym_act["set_bus"] = np.zeros(env.dim_topo, dtype=int)   # gymnasium encoding of a Box
     gym_act["set_bus"][[8, 9]] = 2
     obs, reward, done, truncated, info = gym_env.step(gym_act)
 
@@ -238,7 +238,7 @@ If you want a full control on this spaces, you need to implement something like:
     env = grid2op.make(env_name)
 
     from grid2op.gym_compat import GymEnv
-    # this of course will not work... Replace "AGymSpace" with a normal gym space, like Dict, Box, MultiDiscrete etc.
+    # this of course will not work... Replace "AGymSpace" with a normal gymnasium space, like Dict, Box, MultiDiscrete etc.
     from gym.spaces import AGymSpace
     gym_env = GymEnv(env)
 
@@ -253,7 +253,7 @@ If you want a full control on this spaces, you need to implement something like:
         def to_gym(self, observation):
             # this is this very same function that you need to implement
             # it should have this exact name, take only one observation (grid2op) as input
-            # and return a gym object that belong to your space "AGymSpace"
+            # and return a gymnasium object that belong to your space "AGymSpace"
             return SomethingThatBelongTo_AGymSpace
             # eg. return np.concatenate((obs.gen_p * 0.1, np.sqrt(obs.load_p))
 
@@ -268,7 +268,7 @@ And for the action space:
     env = grid2op.make(env_name)
 
     from grid2op.gym_compat import GymEnv
-    # this of course will not work... Replace "AGymSpace" with a normal gym space, like Dict, Box, MultiDiscrete etc.
+    # this of course will not work... Replace "AGymSpace" with a normal gymnasium space, like Dict, Box, MultiDiscrete etc.
     from gym.spaces import AGymSpace
     gym_env = GymEnv(env)
 
@@ -282,7 +282,7 @@ And for the action space:
 
         def from_gym(self, gym_action):
             # this is this very same function that you need to implement
-            # it should have this exact name, take only one action (member of your gym space) as input
+            # it should have this exact name, take only one action (member of your gymnasium space) as input
             # and return a grid2op action
             return TheGymAction_ConvertedTo_Grid2op_Action
             # eg. return np.concatenate((obs.gen_p * 0.1, np.sqrt(obs.load_p))
@@ -311,7 +311,7 @@ and divide input data by `divide`):
     env_name = "l2rpn_case14_sandbox"  # or any other grid2op environment name
     g2op_env = grid2op.make(env_name)  # create the gri2op environment
 
-    gym_env = GymEnv(g2op_env)  # create the gym environment
+    gym_env = GymEnv(g2op_env)  # create the gymnasium environment
 
     ob_space = gym_env.observation_space
     ob_space = ob_space.reencode_space("actual_dispatch",
@@ -336,7 +336,7 @@ the log of the loads instead of giving the direct value to your agent. This can 
     env_name = "l2rpn_case14_sandbox"  # or any other grid2op environment name
     g2op_env = grid2op.make(env_name)  # create the gri2op environment
 
-    gym_env = GymEnv(g2op_env)  # create the gym environment
+    gym_env = GymEnv(g2op_env)  # create the gymnasium environment
 
     ob_space = gym_env.observation_space
     shape_ = (g2op_env.n_load, )
@@ -350,7 +350,7 @@ the log of the loads instead of giving the direct value to your agent. This can 
                                        )
 
     gym_env.observation_space = ob_space
-    # and now you will get the key "log_load" as part of your gym observation.
+    # and now you will get the key "log_load" as part of your gymnasium observation.
 
 A detailed list of such "converter" is documented on the section "Detailed Documentation by class". In
 the table below we describe some of them (**nb** if you notice a converter is not displayed there,
@@ -360,11 +360,11 @@ do not hesitate to write us a "feature request" for the documentation, thanks in
 Converter name                                  Objective
 =============================================   ============================================================
 :class:`ContinuousToDiscreteConverter`          Convert a continuous space into a discrete one
-:class:`MultiToTupleConverter`                  Convert a gym MultiBinary to a gym Tuple of gym Binary and a gym MultiDiscrete to a Tuple of Discrete
+:class:`MultiToTupleConverter`                  Convert a gymnasium MultiBinary to a gymnasium Tuple of gymnasium Binary and a gymnasium MultiDiscrete to a Tuple of Discrete
 :class:`ScalerAttrConverter`                    Allows to scale (divide an attribute by something and subtract something from it)
-`BaseGymSpaceConverter.add_key`_                Allows you to compute another "part" of the observation space (you add an information to the gym space)
+`BaseGymSpaceConverter.add_key`_                Allows you to compute another "part" of the observation space (you add an information to the gymnasium space)
 `BaseGymSpaceConverter.keep_only_attr`_         Allows you to specify which part of the action / observation you want to keep
-`BaseGymSpaceConverter.ignore_attr`_            Allows you to ignore some attributes of the action / observation (they will not be part of the gym space)
+`BaseGymSpaceConverter.ignore_attr`_            Allows you to ignore some attributes of the action / observation (they will not be part of the gymnasium space)
 =============================================   ============================================================
 
 .. warning::
@@ -383,7 +383,7 @@ Converter name                                  Objective
 .. note::
 
     With the "converters" above, note that the observation space AND action space will still
-    inherit from gym Dict.
+    inherit from gymnasium Dict.
 
     They are complex spaces that are not well handled by some RL framework.
 
@@ -395,19 +395,19 @@ Converter name                                  Objective
 Customizing the action and observation space, into Box or Discrete
 *******************************************************************
 
-The use of the converter above is nice if you can work with gym Dict, but in some cases, or for some frameworks
+The use of the converter above is nice if you can work with gymnasium Dict, but in some cases, or for some frameworks
 it is not convenient to do it at all.
 
-TO alleviate this problem, we developed 4 types of gym action space, following the architecture
+TO alleviate this problem, we developed 4 types of gymnasium action space, following the architecture
 detailed in subsection :ref:`base_gym_space_function`
 
 ===============================   ============================================================
 Converter name                    Objective
 ===============================   ============================================================
 :class:`BoxGymObsSpace`           Convert the observation space to a single "Box"
-:class:`BoxGymActSpace`           Convert a gym MultiBinary to a gym Tuple of gym Binary and a gym MultiDiscrete to a Tuple of Discrete
+:class:`BoxGymActSpace`           Convert a gymnasium MultiBinary to a gymnasium Tuple of gymnasium Binary and a gymnasium MultiDiscrete to a Tuple of Discrete
 :class:`MultiDiscreteActSpace`    Allows to scale (divide an attribute by something and subtract something from it)
-:class:`DiscreteActSpace`         Allows you to compute another "part" of the observation space (you add an information to the gym space)
+:class:`DiscreteActSpace`         Allows you to compute another "part" of the observation space (you add an information to the gymnasium space)
 ===============================   ============================================================
 
 They can all be used like:

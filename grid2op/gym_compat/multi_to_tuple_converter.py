@@ -63,7 +63,7 @@ class __AuxMultiToTupleConverter:
     We choose to encode some variable using `MultiBinary` variable in grid2op. This allows for easy
     manipulation of them if using these frameworks.
 
-    MultiBinary are encoded with gym Tuple of gym Discrete variables.
+    MultiBinary are encoded with gymnasium Tuple of gymnasium Discrete variables.
 
     .. warning::
         Depending on the presence absence of gymnasium and gym packages this class might behave differently.
@@ -113,7 +113,7 @@ class __AuxMultiToTupleConverter:
                 )
         else:
             raise RuntimeError(
-                "Impossible to convert a gym space of type {} to a Tuple (it should be of "
+                "Impossible to convert a gymnasium space of type {} to a Tuple (it should be of "
                 "type space.MultiBinary or space.MultiDiscrete)"
                 "".format(type(init_space))
             )
