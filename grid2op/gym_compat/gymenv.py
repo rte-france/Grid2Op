@@ -149,6 +149,8 @@ class __AuxGymEnv(Generic[ObsType, ActType]):
         g2op_obs, reward, terminated, info = self.init_env.step(g2op_act)
         gym_obs = self.observation_space.to_gym(g2op_obs)
         truncated = False # see https://github.com/openai/gym/pull/2752
+        if "exception" in info:
+            info["exception"] = [str(el) for el in info["exception"]]
         return gym_obs, float(reward), terminated, truncated, info
 
     def _aux_reset(self,
