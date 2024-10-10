@@ -76,10 +76,10 @@ An possible output will look like this:
 Render the state of the grid
 -----------------------------
 
-During the gym loop
-++++++++++++++++++++
+During the gymnasium loop
+++++++++++++++++++++++++++
 In Grid2Op we also made available the possibility to render the state of the grid that your agent sees before taking
-an action. This can be done with the provided environments following openAI gym interface like this:
+an action. This can be done with the provided environments following gymnasium interface like this:
 
 .. code-block:: python
 
@@ -104,7 +104,7 @@ significantly.
 
 Offline, after the scenarios were played
 ++++++++++++++++++++++++++++++++++++++++
-In Grid2Op, you can execute a :ref:`runner-module` to perform the "gym loops" and store the results
+In Grid2Op, you can execute a :ref:`runner-module` to perform the "gymnasium loops" and store the results
 in a standardized manner. Once stored, the results can be loaded back and "replayed" using the appropriate
 class. Here is how you can do this:
 

@@ -25,11 +25,11 @@ To get started with such an environment, you can simply do:
 You can consult the different notebooks in the `getting_stared` directory of this package for more information on
 how to use it.
 
-Created Environment should behave exactly like a gym environment. If you notice any unwanted behavior, please address
+Created Environment should behave exactly like a gymnasium environment. If you notice any unwanted behavior, please address
 an issue in the official grid2op repository: `Grid2Op <https://github.com/rte-france/Grid2Op>`_
 
-The environment created with this method should be fully compatible with the gym framework: if you are developing
-a new algorithm of "Reinforcement Learning" and you used the openai gym framework to do so, you can port your code
+The environment created with this method should be fully compatible with the gymnasium framework: if you are developing
+a new algorithm of "Reinforcement Learning" and you used the openai gymnasium framework to do so, you can port your code
 in a few minutes (basically this consists in adapting the input and output dimension of your BaseAgent) and make it work
 with a Grid2Op environment. An example of such modifications is exposed in the getting_started/ notebooks.
 
