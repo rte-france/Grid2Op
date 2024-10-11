@@ -357,7 +357,7 @@ class Multifolder(GridValue):
         id_sel = (self._order == selected).nonzero()[0]
         self._prev_cache_id = selected - 1
         return id_sel
-
+    
     def reset(self):
         """
         Rebuilt the :attr:`Multifolder._order`. This should be called after a call to :func:`Multifolder.set_filter`

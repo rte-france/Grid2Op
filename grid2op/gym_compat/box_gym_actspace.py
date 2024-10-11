@@ -43,7 +43,7 @@ POSSIBLE_KEYS = Literal["redispatch",
 
 class __AuxBoxGymActSpace:
     """
-    This class allows to convert a grid2op action space into a gym "Box" which is
+    This class allows to convert a grid2op action space into a gymnasium "Box" which is
     a regular Box in R^d.
 
     It also allows to customize which part of the action you want to use and offer capacity to
@@ -54,7 +54,7 @@ class __AuxBoxGymActSpace:
         this is not recommended at all to use it for discrete attribute (set_bus, change_bus, set_line_status or
         change_line_status) !
 
-        Basically, when doing action in gym for these attributes, this converter will involve rounding and
+        Basically, when doing action in gymnasium for these attributes, this converter will involve rounding and
         is definitely not the best representation. Prefer the :class:`MultiDiscreteActSpace` or
         the :class:`DiscreteActSpace` classes.
 
@@ -136,7 +136,7 @@ class __AuxBoxGymActSpace:
         gym_env =  GymEnv(env)
         gym_env.action_space = BoxGymActSpace(env.action_space)
         
-        obs = gym_env.reset()  # obs will be an OrderedDict (default, but you can customize it)
+        obs = gym_env.reset()  # obs will be an Dict (default, but you can customize it)
         
         # you can do a "do nothing" action
         act = np.zeros(gym_env.action_space.shape)
@@ -174,7 +174,7 @@ class __AuxBoxGymActSpace:
         env = grid2op.make(env_name)
 
         from grid2op.gym_compat import GymEnv
-        # this of course will not work... Replace "AGymSpace" with a normal gym space, like Dict, Box, MultiDiscrete etc.
+        # this of course will not work... Replace "AGymSpace" with a normal gymnasium space, like Dict, Box, MultiDiscrete etc.
         from gym.spaces import AGymSpace
         gym_env = GymEnv(env)
 
@@ -188,7 +188,7 @@ class __AuxBoxGymActSpace:
 
             def from_gym(self, gym_action):
                 # this is this very same function that you need to implement
-                # it should have this exact name, take only one action (member of your gym space) as input
+                # it should have this exact name, take only one action (member of your gymnasium space) as input
                 # and return a grid2op action
                 return TheGymAction_ConvertedTo_Grid2op_Action
                 # eg. return np.concatenate((obs.gen_p * 0.1, np.sqrt(obs.load_p))
@@ -461,7 +461,7 @@ class __AuxBoxGymActSpace:
                 shape = (shape[0] + shape_[0],)
 
             # handle low / high
-            # NB: the formula is: glop = gym * multiply + add                
+            # NB: the formula is: glop = gymnasium * multiply + add                
             if el in self._add:
                 low_ =  1.0 * low_.astype(dtype)
                 high_ =  1.0 * high_.astype(dtype)
@@ -543,7 +543,7 @@ class __AuxBoxGymActSpace:
         return res
 
     def get_indexes(self, key: POSSIBLE_KEYS) -> Tuple[int, int]:
-        """Allows to retrieve the indexes of the gym action that
+        """Allows to retrieve the indexes of the gymnasium action that
         are concerned by the attribute name `key` given in input.
 
         Parameters
@@ -587,14 +587,14 @@ class __AuxBoxGymActSpace:
         
     def from_gym(self, gym_act: np.ndarray) -> BaseAction:
         """
-        This is the function that is called to transform a gym action (in this case a numpy array!)
+        This is the function that is called to transform a gymnasium action (in this case a numpy array!)
         sent by the agent
         and convert it to a grid2op action that will be sent to the underlying grid2op environment.
 
         Parameters
         ----------
         gym_act: ``numpy.ndarray``
-            the gym action
+            the gymnasium action
 
         Returns
         -------

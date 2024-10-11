@@ -379,11 +379,26 @@ class Backend(GridObjects, ABC):
 
         TODO detailed topo: change of behaviour !
         
+            
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
             Prefer using :attr:`grid2op.Observation.BaseObservation.topo_vect`
 
         Get the topology vector from the :attr:`Backend._grid`.
+        
+        .. versionchanged:: 1.11.0
+        
+            **mainly for developer**
+            
+            In grid2op version 1.11.0 we introduced the support (for some environment)
+            for switches.  
+            
+            **IF** your backend expose the switches to grid2op, then you might
+            not need to implement this function. In this case (if you chose not
+            to implement it) then you must implement the :func:`Backend.get_switches_position`
+            and grid2op will compute the "topo_vect" (if required by the `Agent` or the `Rules`
+            using the :func:`grid2op.Space.DetailedTopoDescription.from_switches_position`
+            function, which might be slower than what you backend could do)
         
         .. note::
             It is called after the solver has been ran, only in case of success (convergence).

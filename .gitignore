@@ -416,6 +416,15 @@ getting_started/venv_310_ray/
 grid2op/tests/venv_test_autoclass/
 test_eduardo.py
 grid2op/tests/failed_test*
+grid2op/tests/ampl_from_iidm.py
+grid2op/tests/do_I_repeat.txt
+grid2op/tests/parse_res35_working.txt
+grid2op/tests/parse_res_35 (copie).txt
+grid2op/tests/parse_res_35.txt
+grid2op/tests/res_algo_topo_35.txt
+grid2op/tests/test_topo_ampl/
+grid2op/tests/test_topo_ampl2/
+venv_312
 
 # profiling files
 **.prof
