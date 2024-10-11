@@ -203,7 +203,7 @@ jobs:
     steps:
 
       - name: Checkout sources
-        uses: actions/checkout@v1
+        uses: actions/checkout@v3
         with:
           submodules: true
 
@@ -231,6 +231,65 @@ jobs:
       - name: Test the automatic generation of classes in the env folder
         run: |
           python -m unittest grid2op/tests/automatic_classes.py -f
+
+  detailed_topology:
+    name: Test detailed topology on ${{ matrix.config.name }}
+    runs-on: ${{ matrix.config.os }}
+    strategy:
+      matrix:
+        config:
+          # - {
+          #   name: darwin,
+          #   os: macos-latest,
+          # }
+          # - {
+          #   name: windows,
+          #   os: windows-2019,
+          # }
+          - { 
+            name: ubuntu,
+            os: ubuntu-latest,
+          }
+        python:
+          - {
+            name: cp39,
+            version: '3.9',
+          }  
+          - {
+            name: cp312,
+            version: '3.12',
+          }  
+
+    steps:
+
+      - name: Checkout sources
+        uses: actions/checkout@v3
+        with:
+          submodules: true
+
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python.version }}
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --upgrade wheel
+          python -m pip install --upgrade setuptools
+
+      - name: Build wheel
+        run: python setup.py bdist_wheel
+
+      - name: Install wheel
+        shell: bash
+        run: |
+          python -m pip install dist/*.whl --user
+          pip freeze
+
+      - name: Test the working of the detailed topo representation
+        run: |
+          python -m unittest grid2op/tests/indep_test_detailed_topo_extended.py -f
   
   package:
     name: Test install
