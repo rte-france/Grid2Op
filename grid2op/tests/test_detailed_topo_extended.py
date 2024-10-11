@@ -59,7 +59,7 @@ class TestComputeSwitchPosExt(unittest.TestCase):
     def test_cases(self):
         # for el in range(2, 22):
         for el in range(1, 222):
-            # print(f"test {el}")
+            print(f"test {el}")
             if el == 37:
                 # too long (all night)
                 continue

@@ -746,7 +746,7 @@ class DetailedTopoDescription(object):
         # then the other bbs (with possibly other element to other bus)
         cn_bbs_possible = list(cn_bbs_possible)
         def mysort(el):
-            tmp = conn_node_to_bus_id[el]
+            tmp = conn_node_to_bus_id[self._cn_pos_in_sub[el]]
             if tmp == my_bus:
                 return 1
             elif tmp == 0:
@@ -958,7 +958,8 @@ class DetailedTopoDescription(object):
         el_cn_id = all_pos[order_pos[main_obj_id]]
         el_cn_id_is = self._cn_pos_in_sub[el_cn_id]  # element connectivity node id, in the substation
         my_bus = topo_vect[self.conn_node_to_topovect_id[el_cn_id]]
-        cn_bbs_possible = self._conn_node_to_bbs_conn_node_id[el_cn_id]
+        cn_bbs_possible = np.array(list(self._conn_node_to_bbs_conn_node_id[el_cn_id]))
+        # cn_bbs_possible_is = self._cn_pos_in_sub[cn_bbs_possible]
 
         # check that I have enough remaining busbars to affect other buses
         cn_bbs_for_check = conn_node_to_bus_id[bbs_cn_this_sub]
@@ -1199,9 +1200,11 @@ class DetailedTopoDescription(object):
                             nn_conn_node_visited[cns_tmp[0]] = True
                             nn_conn_node_to_bus_id[cns_tmp[0]] = my_bus 
                             
-                            this_topo_vect = nn_conn_node_to_bus_id[all_pos]
+                            this_topo_vect = nn_conn_node_to_bus_id[self._cn_pos_in_sub[all_pos]]
+                            this_sub_tgt_topo_vect = topo_vect[self.conn_node_to_topovect_id[all_pos]]
                             assigned_this = this_topo_vect != 0
-                            if (this_topo_vect[assigned_this] != topo_vect[assigned_this]).any():
+                            tmp_for_check = this_topo_vect[assigned_this] != this_sub_tgt_topo_vect[assigned_this]
+                            if tmp_for_check.any():
                                 # solving the constraints would for sure create a problem
                                 # as one element would not be assigned to the right bus
                                 is_working = False
