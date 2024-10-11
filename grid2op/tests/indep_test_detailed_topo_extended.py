@@ -10,7 +10,9 @@ import os
 import cProfile
 import unittest
 import numpy as np
-from test_compute_switch_pos import AuxTestComputeSwitchPos
+from grid2op.tests.helper_path_test import *
+
+from grid2op.tests.test_compute_switch_pos import AuxTestComputeSwitchPos
 
 
 CPROF = False
