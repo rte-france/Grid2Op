@@ -60,23 +60,23 @@ class TestNewReset(unittest.TestCase):
     def test_gym_env(self):
         gym_env = GymEnv(self.env)
         
-        # original way
-        gym_env.init_env.set_id(0)
-        gym_env.init_env.seed(0)
-        obs, *_ = gym_env.reset()
+        # original way (deprecated)
+        # gym_env.init_env.set_id(0)
+        # gym_env.init_env.seed(0)
+        # obs, info = gym_env.reset()
         
         # test with seed in reset
         gym_env.init_env.set_id(0)
-        obs_seed, *_ = gym_env.reset(seed=0)
+        obs_seed, info_seed = gym_env.reset(seed=0)
         
         # test with ts_id in reset
         gym_env.init_env.seed(0)
-        obs_ts, *_ = gym_env.reset(options={"time serie id": 0})
+        obs_ts, info_ts = gym_env.reset(options={"time serie id": 0})
         
         # test with both
-        obs_both, *_ = gym_env.reset(seed=0, options={"time serie id": 0})
+        obs_both, info_both = gym_env.reset(seed=0, options={"time serie id": 0})
 
-        self._aux_obs_equals(obs_seed, obs)
-        self._aux_obs_equals(obs_ts, obs)
-        self._aux_obs_equals(obs_both, obs)
+        # self._aux_obs_equals(obs_seed, obs)
+        self._aux_obs_equals(obs_ts, obs_seed)
+        self._aux_obs_equals(obs_both, obs_seed)
         

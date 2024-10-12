@@ -97,7 +97,7 @@ class __AuxContinuousToDiscreteConverter:
     def initialize_space(self, init_space):
         if not isinstance(init_space, type(self)._BoxType):
             raise RuntimeError(
-                "Impossible to convert a gym space of type {} to a discrete space"
+                "Impossible to convert a gymnasium space of type {} to a discrete space"
                 " (it should be of "
                 "type space.Box)"
                 "".format(type(init_space))

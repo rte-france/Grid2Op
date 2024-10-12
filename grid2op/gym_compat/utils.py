@@ -36,6 +36,16 @@ except ImportError:
     from typing import TypeVar
     ObsType = TypeVar("ObsType")
     ActType = TypeVar("ActType")
+
+
+if GYMNASIUM_AVAILABLE:
+    from gymnasium.spaces import Dict as DictType
+elif GYM_AVAILABLE:
+    from gym.spaces import Dict as DictType
+else:
+    from typing import TypeVar
+    DictType = TypeVar("Dict")
+   
     
 _MIN_GYM_VERSION = version.parse("0.17.2")
 # this is the last gym version to use the "old" numpy prng

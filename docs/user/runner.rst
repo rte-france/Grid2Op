@@ -13,7 +13,7 @@ Objectives
 The runner class aims at:
 
 i) facilitate the evaluation of the performance of :class:`grid2op.Agent` by performing automatically the
-   "open ai gym loop" (see below)
+   "gymnasium loop" (see below)
 ii) define a format to store the results of the evaluation of such agent in a standardized manner
 iii) this "agent logs" can then be re read by third party applications, such as
      `grid2viz <https://github.com/mjothy/grid2viz>`_ or by internal class to ease the study of the behaviour of
@@ -21,7 +21,7 @@ iii) this "agent logs" can then be re read by third party applications, such as
      :class:`grid2op.Episode.EpisodeReplay`
 iv) allow easy use of parallelization of this assessment.
 
-Basically, the runner simplifies the assessment of the performance of some agent. This is the "usual" gym code to run
+Basically, the runner simplifies the assessment of the performance of some agent. This is the "usual" gymnasium code to run
 an agent:
 
 .. code-block:: python

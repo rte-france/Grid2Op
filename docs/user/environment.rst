@@ -32,7 +32,7 @@ In this section we present some way to use the :class:`Environment` class.
 
 Basic Usage
 ++++++++++++
-This example is adapted from gym documentation available at
+This example is adapted from gymnasium documentation available at
 `gym random_agent.py <https://github.com/openai/gym/blob/master/examples/agents/random_agent.py>`_ ):
 
 .. code-block:: python
