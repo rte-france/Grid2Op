@@ -18,7 +18,7 @@ from grid2op.tests.helper_path_test import *
 from grid2op.Action import PlayableAction
 
 from grid2op.gym_compat import GymActionSpace, GymObservationSpace
-from grid2op.gym_compat import GymEnv
+from grid2op.gym_compat import GymEnv  # TODO GYMENV
 from grid2op.gym_compat import ContinuousToDiscreteConverter
 from grid2op.gym_compat import ScalerAttrConverter
 from grid2op.gym_compat import MultiToTupleConverter

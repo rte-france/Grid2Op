@@ -14,6 +14,7 @@ jobs:
     container: quay.io/pypa/manylinux2014_x86_64
     env:
       ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+      GHA_USE_NODE_20: false
     strategy:
       matrix:
         python:
@@ -42,11 +43,16 @@ jobs:
             abi: cp312,
             version: '3.12',
           }
+          # - {
+          #   name: cp313,   # issue with pandapower atm
+          #   abi: cp313,
+          #   version: '3.13',
+          # }
 
     steps:
 
       - name: Checkout sources
-        uses: actions/checkout@v1
+        uses: actions/checkout@v3
         with:
           submodules: true
 
@@ -120,11 +126,15 @@ jobs:
             name: cp312,
             version: '3.12',
           }
+          # - {  # issue with pandapower atm
+          #   name: cp313,
+          #   version: '3.13',
+          # }
 
     steps:
 
       - name: Checkout sources
-        uses: actions/checkout@v1
+        uses: actions/checkout@v3
         with:
           submodules: true
 
@@ -159,13 +169,13 @@ jobs:
         run: python setup.py sdist
 
       - name: Upload wheel
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: grid2op-wheel-${{ matrix.config.name }}-${{ matrix.python.name }}
           path: dist/*.whl
 
       - name: Upload source archive
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         if: matrix.config.name == 'darwin' && matrix.python.name == 'cp310'
         with:
           name: grid2op-sources
@@ -202,7 +212,7 @@ jobs:
     steps:
 
       - name: Checkout sources
-        uses: actions/checkout@v1
+        uses: actions/checkout@v3
         with:
           submodules: true
 
@@ -238,12 +248,12 @@ jobs:
 
     steps:
       - name: Download wheels
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           path: download
 
       - name: Upload wheels
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: grid2op-wheels
           path: |

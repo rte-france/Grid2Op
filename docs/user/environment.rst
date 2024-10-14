@@ -32,7 +32,7 @@ In this section we present some way to use the :class:`Environment` class.
 
 Basic Usage
 ++++++++++++
-This example is adapted from gym documentation available at
+This example is adapted from gymnasium documentation available at
 `gym random_agent.py <https://github.com/openai/gym/blob/master/examples/agents/random_agent.py>`_ ):
 
 .. code-block:: python
@@ -84,7 +84,7 @@ What happens here is the following:
 You might want to customize this general behaviour in multiple way:
 
 - you might want to study only one chronics (equivalent to only one level of a video game)
-  see `Study always the same chronics`_
+  see `Study always the same time serie`_
 - you might want to loop through the chronics, but not always in the same order. If that is the case
   you might want to consult the section `Shuffle the chronics order`_
 - you might also have spotted some chronics that have bad properties. In this case, you can
@@ -151,10 +151,10 @@ Feel free to consult the documentation of the :func:`Environment.reset` function
 for more information (this doc might be outdated, the one of the function should 
 be more up to date with the code).
 
-.. info::
+.. note::
     In the near future (next few releases) we will also attempt to make the 
-    customization of the `parameters` or the `skip number of steps`, `maximum duration 
-    of the scenarios` also available in `env.reset()` options.
+    customization of the `parameters` or the `skip number of steps`, 
+    `maximum duration of the scenarios` also available in `env.reset()` options.
 
 .. _environment-module-chronics-info:
 

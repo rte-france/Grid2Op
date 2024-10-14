@@ -21,26 +21,26 @@
 .. _line_or_pos_topo_vect: ./space.html#grid2op.Space.GridObjects.line_or_pos_topo_vect
 .. _line_ex_pos_topo_vect: ./space.html#grid2op.Space.GridObjects.line_ex_pos_topo_vect
 
-.. |5subs_grid_layout| image:: ./img/5subs_grid_layout.jpg
-.. |5subs_grid_1_sub| image:: ./img/5subs_grid_1_sub.jpg
-.. |5subs_grid_2_loads| image:: ./img/5subs_grid_2_loads.jpg
-.. |5subs_grid_3_gens| image:: ./img/5subs_grid_3_gens.jpg
-.. |5subs_grid_4_lines| image:: ./img/5subs_grid_4_lines.jpg
-.. |5subs_grid_5_obj_in_sub| image:: ./img/5subs_grid_5_obj_in_sub.jpg
-.. |5subs_grid_layout_with_repr| image:: ./img/5subs_grid_layout_with_repr.jpg
-.. |5subs_grid_n_el| image:: ./img/5subs_grid_n_el.jpg
-.. |5subs_grid_5_sub_i| image:: ./img/5subs_grid_5_sub_i.jpg
-.. |5subs_grid_load_to_subid| image:: ./img/5subs_grid_load_to_subid.jpg
-.. |5subs_grid_el_to_subid| image:: ./img/5subs_grid_el_to_subid.jpg
-.. |5subs_grid_sub0| image:: ./img/5subs_grid_sub0.jpg
-.. |5subs_grid_sub0_final| image:: ./img/5subs_grid_sub0_final.jpg
-.. |5subs_grid_sub1_final| image:: ./img/5subs_grid_sub1_final.jpg
-.. |5subs_grid_loads_info| image:: ./img/5subs_grid_loads_info.jpg
-.. |5subs_grid_sub1_topo| image:: ./img/5subs_grid_sub1_topo.jpg
-.. |5subs_grid_sub1_2_topo| image:: ./img/5subs_grid_sub1_2_topo.jpg
-.. |5subs_grid_suball_topo| image:: ./img/5subs_grid_suball_topo.jpg
-.. |5subs_grid_ex_disco| image:: ./img/5subs_grid_ex_disco.jpg
-.. |5subs_grid_ex_2buses| image:: ./img/5subs_grid_ex_2buses.jpg
+.. |5subs_grid_layout| image:: ../img/5subs_grid_layout.jpg
+.. |5subs_grid_1_sub| image:: ../img/5subs_grid_1_sub.jpg
+.. |5subs_grid_2_loads| image:: ../img/5subs_grid_2_loads.jpg
+.. |5subs_grid_3_gens| image:: ../img/5subs_grid_3_gens.jpg
+.. |5subs_grid_4_lines| image:: ../img/5subs_grid_4_lines.jpg
+.. |5subs_grid_5_obj_in_sub| image:: ../img/5subs_grid_5_obj_in_sub.jpg
+.. |5subs_grid_layout_with_repr| image:: ../img/5subs_grid_layout_with_repr.jpg
+.. |5subs_grid_n_el| image:: ../img/5subs_grid_n_el.jpg
+.. |5subs_grid_5_sub_i| image:: ../img/5subs_grid_5_sub_i.jpg
+.. |5subs_grid_load_to_subid| image:: ../img/5subs_grid_load_to_subid.jpg
+.. |5subs_grid_el_to_subid| image:: ../img/5subs_grid_el_to_subid.jpg
+.. |5subs_grid_sub0| image:: ../img/5subs_grid_sub0.jpg
+.. |5subs_grid_sub0_final| image:: ../img/5subs_grid_sub0_final.jpg
+.. |5subs_grid_sub1_final| image:: ../img/5subs_grid_sub1_final.jpg
+.. |5subs_grid_loads_info| image:: ../img/5subs_grid_loads_info.jpg
+.. |5subs_grid_sub1_topo| image:: ../img/5subs_grid_sub1_topo.jpg
+.. |5subs_grid_sub1_2_topo| image:: ../img/5subs_grid_sub1_2_topo.jpg
+.. |5subs_grid_suball_topo| image:: ../img/5subs_grid_suball_topo.jpg
+.. |5subs_grid_ex_disco| image:: ../img/5subs_grid_ex_disco.jpg
+.. |5subs_grid_ex_2buses| image:: ../img/5subs_grid_ex_2buses.jpg
 
 .. _create-backend-module:
 
@@ -689,7 +689,8 @@ These functions can be used in the following manner:
 
 And of course you do the same for generators and both ends of each powerline.
 
-.. note:: About powerline, grid2op adopts the following convention: a powerline **cannot** be connected on one side
+.. note:: 
+    About powerline, grid2op adopts the following convention: a powerline **cannot** be connected on one side
     and disconnected on the other.
 
     That being said, it's still possible to connect the extremity of a powerline "alone" on a busbar, which will have
@@ -697,7 +698,7 @@ And of course you do the same for generators and both ends of each powerline.
 
 .. _vector-orders-create-backend:
 
-***_infos() : Read back the results (flows, voltages etc.)
+\*\*\*_infos() : Read back the results (flows, voltages etc.)
 --------------------------------------------------------------
 This last "technical" part concerns what can be refer to as "getters" from the backend. These functions allow to
 read back the state of the grid and expose its results to grid2op in a standardize manner.

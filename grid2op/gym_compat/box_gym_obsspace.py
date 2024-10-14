@@ -87,7 +87,7 @@ ALL_ATTR_OBS = (
 
 class __AuxBoxGymObsSpace:
     """
-    This class allows to convert a grid2op observation space into a gym "Box" which is
+    This class allows to convert a grid2op observation space into a gymnasium "Box" which is
     a regular Box in R^d.
 
     It also allows to customize which part of the observation you want to use and offer capacity to
@@ -138,7 +138,7 @@ class __AuxBoxGymObsSpace:
                                                    attr_to_keep=['load_p', "gen_p", "rho])
 
     You can also apply some basic transformation to the attribute of the observation before building
-    the resulting gym observation (which in this case is a vector). This can be done with:
+    the resulting gymnasium observation (which in this case is a vector). This can be done with:
 
     .. code-block:: python
 
@@ -788,7 +788,7 @@ class __AuxBoxGymObsSpace:
     def to_gym(self, grid2op_observation):
         """
         This is the function that is called to transform a grid2Op observation, sent by the grid2op environment
-        and convert it to a numpy array (an element of a gym Box)
+        and convert it to a numpy array (an element of a gymnasium Box)
 
         Parameters
         ----------
@@ -798,7 +798,7 @@ class __AuxBoxGymObsSpace:
         Returns
         -------
         res: :class:`numpy.ndarray`
-            A numpy array compatible with the openAI gym Box that represents the action space.
+            A numpy array compatible with the openAI gymnasium Box that represents the action space.
 
         """
         res = np.empty(shape=self.shape, dtype=self.dtype)
@@ -818,7 +818,7 @@ class __AuxBoxGymObsSpace:
         pass
 
     def get_indexes(self, key: str) -> Tuple[int, int]:
-        """Allows to retrieve the indexes of the gym action that
+        """Allows to retrieve the indexes of the gymnasium action that
         are concerned by the attribute name `key` given in input.
 
         .. versionadded:: 1.9.3

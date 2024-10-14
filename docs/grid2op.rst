@@ -26,7 +26,8 @@ competitions.
 This platform is still under development. If you notice a bug, let us know with a github issue at
 `Grid2Op <https://github.com/rte-france/Grid2Op>`_
 
-.. note:: Grid2op do not model any object on the powergrid. It has no internal modeling of the equations of the
+.. note:: 
+    Grid2op do not model any object on the powergrid. It has no internal modeling of the equations of the
     grids, or what kind of solver you need to adopt.
 
     On the other hand, grid2op aims at representing the grid in a relatively "high level" point of view: it knows
@@ -43,6 +44,7 @@ This platform is still under development. If you notice a bug, let us know with 
 
 Objectives
 -----------
+
 The primary goal of grid2op is to model decision making process in power systems. Indeed, we believe that developing
 new flexibilities on the grid would make the
 "energy transition" an easier, less costly process.
@@ -72,7 +74,8 @@ Though grid2op has been primarily developed for the L2RPN competitions series, i
 can also help developing and benchmarking new powerflow solvers for example.
 
 Controlling the grid
---------------------
+---------------------
+
 Modeling all what happens in the powergrid would be an extremely difficult task. Grid2op focusing on controls
 that could be done today by a human (happening with **a frequency of approximately the minute**). It does not
 aim at simulation really high frequency control that are often automatic today. That being said, such controls
@@ -107,8 +110,10 @@ Other "flexibilities" (ways to act on the grid) are coming soon (-:
     solver uses some physical laws to compute these "weights" from the amount of power produced / absorbed in
     different part of the grid where generators and loads are connected).
 
+
 What is modeled in an grid2op environment
------------------------------------------
+------------------------------------------
+
 The simulator is able to emulate a power grid (of any size or characteristics) subject to a set of
 temporal injections (productions and consumptions) or maintenance / hazards for discretized
 time-steps (usually there is the equivalent of *5* minutes between two consective steps).
@@ -216,7 +221,8 @@ Module Name                    Main usage
 =============================  =========================================================================================
 
 Properties of this environments
--------------------------------
+--------------------------------
+
 The grid2op environments have multiple shared properties:
 
 - highly constrained environments: these environments obey physical laws. You cannot directly choose how much
@@ -398,7 +404,7 @@ If it fails between "now" and "12 steps from now" reward associated with alert w
 negative (this is the situation where the agent should have told the human operator "help me").
 
 
-Let's replay again (again ?) the same scenario again: same attack, same everything:
+Let's replay again (again ?) the same scenario: same attack, same everything:
 
 .. code-block:: python
 
@@ -457,7 +463,8 @@ that are available, without any installation thanks to
 `Binder <https://mybinder.org/v2/gh/rte-france/Grid2Op/master>`_ . Feel free to visit the "getting_started" page for
 more information and a detailed tour about the issue that grid2op tries to address.
 
-.. note:: As of writing (december 2020) most of these notebooks focus on the "agent" part of grid2op. We would welcome
+.. note:: 
+    As of writing (december 2020) most of these notebooks focus on the "agent" part of grid2op. We would welcome
     any contribution to better explain the other aspect of this platform.
 
 .. include:: final.rst

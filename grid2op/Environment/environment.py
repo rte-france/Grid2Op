@@ -1070,7 +1070,7 @@ class Environment(BaseEnv):
             episode by calling `env.reset(seed=..., options={"time serie id": ...})`
 
         Before version 1.9.8, if you wanted to use a fixed seed, you would need to (see 
-        doc of :func:`Environment.seed` ):
+        doc of :func:`grid2op.Environment.BaseEnv.seed` ):
         
         .. code-block:: python
 
@@ -1114,9 +1114,9 @@ class Environment(BaseEnv):
         the reset function. The value associated to this key should be dictionnary that can be
         converted to a non ambiguous grid2op action using an "action space".
         
-        .. notes::
+        .. note::
             The "action space" used here is not the action space of the agent. It's an "action
-            space" that uses a :grid2op:`Action.Action.BaseAction` class meaning you can do any
+            space" that uses a :func:`grid2op.Action.Action.BaseAction` class meaning you can do any
             type of action, on shunts, on topology, on line status etc. even if the agent is not
             allowed to.
             
@@ -1147,6 +1147,7 @@ class Environment(BaseEnv):
             
             Another example in this case: if the action you provide would change topology of substation 2 and 4
             then the initial state (after `env.reset`) will give:
+            
             - substation 1 as in the time serie
             - substation 2 as in "options"
             - substation 4 as in "options"

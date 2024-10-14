@@ -8,7 +8,7 @@ Model Free Reinforcement Learning
 
 See some example in "l2rpn-baselines" package for now !
 
-The main idea is first to convert the grid2op environment to a gym environment, for example using :ref:`openai-gym`.
+The main idea is first to convert the grid2op environment to a gymnasium environment, for example using :ref:`openai-gym`.
 And then use some libaries available, 
 for example `Stable Baselines <https://stable-baselines3.readthedocs.io/en/master/>`_ or
 `RLLIB <https://docs.ray.io/en/latest/rllib/index.html>`_
