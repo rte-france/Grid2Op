@@ -49,4 +49,7 @@ get in touch with the team)
 Code in the contribution should pass all the current tests, have some dedicated tests for the new feature (if applicable)
 and documentation (if applicable).
 
+If you contribute to some grid2op notebooks, please make sure to "clear all outputs"
+before making the pull request.
+
 New contributions should respect the "**Code of Conduct**" of grid2op.
