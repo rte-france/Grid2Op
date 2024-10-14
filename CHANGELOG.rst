@@ -66,7 +66,7 @@ Next release
 - TODO work on the reward class (see https://github.com/rte-france/Grid2Op/issues/584)
 
 
-[1.10.4] - 2024-xx-yy
+[1.10.4] - 2024-10-14
 -------------------------
 - [FIXED] an issue in the backend: if the backend failed to be
   created the `_grid` attribute was set to `None` and not set back to
@@ -83,6 +83,7 @@ Next release
   in the readme)
 - [ADDED] numpy 2 support (now that pandapower allows it)
 - [IMPROVED] error message when forecasts are not correctly set-up
+
 
 [1.10.3] - 2024-07-12
 -------------------------
