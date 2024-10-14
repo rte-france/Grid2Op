@@ -101,6 +101,7 @@ The file `~/.grid2opconfig.json` can look like:
     }
 
 or 
+
 .. code-block:: json
 
     {

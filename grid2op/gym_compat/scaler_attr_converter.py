@@ -15,7 +15,7 @@ from grid2op.gym_compat.utils import GYM_AVAILABLE, GYMNASIUM_AVAILABLE
 
 class __AuxScalerAttrConverter:
     """
-    This is a scaler that transforms a initial gym space `init_space` into its scale version.
+    This is a scaler that transforms a initial gymnasium space `init_space` into its scale version.
 
     It can be use to scale the observation by substracting the mean and dividing by the variance for
     example.

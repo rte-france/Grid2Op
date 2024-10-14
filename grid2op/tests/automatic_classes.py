@@ -29,11 +29,11 @@ from grid2op.Environment import (Environment,
                                  SingleEnvMultiProcess,
                                  MultiMixEnvironment)
 from grid2op.Exceptions import NoForecastAvailable
-from grid2op.gym_compat import (GymEnv,
-                                BoxGymActSpace,
+from grid2op.gym_compat import (BoxGymActSpace,
                                 BoxGymObsSpace,
                                 DiscreteActSpace,
                                 MultiDiscreteActSpace)
+from grid2op.gym_compat import GymEnv # TODO GYMENV
 
 # TODO test the runner saved classes and reload
 

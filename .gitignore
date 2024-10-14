@@ -416,6 +416,7 @@ getting_started/venv_310_ray/
 grid2op/tests/venv_test_autoclass/
 test_eduardo.py
 grid2op/tests/failed_test*
+venv_312
 
 # profiling files
 **.prof

@@ -97,6 +97,7 @@ class BaseTestLoadingCase(MakeBackend):
         return "test_case14.json"
     
     def test_load_file(self):
+        self.skip_if_needed()
         backend = self.make_backend_with_glue_code()
         path_matpower = self.get_path()
         case_file = self.get_casefile()

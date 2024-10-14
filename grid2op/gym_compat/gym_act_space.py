@@ -6,7 +6,6 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-from collections import OrderedDict
 import warnings
 import numpy as np
 
@@ -18,20 +17,20 @@ from grid2op.Environment import (
 from grid2op.Action import BaseAction, ActionSpace
 from grid2op.dtypes import dt_int, dt_bool, dt_float
 from grid2op.Converter.Converters import Converter
-from grid2op.gym_compat.utils import GYM_AVAILABLE, GYMNASIUM_AVAILABLE, ActType
+from grid2op.gym_compat.utils import GYM_AVAILABLE, GYMNASIUM_AVAILABLE, DictType
 
 
 class __AuxGymActionSpace:
     """
-    This class enables the conversion of the action space into a gym "space".
+    This class enables the conversion of the action space into a gymnasium "space".
 
     Resulting action space will be a :class:`gym.spaces.Dict`.
 
-    **NB** it is NOT recommended to use the sample of the gym action space. Please use the sampling (
+    **NB** it is NOT recommended to use the sample of the gymnasium action space. Please use the sampling (
     if availabe) of the original action space instead [if not available this means there is no
     implemented way to generate reliable random action]
 
-    **Note** that gym space converted with this class should be seeded independently. It is NOT seeded
+    **Note** that gymnasium space converted with this class should be seeded independently. It is NOT seeded
     when calling :func:`grid2op.Environment.Environment.seed`.
 
     .. warning::
@@ -51,7 +50,7 @@ class __AuxGymActionSpace:
         See :ref:`gymnasium_gym` for more information
     
     .. note::
-        A gymnasium Dict is encoded as a OrderedDict (`from collection import OrderedDict`)
+        A gymnasium Dict can be encoded as a OrderedDict (`from collection import OrderedDict`)
         see the example section for more information.
         
     Examples
@@ -69,7 +68,7 @@ class __AuxGymActionSpace:
         env = grid2op.make(env_name)
         gym_env =  GymEnv(env)
         
-        obs = gym_env.reset()  # obs will be an OrderedDict (default, but you can customize it)
+        obs = gym_env.reset()  # obs will be an Dict (default, but you can customize it)
         
         # is equivalent to "do nothing"
         act = {}  
@@ -151,7 +150,7 @@ class __AuxGymActionSpace:
         
         # TODO Make sure it works well !
         if converter is not None and isinstance(converter, Converter):
-            # a converter allows to ... convert the data so they have specific gym space
+            # a converter allows to ... convert the data so they have specific gymnasium space
             # self.initial_act_space = converter
             self._converter = converter
             self._template_act = converter.init_action_space()
@@ -159,7 +158,7 @@ class __AuxGymActionSpace:
             self.__is_converter = True
         elif converter is not None:
             raise RuntimeError(
-                'Impossible to initialize a gym action space with a converter of type "{}" '
+                'Impossible to initialize a gymnasium action space with a converter of type "{}" '
                 "A converter should inherit from grid2op.Converter".format(
                     type(converter)
                 )
@@ -246,7 +245,7 @@ class __AuxGymActionSpace:
             self._template_act.dtypes()
         ):
             if sh == 0:
-                # do not add "empty" (=0 dimension) arrays to gym otherwise it crashes
+                # do not add "empty" (=0 dimension) arrays to gymnasium otherwise it crashes
                 continue
             my_type = None
             shape = (sh,)
@@ -312,14 +311,14 @@ class __AuxGymActionSpace:
             res[self.keys_grid2op_2_human[k]] = v
         return res
 
-    def from_gym(self, gymlike_action: OrderedDict) -> object:
+    def from_gym(self, gymlike_action: DictType) -> object:
         """
         Transform a gym-like action (such as the output of "sample()") into a grid2op action
 
         Parameters
         ----------
-        gymlike_action: :class:`gym.spaces.dict.OrderedDict`
-            The action, represented as a gym action (ordered dict)
+        gymlike_action: :class:`gym.spaces.dict.Dict`
+            The action, represented as a gymnasium action (ordered dict)
 
         Returns
         -------
@@ -343,9 +342,9 @@ class __AuxGymActionSpace:
                 res._assign_attr_from_name(internal_k, tmp)
         return res
 
-    def to_gym(self, action: object) -> OrderedDict:
+    def to_gym(self, action: object) -> DictType:
         """
-        Transform an action (non gym) into an action compatible with the gym Space.
+        Transform an action (non gymnasium) into an action compatible with the gymnasium Space.
 
         Parameters
         ----------
@@ -355,7 +354,7 @@ class __AuxGymActionSpace:
         Returns
         -------
         gym_action:
-            The same action converted as a OrderedDict (default used by gym in case of action space
+            The same action converted as a Dict (default used by gymnasium in case of action space
             being Dict)
 
         """

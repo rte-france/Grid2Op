@@ -88,7 +88,7 @@ that are available, without any installation thanks to
 `Binder <https://mybinder.org/v2/gh/rte-france/Grid2Op/master>`_ . Feel free to visit the "getting_started" page for
 more information and a detailed tour about the issue that grid2op tries to address.
 
-The most basic code, for those familiar with openAI gym (a well-known framework in reinforcement learning) is:
+The most basic code, for those familiar with gymnasium (a well-known framework in reinforcement learning) is:
 
 .. code-block:: python
 
@@ -101,7 +101,7 @@ The most basic code, for those familiar with openAI gym (a well-known framework 
     from grid2op.Agent import RandomAgent
     my_agent = RandomAgent(env.action_space)
 
-    # proceed as you would any open ai gym loop
+    # proceed as you would any gymnasium loop
     nb_episode = 10
     for _ in range(nb_episode):
         # you perform in this case 10 different episodes
@@ -115,9 +115,9 @@ The most basic code, for those familiar with openAI gym (a well-known framework 
             act = my_agent.act(obs, reward, done)
             obs, reward, done, info = env.step(act)
 
-.. warning:: Grid2Op environments implements the interface of defined by openAI gym environment, but they don't
-    inherit from them. You can use the Grid2Op environment as you would any Gym environment but they are
-    not strictly speaking gym environment.
+.. warning:: Grid2Op environments implements the interface of defined by gymnasium environment, but they don't
+    inherit from them. You can use the Grid2Op environment as you would any gymnasium environment but they are
+    not strictly speaking gymnasium environment.
 
     To make the use of grid2op alongside grid2op environment easier, we developed a module described in
     :ref:`openai-gym`.

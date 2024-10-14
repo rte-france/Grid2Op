@@ -30,7 +30,7 @@ class FromMultiEpisodeData(GridValue):
     It is an extension of the class :class:`FromOneEpisodeData` but with multiple episodes.
     
     .. seealso::
-        :class:`grid2op.Chronics.FromOneEpisodeData`if you want to use only one episode
+        :class:`grid2op.Chronics.FromOneEpisodeData` if you want to use only one episode
         
     .. warning::
         It has the same limitation as :class:`grid2op.Chronics.FromOneEpisodeData`, including:
