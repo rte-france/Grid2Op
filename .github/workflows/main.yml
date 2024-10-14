@@ -43,6 +43,11 @@ jobs:
             abi: cp312,
             version: '3.12',
           }
+          - {
+            name: cp313,
+            abi: cp313,
+            version: '3.13',
+          }
 
     steps:
 
@@ -120,6 +125,10 @@ jobs:
           - {
             name: cp312,
             version: '3.12',
+          }
+          - {
+            name: cp313,
+            version: '3.13',
           }
 
     steps:
