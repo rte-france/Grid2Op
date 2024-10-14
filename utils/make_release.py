@@ -197,10 +197,10 @@ if __name__ == "__main__":
             start_subprocess_print(["git", "add", f'{os.path.join(PATH_PREVIOUS_RUNNER, f"res_agent_{version}")}/*'])
 
         # Commit
-        start_subprocess_print(["git", "commit", "-m", "Release v{}".format(version)])
+        start_subprocess_print(["git", "commit", "-S", "-m", "Release v{}".format(version)])
         if not is_prerelease:
             # Create a new git tag
-            start_subprocess_print(["git", "tag", "-a", "v{}".format(version), "-m", "Release v{}".format(version)])
+            start_subprocess_print(["git", "tag", "-s", "-a", "v{}".format(version), "-m", "Release v{}".format(version)])
 
     if is_prerelease:
         print("Please push changes: 'git push'")
@@ -227,4 +227,3 @@ if __name__ == "__main__":
                            path=path,
                            docker_versions=[version, "latest"],
                            docker_tags=["--no-cache"])
-
