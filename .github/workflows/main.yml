@@ -43,11 +43,11 @@ jobs:
             abi: cp312,
             version: '3.12',
           }
-          - {
-            name: cp313,
-            abi: cp313,
-            version: '3.13',
-          }
+          # - {
+          #   name: cp313,   # issue with pandapower atm
+          #   abi: cp313,
+          #   version: '3.13',
+          # }
 
     steps:
 
@@ -126,10 +126,10 @@ jobs:
             name: cp312,
             version: '3.12',
           }
-          - {
-            name: cp313,
-            version: '3.13',
-          }
+          # - {  # issue with pandapower atm
+          #   name: cp313,
+          #   version: '3.13',
+          # }
 
     steps:
 
