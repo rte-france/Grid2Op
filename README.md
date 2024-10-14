@@ -262,6 +262,11 @@ For example, the  "getting started" notebooks referenced some pages of the help.
 
 ## Contributing
 
+Please consult the "CONTRIBUTING.md" file for extra information. This is a summary and
+in case of conflicting instructions, follow the one given in the `CONTRIBUTING.md` file
+and discard these ones.
+
+
 We welcome contributions from everyone. They can take the form of pull requests for smaller changed.
 In case of a major change (or if you have a doubt on what is "a small change"), please open an issue first
 to discuss what you would like to change.

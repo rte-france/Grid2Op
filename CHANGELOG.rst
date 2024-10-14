@@ -77,6 +77,11 @@ Next release
   instead of raising a warning.
 - [FIXED] some issue with gym_compat module for "newest" version of 
   gymnasium (1.0.0)
+- [FIXED] github ci (v1 and v2 artifact are now deprecated)
+- [ADDED] a code of conduct from github
+- [ADDED] a "CONTRIBUTING.md" files (instead of having contribution instructions 
+  in the readme)
+- [ADDED] numpy 2 support (now that pandapower allows it)
 - [IMPROVED] error message when forecasts are not correctly set-up
 
 [1.10.3] - 2024-07-12
