@@ -3,7 +3,6 @@ Work "in progress"
 
 General grid2op improvments:
 
-- numpy 2 compat (need pandapower for that)
 - remove pandapower dependency (have a way to install grid2op without pandapower)
 - better logging
 - have functions that automatically computes topo_vect and switch_state in the backend 
