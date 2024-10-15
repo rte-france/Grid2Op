@@ -27,7 +27,7 @@ class ConnectivityConverter(Converter):
     working.
 
     It can not yet be converted to / from gym space. If this feature is interesting for you, you can
-    reply to the issue posted at https://github.com/rte-france/Grid2Op/issues/16
+    reply to the issue posted at https://github.com/Grid2Op/grid2op/issues/16
 
     **NB** compare to :class:`IdToAct` this converter allows for a smaller size. If you have N elements connected at
     a substation, you end up with `N*(N-1)/2` different action. Compare to IdToAct though, it is expected that your

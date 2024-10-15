@@ -228,7 +228,7 @@ Anyway, assuming you created your environment in  `EXAMPLE_FOLDER` (remember, in
 
     We tried our best to display useful error messages if the environment is not loading properly. If you experience
     any trouble at this stage, feel free to post a github issue on the official grid2op repository
-    https://github.com/rte-france/grid2op/issues (you might need to log in on a github account for such purpose)
+    https://github.com/Grid2Op/grid2op/issues (you might need to log in on a github account for such purpose)
 
 
 .. _calibrate_th_lim_ex:

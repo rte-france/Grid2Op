@@ -193,7 +193,7 @@ deactivate it, you can do this by customization the call to "grid2op.make" like 
 .. note:: 
   Currently it's not possible to deactivate an opponent once the environment is created.
 
-  If you want this feature, you can comment the issue https://github.com/rte-france/Grid2Op/issues/426
+  If you want this feature, you can comment the issue https://github.com/Grid2Op/grid2op/issues/426
 
 
 Detailed Documentation by class

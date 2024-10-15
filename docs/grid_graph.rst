@@ -230,7 +230,7 @@ substation `k` (with `j` different `k`) will never have a "bus" in common.
 
     Changing this would not be too difficult on grid2op side, but would make the action space even bigger. If you
     really need to use more than 2 buses at the same substation, do not hesitate to fill a feature request: 
-    https://github.com/rte-france/Grid2Op/issues/new?assignees=&labels=enhancement&template=feature_request.md&title=
+    https://github.com/Grid2Op/grid2op/issues/new?assignees=&labels=enhancement&template=feature_request.md&title=
 
 
 The graph is dynamic
@@ -256,7 +256,7 @@ on the step, nor the same number of edges, for example if powerlines are disconn
 
     If you want to model these, it is perfectly possible without too much trouble. You can fill a feature request
     for this if that is interesting to you :
-    https://github.com/rte-france/Grid2Op/issues/new?assignees=&labels=enhancement&template=feature_request.md&title=
+    https://github.com/Grid2Op/grid2op/issues/new?assignees=&labels=enhancement&template=feature_request.md&title=
 
 .. warning::
 

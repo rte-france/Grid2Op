@@ -2206,7 +2206,7 @@ class BaseObservation(GridObjects):
         dict_ = {}
         for lid, val in enumerate(vector):
             if not self.line_status[lid]:
-                # see issue https://github.com/rte-france/Grid2Op/issues/433
+                # see issue https://github.com/Grid2Op/grid2op/issues/433
                 continue
             tup_ = (lor_bus[lid], lex_bus[lid])
             if not tup_ in dict_:
@@ -2234,7 +2234,7 @@ class BaseObservation(GridObjects):
         dict_or_glop = {}
         for lid, val in enumerate(vector_or):
             if not self.line_status[lid]:
-                # see issue https://github.com/rte-france/Grid2Op/issues/433
+                # see issue https://github.com/Grid2Op/grid2op/issues/433
                 continue
             tup_ = (lor_bus[lid], lex_bus[lid])
             if tup_ in dict_or_glop:
@@ -2245,7 +2245,7 @@ class BaseObservation(GridObjects):
         dict_ex_glop = {}
         for lid, val in enumerate(vector_ex):
             if not self.line_status[lid]:
-                # see issue https://github.com/rte-france/Grid2Op/issues/433
+                # see issue https://github.com/Grid2Op/grid2op/issues/433
                 continue
             tup_ = (lor_bus[lid], lex_bus[lid])
             if tup_ in dict_ex_glop:
@@ -2446,7 +2446,7 @@ class BaseObservation(GridObjects):
         bus_v = np.zeros(mat_p.shape[0])
         # i need to put lor_bus[self.line_status] otherwise pandapower might not detect a line
         # is disconnected and output the "wrong" voltage / theta in the graph
-        # see issue https://github.com/rte-france/Grid2Op/issues/389
+        # see issue https://github.com/Grid2Op/grid2op/issues/389
         bus_v[lor_bus[self.line_status]] = self.v_or[self.line_status]
         bus_v[lex_bus[self.line_status]] = self.v_ex[self.line_status]
         bus_theta = np.zeros(mat_p.shape[0])
@@ -4130,7 +4130,7 @@ class BaseObservation(GridObjects):
             self.gen_margin_down[cls.gen_renewable] = 0.0
             
             # because of the slack, sometimes it's negative...
-            # see https://github.com/rte-france/Grid2Op/issues/313
+            # see https://github.com/Grid2Op/grid2op/issues/313
             self.gen_margin_up[self.gen_margin_up < 0.] = 0.
             self.gen_margin_down[self.gen_margin_down < 0.] = 0.
         else:
@@ -4478,7 +4478,7 @@ class BaseObservation(GridObjects):
 
             See :ref:`danger-env-ownership` (first danger block). 
             
-            This caused issue https://github.com/rte-france/Grid2Op/issues/568 for example.
+            This caused issue https://github.com/Grid2Op/grid2op/issues/568 for example.
             
         Returns
         -------
@@ -4629,7 +4629,7 @@ class BaseObservation(GridObjects):
 
             See :ref:`danger-env-ownership` (first danger block). 
             
-            This caused issue https://github.com/rte-france/Grid2Op/issues/568 for example.
+            This caused issue https://github.com/Grid2Op/grid2op/issues/568 for example.
              
         Examples
         --------

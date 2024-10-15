@@ -617,7 +617,7 @@ def make_from_dataset_path(
         
         
         # code bellow is added to fix
-        # https://github.com/rte-france/Grid2Op/issues/593
+        # https://github.com/Grid2Op/grid2op/issues/593
         import inspect
         possible_params = inspect.signature(data_feeding_kwargs["gridvalueClass"].__init__).parameters
         data_feeding_kwargs_res = data_feeding_kwargs.copy()
@@ -629,7 +629,7 @@ def make_from_dataset_path(
             if el not in possible_params:
                 # if it's in the config but is not supported by the 
                 # user, then we ignore it
-                # see https://github.com/rte-france/Grid2Op/issues/593
+                # see https://github.com/Grid2Op/grid2op/issues/593
                 if el in dfkwargs_cfg and not el in data_feeding_kwargs_user_prov:
                     del data_feeding_kwargs_res[el]
         data_feeding_kwargs = data_feeding_kwargs_res

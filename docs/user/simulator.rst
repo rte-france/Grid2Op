@@ -121,7 +121,7 @@ be too dangerous:
 
 .. warning::
     This module is still under development, if you need any functionality, let us know with a github "feature request" 
-    (https://github.com/rte-france/Grid2Op/issues/new?assignees=&labels=enhancement&template=feature_request.md&title=)
+    (https://github.com/Grid2Op/grid2op/issues/new?assignees=&labels=enhancement&template=feature_request.md&title=)
 
 
 Detailed Documentation by class

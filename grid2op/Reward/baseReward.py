@@ -91,7 +91,7 @@ class BaseReward(ABC):
     Please make sure to check whether or not this is the case when defining your reward.
 
     This "new" behaviour has been introduce to "fix" the akward behavior spotted in
-    # https://github.com/rte-france/Grid2Op/issues/146
+    # https://github.com/Grid2Op/grid2op/issues/146
 
     .. code-block:: python
 

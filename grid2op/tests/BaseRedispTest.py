@@ -473,7 +473,7 @@ class BaseTestRedispatchChangeNothingEnvironment(MakeBackend):
 
 
 class BaseTestRedispTooLowHigh(MakeBackend):
-    # test bug reported in issues https://github.com/rte-france/Grid2Op/issues/44
+    # test bug reported in issues https://github.com/Grid2Op/grid2op/issues/44
     def setUp(self) -> None:
         super().setUp()
         backend = self.make_backend_with_glue_code()

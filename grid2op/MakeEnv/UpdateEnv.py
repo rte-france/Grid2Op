@@ -147,7 +147,7 @@ def _update_files(env_name=None, answer_json=None, env_hashes=None):
                     f'IF this environment is officially supported by grid2op (see full list at '
                     f'https://grid2op.readthedocs.io/en/latest/available_envs.html#description-of-some-environments) '
                     f'Please write an issue at :\n\t\t'
-                    f'https://github.com/rte-france/Grid2Op/issues/new?assignees=&labels=question&title=Environment%20{env_name}%20is%20not%20up%20to%20date%20but%20I%20cannot%20update%20it.&body=%3c%21%2d%2dDescribe%20shortly%20the%20context%20%2d%2d%3e%0d'
+                    f'https://github.com/Grid2Op/grid2op/issues/new?assignees=&labels=question&title=Environment%20{env_name}%20is%20not%20up%20to%20date%20but%20I%20cannot%20update%20it.&body=%3c%21%2d%2dDescribe%20shortly%20the%20context%20%2d%2d%3e%0d'
                 )
             else:
                 # environment is up to date

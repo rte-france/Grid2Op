@@ -26,7 +26,7 @@ You can consult the different notebooks in the `getting_stared` directory of thi
 how to use it.
 
 Created Environment should behave exactly like a gymnasium environment. If you notice any unwanted behavior, please address
-an issue in the official grid2op repository: `Grid2Op <https://github.com/rte-france/Grid2Op>`_
+an issue in the official grid2op repository: `Grid2Op <https://github.com/Grid2Op/grid2op>`_
 
 The environment created with this method should be fully compatible with the gymnasium framework: if you are developing
 a new algorithm of "Reinforcement Learning" and you used the openai gymnasium framework to do so, you can port your code

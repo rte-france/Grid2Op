@@ -56,7 +56,7 @@ TEST_DEV_ENVS = {
 _REQUEST_FAIL_EXHAUSTED_ERR = (
     'Impossible to retrieve data at "{}".\n'
     "If the problem persists, please contact grid2op developers by sending an issue at "
-    "https://github.com/rte-france/Grid2Op/issues"
+    "https://github.com/Grid2Op/grid2op/issues"
 )
 _REQUEST_FAIL_RETRY_ERR = (
     'Failure to get a response from the url "{}".\n'
@@ -79,7 +79,7 @@ _LIST_REMOTE_CORRUPTED_CONTENT_JSON_ERR = (
     "Corrupted json retrieved from github api. "
     "Please wait a few minutes and try again. "
     "If the error persist, contact grid2op devs by making an issue at "
-    "\n\thttps://github.com/rte-france/Grid2Op/issues/new/choose"
+    "\n\thttps://github.com/Grid2Op/grid2op/issues/new/choose"
 )
 _LIST_REMOTE_INVALID_DATASETS_JSON_ERR = (
     "Impossible to retrieve available datasets. "

@@ -1,1 +1,1 @@
-# see issue https://github.com/rte-france/Grid2Op/issues/217
+# see issue https://github.com/Grid2Op/grid2op/issues/217

@@ -866,7 +866,7 @@ class GridValue(RandomObject, ABC):
         :class:`GridStateFromFileWithForecastsWithMaintenance`) they need to be aware of this
         so that a reset actually update the seeds.
         
-        This is closely related to issue https://github.com/rte-france/Grid2Op/issues/616
+        This is closely related to issue https://github.com/Grid2Op/grid2op/issues/616
         
         .. danger::
             This function should be called only once (not 0, not twice) after a "seed" function has been set. 

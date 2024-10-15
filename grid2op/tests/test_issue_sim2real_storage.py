@@ -59,7 +59,7 @@ class TestSim2realStoragePP(_AuxTestSim2realStorage, unittest.TestCase):
 
 
 class TestSim2realStorageLSDiffObs(_AuxTestSim2realStorage, unittest.TestCase):  
-    """add this test for https://github.com/rte-france/Grid2Op/issues/518"""
+    """add this test for https://github.com/Grid2Op/grid2op/issues/518"""
     def get_backend(self):
         return LightSimBackend()
     
@@ -68,7 +68,7 @@ class TestSim2realStorageLSDiffObs(_AuxTestSim2realStorage, unittest.TestCase):
     
     
 class TestSim2realStoragePPDiffObs(_AuxTestSim2realStorage, unittest.TestCase):  
-    """add this test for https://github.com/rte-france/Grid2Op/issues/518"""
+    """add this test for https://github.com/Grid2Op/grid2op/issues/518"""
     def get_backend(self):
         return PandaPowerBackend()
     

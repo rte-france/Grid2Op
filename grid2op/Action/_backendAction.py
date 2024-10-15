@@ -350,7 +350,7 @@ class _BackendAction(GridObjects):
     
     And in this case, for usage examples, see the examples available in:
     
-    - https://github.com/rte-france/Grid2Op/tree/master/examples/backend_integration: a step by step guide to 
+    - https://github.com/Grid2Op/grid2op/tree/master/examples/backend_integration: a step by step guide to 
       code a new backend
     - :class:`grid2op.Backend.educPandaPowerBackend.EducPandaPowerBackend` and especially the 
       :func:`grid2op.Backend.educPandaPowerBackend.EducPandaPowerBackend.apply_action`

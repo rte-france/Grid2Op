@@ -58,7 +58,7 @@ The second step is to clone the Grid2Op package (`git` is required):
 
 .. code-block:: bash
 
-    git clone https://github.com/rte-france/Grid2Op.git
+    git clone https://github.com/Grid2Op/grid2op.git
     cd Grid2Op
     python3 -m virtualenv venv_grid2op
 
@@ -85,7 +85,7 @@ Start Using grid2op
 ####################
 To get started into the grid2op ecosystem, we made a set of notebooks
 that are available, without any installation thanks to
-`Binder <https://mybinder.org/v2/gh/rte-france/Grid2Op/master>`_ . Feel free to visit the "getting_started" page for
+`Binder <https://mybinder.org/v2/gh/Grid2Op/grid2op/master>`_ . Feel free to visit the "getting_started" page for
 more information and a detailed tour about the issue that grid2op tries to address.
 
 The most basic code, for those familiar with gymnasium (a well-known framework in reinforcement learning) is:

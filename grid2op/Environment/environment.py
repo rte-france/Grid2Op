@@ -468,7 +468,7 @@ class Environment(BaseEnv):
         # needs to be done at the end, but before the first "step" is called
         self._observation_space.set_real_env_kwargs(self)
 
-        # see issue https://github.com/rte-france/Grid2Op/issues/617
+        # see issue https://github.com/Grid2Op/grid2op/issues/617
         # thermal limits are set AFTER this initial step
         _no_overflow_disconnection = self._no_overflow_disconnection
         self._no_overflow_disconnection = True
@@ -1820,7 +1820,7 @@ class Environment(BaseEnv):
         all_chron = sorted(os.listdir(chronics_path))
         to_val = set(val_scen_id)
 
-        to_test = set()  # see https://github.com/rte-france/Grid2Op/issues/363
+        to_test = set()  # see https://github.com/Grid2Op/grid2op/issues/363
         if nm_test is not None:
             to_test = set(test_scen_id)
 

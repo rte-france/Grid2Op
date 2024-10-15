@@ -7,13 +7,10 @@ dependencies:
   - keras
   - pip
   - pip:
-    - grid2op[challenge]
-    - l2rpn-baselines
+    - grid2op
     - jyquickhelper
     - numpy
     - numba
-    - keras
     - seaborn
     - plotly
     - imageio
-    - ray[rllib, default]
