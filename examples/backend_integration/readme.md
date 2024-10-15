@@ -36,7 +36,7 @@ The way these objects behave and the equations they follow are totally irrelevan
 Traditionnally, the "Backend" will rely on another tools that carries out the computation, implements the equaitons, solve it etc. In this setting, the "Backend" is some "glue code" that map the representation of your solver to grid2op expected functions. Some example of backend include:
 
 - [PandapowerBackend](https://grid2op.readthedocs.io/en/latest/backend.html#grid2op.Backend.PandaPowerBackend): which is the default backend
-- [EducPandaPowerBackend](https://github.com/rte-france/Grid2Op/blob/master/grid2op/Backend/EducPandaPowerBackend.py): which is a "simplification" of the previous backend for education purpose. So we highly recommend you to check it out :-)
+- [EducPandaPowerBackend](https://github.com/Grid2Op/grid2op/blob/master/grid2op/Backend/EducPandaPowerBackend.py): which is a "simplification" of the previous backend for education purpose. So we highly recommend you to check it out :-)
 - [lightsim2grid](https://lightsim2grid.readthedocs.io/en/latest/lightsimbackend.html#lightsim2grid.lightSimBackend.LightSimBackend) which is a backend that uses a port of some function of pandapower in c++ for speed.
 
 We are also aware that some powerflows such as [Hades2](https://github.com/rte-france/hades2-distribution) and other commercial solvers such as PowerFactory are already connected with grid2op, so not open source at the moment.

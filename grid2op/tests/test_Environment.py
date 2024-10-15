@@ -930,7 +930,7 @@ class TestDeactivateForecast(unittest.TestCase):
         It only checks the right parameters are used for the environment (or obs_env) but it do not currently
         check the observation (with the cooldown for example)
 
-        This is the example taken from https://github.com/rte-france/Grid2Op/issues/128 (first remak)
+        This is the example taken from https://github.com/Grid2Op/grid2op/issues/128 (first remak)
         """
 
         # modify the parmeters for simulate

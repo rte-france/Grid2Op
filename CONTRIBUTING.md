@@ -16,7 +16,19 @@ Contribution can take different forms:
 - adding a new functionality to grid2op (or increase its speed)
 - extend grid2op 
 
-# What to do ?
+# On which topic to contribute ?
+
+If you want to contribute but are not sure were to start you can, for example:
+
+- tackle an opened issue tagged as `good first issue` 
+- try to solve an opened issue marked with `helps wanted`
+- there are also some contribution ideas written in the `Work "in progress"` section of the `CHANGELOG.rst`
+  at the top level of the github repo.
+
+In any case, if you are not sure about what is written here, feel free to ask in the grid2op [github discussion](https://github.com/orgs/Grid2op/discussions), 
+in the [grid2op discord](https://discord.gg/cYsYrPT) or by contacting by mail the person in charge of the [pypi package](https://pypi.org/project/Grid2Op/).
+
+# What to do concretely ?
 
 For smaller changes (including, but not limited to the reporting of a bug or a contribution to the explanotory notebooks or the documentations)
 a simple "pull request" with your modifications by detailing what you had in mind and the  goal of your changes.

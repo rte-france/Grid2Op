@@ -78,7 +78,7 @@ def create_test_suite(make_backend_fun,
         
         For example you can do (inside a virtual env):
         
-        - git clone https://github.com/rte-france/grid2op.git grid2op_dev
+        - git clone https://github.com/Grid2Op/grid2op.git grid2op_dev
         - cd grid2op_dev 
         - pip install -e .
         

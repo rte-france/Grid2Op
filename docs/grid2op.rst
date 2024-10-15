@@ -24,7 +24,7 @@ Today, the main usage of this platform is to serve as a computation engine for t
 competitions.
 
 This platform is still under development. If you notice a bug, let us know with a github issue at
-`Grid2Op <https://github.com/rte-france/Grid2Op>`_
+`Grid2Op <https://github.com/Grid2Op/grid2op>`_
 
 .. note:: 
     Grid2op do not model any object on the powergrid. It has no internal modeling of the equations of the
@@ -460,7 +460,7 @@ Going further
 --------------
 To get started into the grid2op ecosystem, we made a set of notebooks
 that are available, without any installation thanks to
-`Binder <https://mybinder.org/v2/gh/rte-france/Grid2Op/master>`_ . Feel free to visit the "getting_started" page for
+`Binder <https://mybinder.org/v2/gh/Grid2Op/grid2op/master>`_ . Feel free to visit the "getting_started" page for
 more information and a detailed tour about the issue that grid2op tries to address.
 
 .. note:: 

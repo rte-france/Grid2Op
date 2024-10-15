@@ -174,7 +174,7 @@ You can also use it to select the action that keep the grid in a "correct" state
 
 .. note::
     We are sure there are lots of other ways to use "obs.simulate". If you have some idea let us know, for example by starting
-    a conversation here https://github.com/rte-france/Grid2Op/discussions or in our discord.
+    a conversation here https://github.com/Grid2Op/grid2op/discussions or in our discord.
 
 
 Simulator
@@ -298,7 +298,7 @@ If you rather want to disconnect some powerline as way to stress the grid, you c
 
 .. note::
     We are sure there are lots of other ways to use "obs.simulate". If you have some idea let us know, for example by starting
-    a conversation here https://github.com/rte-france/Grid2Op/discussions or in our discord.
+    a conversation here https://github.com/Grid2Op/grid2op/discussions or in our discord.
 
 
 Forecast env

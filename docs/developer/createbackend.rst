@@ -841,7 +841,7 @@ virtual environment is a good idea and is not covered here):
 
 .. code-block::
 
-    git clone https://github.com/rte-france/grid2op.git grid2op_dev
+    git clone https://github.com/Grid2Op/grid2op.git grid2op_dev
     cd grid2op_dev
     pip install -e .
 

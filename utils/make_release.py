@@ -197,15 +197,21 @@ if __name__ == "__main__":
             start_subprocess_print(["git", "add", f'{os.path.join(PATH_PREVIOUS_RUNNER, f"res_agent_{version}")}/*'])
 
         # Commit
-        start_subprocess_print(["git", "commit", "-S", "-m", "Release v{}".format(version)])
-        if not is_prerelease:
+        # start_subprocess_print(["git", "commit", "-s", "-S", "-m", "Release v{}".format(version)])
+        # if not is_prerelease:
             # Create a new git tag
-            start_subprocess_print(["git", "tag", "-s", "-a", "v{}".format(version), "-m", "Release v{}".format(version)])
+            # start_subprocess_print(["git", "tag", "-s", "-a", "v{}".format(version), "-m", "Release v{}".format(version)])
 
     if is_prerelease:
         print("Please push changes: 'git push'")
         sys.exit(0)
-        
+    else:
+        print("Add the proper test in \"grid2op/tests/test_Runner.py\"")
+        print("Then commit your change with :")
+        print(f"git commit -s -S -m \"ready for version {version}\"")
+        print("Then open a PR on Grid2Op/grid2op.git")
+        print("After the merge, tag the version and release it on pypi")
+        sys.exit()
     # Wait for user to push changes
     pushed = input("Please push changes: 'git push && git push --tags' - then press any key")
     # TODO refacto these, no need to have 3 times almost the same "templatedockerfile"

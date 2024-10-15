@@ -257,7 +257,7 @@ class Simulator(object):
         update_thermal_limit: bool, optional
             Do you update the thermal limit of the backend (we recommend to leave it to `True`
             otherwise some bugs can appear such as 
-            https://github.com/rte-france/Grid2Op/issues/377)
+            https://github.com/Grid2Op/grid2op/issues/377)
 
         Raises
         ------

@@ -1243,7 +1243,7 @@ class Runner(object):
                     tmp = p.starmap(_aux_one_process_parrallel, lists)
             else:
                 if get_start_method() == 'spawn':
-                    # https://github.com/rte-france/Grid2Op/issues/600
+                    # https://github.com/Grid2Op/grid2op/issues/600
                     with get_context("spawn").Pool(nb_process) as p:
                         tmp = p.starmap(_aux_one_process_parrallel, lists)
                 else:            

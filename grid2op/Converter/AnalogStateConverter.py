@@ -20,7 +20,7 @@ class AnalogStateConverter(Converter):
     The grid2op action is created from a set of real valued arrays
 
     It can not yet be converted to / from gym space. If this feature is interesting for you, you can
-    reply to the issue posted at https://github.com/rte-france/Grid2Op/issues/16
+    reply to the issue posted at https://github.com/Grid2Op/grid2op/issues/16
 
     """
 

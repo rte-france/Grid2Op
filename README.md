@@ -5,14 +5,14 @@
 [![PyPi_Compat](https://img.shields.io/pypi/pyversions/grid2op.svg)](https://pypi.org/project/Grid2Op/)
 [![LICENSE](https://img.shields.io/pypi/l/grid2op.svg)](https://www.mozilla.org/en-US/MPL/2.0/)
 [![Documentation Status](https://readthedocs.org/projects/grid2op/badge/?version=latest)](https://grid2op.readthedocs.io/en/latest/?badge=latest)
-[![circleci](https://circleci.com/gh/rte-france/Grid2Op.svg?style=shield)](https://circleci.com/gh/rte-france/Grid2Op)
-[![discord](https://discord.com/api/guilds/698080905209577513/embed.png)]( https://discord.gg/cYsYrPT)
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/rte-france/Grid2Op/master)
+[![CircleCI](https://dl.circleci.com/status-badge/img/gh/Grid2op/grid2op/tree/master.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/gh/Grid2op/grid2op/tree/master)
+[![discord](https://discord.com/api/guilds/698080905209577513/embed.png)](https://discord.gg/cYsYrPT)
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/grid2op/grid2op.git/master)
 
 Grid2Op is a platform, built with modularity in mind, that allows to perform powergrid operation.
 And that's what it stands for: Grid To Operate.
-Grid2Op acts as a replacement of [pypownet](https://github.com/MarvinLer/pypownet)
-as a library used for the Learning To Run Power Network [L2RPN](https://l2rpn.chalearn.org/).
+It is used as a library used for the Learning To Run Power Network [L2RPN](https://l2rpn.chalearn.org/),
+but also for research purpose (especially by the Reinforcement Learning community applied to power system)
 
 This framework allows to perform most kind of powergrid operations, from modifying the setpoint of generators,
 to load shedding, performing maintenance operations or modifying the *topology* of a powergrid
@@ -71,7 +71,7 @@ pip3 install grid2op
 ### Install from source
 
 ```commandline
-git clone https://github.com/rte-france/Grid2Op.git
+git clone https://github.com/grid2op/Grid2Op.git
 cd Grid2Op
 pip3 install -U .
 cd ..
@@ -80,7 +80,7 @@ cd ..
 ### Install for contributors
 
 ```commandline
-git clone https://github.com/rte-france/Grid2Op.git
+git clone https://github.com/grid2op/Grid2Op.git
 cd Grid2Op
 pip3 install -e .
 pip3 install -e .[optional]
@@ -136,39 +136,39 @@ These notebooks will help you in understanding how this framework is used and co
 interesting part of this framework:
 
 * [00_Introduction](getting_started/00_Introduction.ipynb)
-  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/rte-france/Grid2Op/blob/master/getting_started/00_Introduction.ipynb)
+  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Grid2Op/grid2op/blob/master/getting_started/00_Introduction.ipynb)
   and [00_SmallExample](getting_started/00_SmallExample.ipynb)
-  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/rte-france/Grid2Op/blob/master/getting_started/00_SmallExample.ipynb)
+  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Grid2Op/grid2op/blob/master/getting_started/00_SmallExample.ipynb)
   describe what is
   adressed by the grid2op framework (with a tiny introductions to both power systems and reinforcement learning)
   and give and introductory example to a small powergrid manipulation.
 * [01_Grid2opFramework](getting_started/01_Grid2opFramework.ipynb)
-  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/rte-france/Grid2Op/blob/master/getting_started/01_Grid2opFramework.ipynb)
+  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Grid2Op/grid2op/blob/master/getting_started/01_Grid2opFramework.ipynb)
   covers the basics
   of the
   Grid2Op framework. It also covers how to create a valid environment and how to use the
   `Runner` class to assess how well an agent is performing rapidly.
 * [02_Observation](getting_started/02_Observation.ipynb)
-  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/rte-france/Grid2Op/blob/master/getting_started/02_Observation.ipynb)
+  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Grid2Op/grid2op/blob/master/getting_started/02_Observation.ipynb)
   details how to create
   an "expert agent" that will take pre defined actions based on the observation it gets from
   the environment. This Notebook also covers the functioning of the BaseObservation class.
 * [03_Action](getting_started/03_Action.ipynb)
-  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/rte-france/Grid2Op/blob/master/getting_started/03_Action.ipynb)
+  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Grid2Op/grid2op/blob/master/getting_started/03_Action.ipynb)
   demonstrates
   how to use the BaseAction class and how to manipulate the powergrid.
 * [04_TrainingAnAgent](getting_started/04_TrainingAnAgent.ipynb)
-  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/rte-france/Grid2Op/blob/master/getting_started/04_TrainingAnAgent.ipynb)
+  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Grid2Op/grid2op/blob/master/getting_started/04_TrainingAnAgent.ipynb)
   shows how to get started with
   reinforcement learning with the grid2op environment. It shows the basic on how to train a "PPO" model operating the grid relying on "stable baselines 3" PPO implementation.
 * [05_StudyYourAgent](getting_started/05_StudyYourAgent.ipynb)
-  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/rte-france/Grid2Op/blob/master/getting_started/05_StudyYourAgent.ipynb)
+  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Grid2Op/grid2op/blob/master/getting_started/05_StudyYourAgent.ipynb)
   shows how to study an BaseAgent, for example
   the methods to reload a saved experiment, or to plot the powergrid given an observation for
   example. This is an introductory notebook. More user friendly graphical interface should
   come soon.
 * [06_Redispatching_Curtailment](getting_started/06_Redispatching_Curtailment.ipynb)
-  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/rte-france/Grid2Op/blob/master/getting_started/06_Redispatching_Curtailment.ipynb)
+  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Grid2Op/grid2op/blob/master/getting_started/06_Redispatching_Curtailment.ipynb)
   explains what is the
   "redispatching" and curtailment from the point
   of view of a company who's in charge of keeping the powergrid safe (aka a Transmission System Operator) and how to
@@ -176,34 +176,34 @@ interesting part of this framework:
   actions on the powergrid
   problem.
 * [07_MultiEnv](getting_started/07_MultiEnv.ipynb)
-  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/rte-france/Grid2Op/blob/master/getting_started/07_MultiEnv.ipynb)
+  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Grid2Op/grid2op/blob/master/getting_started/07_MultiEnv.ipynb)
   details how grid2op natively support a single agent interacting
   with multiple environments at the same time. This is particularly handy to train "asynchronous" agent in the
   Reinforcement Learning community for example.
 * [08_PlottingCapabilities](getting_started/08_PlottingCapabilities.ipynb)
-  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/rte-france/Grid2Op/blob/master/getting_started/08_PlottingCapabilities.ipynb)
+  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Grid2Op/grid2op/blob/master/getting_started/08_PlottingCapabilities.ipynb)
   shows you the different ways with which you
   can represent (visually) the grid your agent interact with. A renderer is available like in many open AI gym
   environment. But you also have the possibility to post process an agent and make some movies out of it, and we also
   developed a Graphical User Interface (GUI) called "[grid2viz](https://github.com/mjothy/grid2viz)" that allows
   to perform in depth study of your agent's behaviour on different scenarios and even to compare it with baselines.
 * [09_EnvironmentModifications](getting_started/09_EnvironmentModifications.ipynb)
-  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/rte-france/Grid2Op/blob/master/getting_started/09_EnvironmentModifications.ipynb)
+  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Grid2Op/grid2op/blob/master/getting_started/09_EnvironmentModifications.ipynb)
   elaborates on the maintenance,
   hazards
   and attacks. All three of these represents external events that can disconnect some powerlines. This notebook
   covers how to spot when such things happened and what can be done when the maintenance or the attack is over.
 * [10_StorageUnits](getting_started/10_StorageUnits.ipynb)
-  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/rte-france/Grid2Op/blob/master/getting_started/10_StorageUnits.ipynb)
+  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Grid2Op/grid2op/blob/master/getting_started/10_StorageUnits.ipynb)
   details the usage and behaviour of the storage units
   in grid2op.
 * [11_IntegrationWithExistingRLFrameworks](getting_started/11_IntegrationWithExistingRLFrameworks.ipynb)
-  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/rte-france/Grid2Op/blob/master/getting_started/11_IntegrationWithExistingRLFrameworks.ipynb)
+  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Grid2Op/grid2op/blob/master/getting_started/11_IntegrationWithExistingRLFrameworks.ipynb)
   explains how to use grid2op with other reinforcement learning framework. TODO: this needs to be redone
 
 Try them out in your own browser without installing
 anything with the help of mybinder:
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/rte-france/Grid2Op/master)
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/Grid2Op/grid2op/master)
 
 Or thanks to google colab (all links are provided near the notebook description)
 
@@ -212,13 +212,12 @@ Or thanks to google colab (all links are provided near the notebook description)
 If you use this package in one of your work, please cite:
 
 ```text
-@misc{grid2op,
+@software{grid2op,
     author = {B. Donnot},
     title = {{Grid2op- A testbed platform to model sequential decision making in power systems. }},
+    url = {\url{https://GitHub.com/Grid2Op/grid2op}},
     year = {2020},
     publisher = {GitHub},
-    journal = {GitHub repository},
-    howpublished = {\url{https://GitHub.com/rte-france/grid2op}},
 }
 ```
 
@@ -273,7 +272,7 @@ to discuss what you would like to change.
 
 To contribute to this code, you need to:
 
-1. fork the repository located at <https://github.com/rte-france/Grid2Op>
+1. fork the repository located at <https://github.com/Grid2Op/grid2op>
 2. synch your fork with the "latest developement branch of grid2op". For example, if the latest grid2op release
    on pypi is `1.6.5` you need to synch your repo with the branch named `dev_1.6.6` or `dev_1.7.0` (if
    the branch `dev_1.6.6` does not exist). It will be the highest number in the branches `dev_*` on

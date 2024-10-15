@@ -2665,7 +2665,7 @@ class BaseTestStorageAction(MakeBackend):
 
 class BaseIssuesTest(MakeBackend):
     def test_issue_125(self):
-        # https://github.com/rte-france/Grid2Op/issues/125
+        # https://github.com/Grid2Op/grid2op/issues/125
         self.skip_if_needed()
         backend = self.make_backend_with_glue_code()
         with warnings.catch_warnings():

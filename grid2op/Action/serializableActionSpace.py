@@ -1227,7 +1227,7 @@ class SerializableActionSpace(SerializableSpace):
             times if there has been an error in the symmetries.
             
             If you are interested in this topic, let us know with a discussion, for example here
-            https://github.com/rte-france/Grid2Op/discussions
+            https://github.com/Grid2Op/grid2op/discussions
             
         Parameters
         ----------
