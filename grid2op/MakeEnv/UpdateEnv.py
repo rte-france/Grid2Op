@@ -17,10 +17,10 @@ from grid2op.MakeEnv.UserUtils import list_available_local_env
 from grid2op.MakeEnv.Make import _retrieve_github_content
 
 _LIST_REMOTE_URL = (
-    "https://api.github.com/repos/bdonnot/grid2op-datasets/contents/updates.json"
+    "https://api.github.com/repos/Grid2Op/grid2op-datasets/contents/updates.json"
 )
 _LIST_REMOTE_ENV_HASH = (
-    "https://api.github.com/repos/bdonnot/grid2op-datasets/contents/env_hashes.json"
+    "https://api.github.com/repos/Grid2Op/grid2op-datasets/contents/env_hashes.json"
 )
 
 

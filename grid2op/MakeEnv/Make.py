@@ -67,7 +67,7 @@ _REQUEST_EXCEPT_RETRY_ERR = (
 )
 
 _LIST_REMOTE_URL = (
-    "https://api.github.com/repos/bdonnot/grid2op-datasets/contents/datasets.json"
+    "https://api.github.com/repos/Grid2Op/grid2op-datasets/contents/datasets.json"
 )
 _LIST_REMOTE_KEY = "download_url"
 _LIST_REMOTE_INVALID_CONTENT_JSON_ERR = (
