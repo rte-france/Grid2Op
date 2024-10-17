@@ -9,6 +9,8 @@
 import warnings
 import numpy as np
 import unittest
+import sys
+from pathlib import Path
 
 import grid2op
 from grid2op.utils import ScoreL2RPN2023
@@ -17,6 +19,7 @@ from grid2op.Observation import BaseObservation
 from grid2op.Action import BaseAction
 from grid2op.Chronics import FromHandlers
 from grid2op.Chronics.handlers import CSVHandler, PerfectForecastHandler
+sys.path.append(str(Path(__file__).parent))
 from _aux_opponent_for_test_alerts import TestOpponent, _get_blackout
 
 class Alert_Blackout_Agent(BaseAgent):

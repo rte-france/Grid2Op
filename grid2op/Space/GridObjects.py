@@ -186,7 +186,20 @@ class GridObjects:
     - :attr:`GridObjects.gen_shutdown_cost`
     - :attr:`GridObjects.gen_renewable`
 
-    These information are loaded using the :func:`grid2op.Backend.Backend.load_redispacthing_data` method.
+    These information are loaded using the :func:`grid2op.Backend.Backend.load_redispatching_data` method.
+
+    Note that if you want to model an environment with flexibility capabilities, you also need
+    to provide the following attributes:
+
+    - :attr:`GridObjects.load_size`
+    - :attr:`GridObjects.load_redispatchable`
+    - :attr:`GridObjects.load_max_ramp_up`
+    - :attr:`GridObjects.load_max_ramp_down`
+    - :attr:`GridObjects.load_min_uptime`
+    - :attr:`GridObjects.load_min_downtime`
+    - :attr:`GridObjects.load_cost_per_MW`
+
+    These information are loaded using the :func:`grid2op.Backend.Backend.load_flexibility_data` method.
 
     **NB** it does not store any information about the current state of the powergrid. It stores information that
     cannot be modified by the BaseAgent, the Environment or any other entity.
@@ -314,63 +327,63 @@ class GridObjects:
 
     gen_type: :class:`numpy.ndarray`, dtype:str
         Type of the generators, among: "solar", "wind", "hydro", "thermal" and "nuclear". Optional. Used
-        for unit commitment problems or redispacthing action. [*class attribute*]
+        for unit commitment problems or redispatching action. [*class attribute*]
 
     gen_pmin: :class:`numpy.ndarray`, dtype:float
         Minimum active power production needed for a generator to work properly. Optional. Used
-        for unit commitment problems or redispacthing action. [*class attribute*]
+        for unit commitment problems or redispatching action. [*class attribute*]
 
     gen_pmax: :class:`numpy.ndarray`, dtype:float
         Maximum active power production needed for a generator to work properly. Optional. Used
-        for unit commitment problems or redispacthing action. [*class attribute*]
+        for unit commitment problems or redispatching action. [*class attribute*]
 
     gen_redispatchable: :class:`numpy.ndarray`, dtype:bool
         For each generator, it says if the generator is dispatchable or not. Optional. Used
-        for unit commitment problems or redispacthing action. [*class attribute*]
+        for unit commitment problems or redispatching action. [*class attribute*]
 
     gen_max_ramp_up: :class:`numpy.ndarray`, dtype:float
         Maximum active power variation possible between two consecutive timestep for each generator:
         a redispatching action
         on generator `g_id` cannot be above :attr:`GridObjects.gen_ramp_up_max` [`g_id`]. Optional. Used
-        for unit commitment problems or redispacthing action. [*class attribute*]
+        for unit commitment problems or redispatching action. [*class attribute*]
 
     gen_max_ramp_down: :class:`numpy.ndarray`, dtype:float
         Minimum active power variationpossible between two consecutive timestep for each generator: a redispatching
         action
         on generator `g_id` cannot be below :attr:`GridObjects.gen_ramp_down_min` [`g_id`]. Optional. Used
-        for unit commitment problems or redispacthing action. [*class attribute*]
+        for unit commitment problems or redispatching action. [*class attribute*]
 
     gen_min_uptime: :class:`numpy.ndarray`, dtype:float
         The minimum time (expressed in the number of timesteps) a generator needs to be turned on: it's not possible to
         turn off generator `gen_id` that has been turned on less than `gen_min_time_on` [`gen_id`] timesteps
         ago. Optional. Used
-        for unit commitment problems or redispacthing action. [*class attribute*]
+        for unit commitment problems or redispatching action. [*class attribute*]
 
     gen_min_downtime: :class:`numpy.ndarray`, dtype:float
         The minimum time (expressed in the number of timesteps) a generator needs to be turned off: it's not possible to
         turn on generator `gen_id` that has been turned off less than `gen_min_time_on` [`gen_id`] timesteps
         ago. Optional. Used
-        for unit commitment problems or redispacthing action. [*class attribute*]
+        for unit commitment problems or redispatching action. [*class attribute*]
 
     gen_cost_per_MW: :class:`numpy.ndarray`, dtype:float
         For each generator, it gives the "operating cost", eg the cost, in terms of "used currency" for the production
         of one MW with this generator, if it is already turned on. It's a positive real number. It's the marginal cost
         for each MW. Optional. Used
-        for unit commitment problems or redispacthing action. [*class attribute*]
+        for unit commitment problems or redispatching action. [*class attribute*]
 
     gen_startup_cost: :class:`numpy.ndarray`, dtype:float
         The cost to start a generator. It's a positive real number. Optional. Used
-        for unit commitment problems or redispacthing action. [*class attribute*]
+        for unit commitment problems or redispatching action. [*class attribute*]
 
     gen_shutdown_cost: :class:`numpy.ndarray`, dtype:float
         The cost to shut down a generator. It's a positive real number. Optional. Used
-        for unit commitment problems or redispacthing action. [*class attribute*]
+        for unit commitment problems or redispatching action. [*class attribute*]
 
     gen_renewable: :class:`numpy.ndarray`, dtype:bool
         Whether each generator is from a renewable energy sources (=can be curtailed). Optional. Used
-        for unit commitment problems or redispacthing action. [*class attribute*]
+        for unit commitment problems or redispatching action. [*class attribute*]
 
-    redispatching_unit_commitment_availble: ``bool``
+    redispatching_unit_commitment_available: ``bool``
         Does the current grid allow for redispatching and / or unit commit problem. If not, any attempt to use it
         will raise a :class:`grid2op.Exceptions.UnitCommitorRedispachingNotAvailable` error. [*class attribute*]
         For an environment to be compatible with this feature, you need to set up, when loading the backend:
@@ -387,6 +400,19 @@ class GridObjects:
           - :attr:`GridObjects.gen_startup_cost`
           - :attr:`GridObjects.gen_shutdown_cost`
           - :attr:`GridObjects.gen_renewable`
+
+    flexible_load_available: ``bool``
+        Does the current grid allow for flexible loads. If not, any attempt to use it
+        will raise a :class:`grid2op.Exceptions.UnitCommitorRedispachingNotAvailable` error. [*class attribute*]
+        For an environment to be compatible with this feature, you need to set up, when loading the backend:
+
+          - :attr:`GridObjects.load_size`
+          - :attr:`GridObjects.load_flexible`
+          - :attr:`GridObjects.load_max_ramp_up`
+          - :attr:`GridObjects.load_max_ramp_down`
+          - :attr:`GridObjects.load_min_uptime`
+          - :attr:`GridObjects.load_min_downtime`
+          - :attr:`GridObjects.load_cost_per_MW`
 
     grid_layout: ``dict`` or ``None``
         The layout of the powergrid in a form of a dictionnary with keys the substation name, and value a tuple of
@@ -574,8 +600,29 @@ class GridObjects:
         bool,
     ]
 
-    # redispatch data, not available in all environment
-    redispatching_unit_commitment_availble : ClassVar[bool] = False
+    # For flexibility / demand response
+    _li_attr_flex_load : ClassVar[List[str]] = [
+        "load_size",
+        "load_flexible",
+        "load_max_ramp_up",
+        "load_max_ramp_down",
+        "load_min_uptime",
+        "load_min_downtime",
+        "load_cost_per_MW",
+    ]
+
+    _type_attr_flex_load : ClassVar[List] = [
+        float,
+        bool,
+        float,
+        float,
+        int,
+        int,
+        float
+    ]
+
+    # Redispatch data, not available in all Environments
+    redispatching_unit_commitment_available : ClassVar[bool] = False
     gen_type : ClassVar[Optional[np.ndarray]] = None
     gen_pmin : ClassVar[Optional[np.ndarray]] = None
     gen_pmax : ClassVar[Optional[np.ndarray]] = None
@@ -589,7 +636,17 @@ class GridObjects:
     gen_shutdown_cost : ClassVar[Optional[np.ndarray]] = None  # shutdown cost (in currency)
     gen_renewable : ClassVar[Optional[np.ndarray]] = None
 
-    # storage unit static data
+    # Fleixible load data, not available in all Environments
+    flexible_load_available: ClassVar[bool] = False
+    load_size: ClassVar[Optional[np.ndarray]] = None
+    load_flexible: ClassVar[Optional[np.ndarray]] = None
+    load_max_ramp_up: ClassVar[Optional[np.ndarray]] = None
+    load_max_ramp_down: ClassVar[Optional[np.ndarray]] = None
+    load_min_uptime: ClassVar[Optional[np.ndarray]] = None
+    load_min_downtime: ClassVar[Optional[np.ndarray]] = None
+    load_cost_per_MW: ClassVar[Optional[np.ndarray]] = None
+
+    # Storage unit static data
     storage_type : ClassVar[Optional[np.ndarray]] = None
     storage_Emax : ClassVar[Optional[np.ndarray]] = None
     storage_Emin : ClassVar[Optional[np.ndarray]] = None
@@ -600,19 +657,19 @@ class GridObjects:
     storage_charging_efficiency : ClassVar[Optional[np.ndarray]] = None
     storage_discharging_efficiency : ClassVar[Optional[np.ndarray]] = None
 
-    # grid layout
+    # Grid Layout
     grid_layout : ClassVar[Optional[Dict[str, Tuple[float, float]]]] = None
 
-    # shunt data, not available in every backend
+    # Shunt data, not available in every backend
     shunts_data_available : ClassVar[bool] = False
     n_shunt : ClassVar[Optional[int]] = None
     name_shunt : ClassVar[Optional[np.ndarray]] = None
     shunt_to_subid : ClassVar[Optional[np.ndarray]] = None
 
-    # alarm / alert
+    # Alarm / Alert
     assistant_warning_type = None
     
-    # alarm feature
+    # Alarm feature
     # dimension of the alarm "space" (number of alarm that can be raised at each step)
     dim_alarms = 0  # TODO
     alarms_area_names = []  # name of each area  # TODO
@@ -623,7 +680,7 @@ class GridObjects:
         []
     )  # for each area in the grid, gives which powerlines it contains # TODO
 
-    # alert feature 
+    # Alert feature 
     # dimension of the alert "space" (number of alerts that can be raised at each step)
     dim_alerts = 0  # TODO
     alertable_line_names = []  # name of each line to produce an alert on # TODO
@@ -702,6 +759,16 @@ class GridObjects:
             "gen_renewable",
         ]
 
+        cls._li_attr_flex_load = [
+            "load_size",
+            "load_flexible",
+            "load_max_ramp_up",
+            "load_max_ramp_down",
+            "load_min_uptime",
+            "load_min_downtime",
+            "load_cost_per_MW",
+        ]
+
         cls._type_attr_disp = [
             str,
             float,
@@ -715,6 +782,16 @@ class GridObjects:
             float,
             float,
             bool,
+        ]
+
+        cls._type_attr_flex_load = [
+            float,
+            bool,
+            float,
+            float,
+            int,
+            int,
+            float
         ]
         
         cls._clear_grid_dependant_class_attributes()
@@ -790,7 +867,7 @@ class GridObjects:
         cls._vectorized = None
 
         # redispatch data, not available in all environment
-        cls.redispatching_unit_commitment_availble = False
+        cls.redispatching_unit_commitment_available = False
         cls.gen_type = None
         cls.gen_pmin = None
         cls.gen_pmax = None
@@ -803,6 +880,15 @@ class GridObjects:
         cls.gen_startup_cost = None  # start cost (in currency)
         cls.gen_shutdown_cost = None  # shutdown cost (in currency)
         cls.gen_renewable = None
+        # Flexible load data, not available in all environments
+        cls.flexible_load_available = False
+        cls.load_size = None
+        cls.load_flexible = None
+        cls.load_max_ramp_up = None
+        cls.load_max_ramp_down = None
+        cls.load_min_uptime = None
+        cls.load_min_downtime = None
+        cls.load_cost_per_MW = None
 
         # storage unit static data
         cls.storage_type = None
@@ -1960,11 +2046,14 @@ class GridObjects:
                      "line_or_to_sub_pos",
                      "line_ex_pos_topo_vect",
                      "line_ex_to_subid",
-                     "line_ex_to_sub_pos",
-                     ]
-        if cls.redispatching_unit_commitment_availble:
+                     "line_ex_to_sub_pos"]
+        if cls.redispatching_unit_commitment_available:
             attrs_int.append("gen_min_uptime")
             attrs_int.append("gen_min_downtime")
+        if cls.flexible_load_available:
+            attrs_int.append("load_min_uptime")
+            attrs_int.append("load_min_downtime")
+            
         cls._assign_attr(attrs_int, dt_int, "int", raise_if_none)
         
         # convert str to array of str
@@ -1973,9 +2062,8 @@ class GridObjects:
                      "name_line", 
                      "name_sub", 
                      "name_storage",
-                     "storage_type",
-        ]
-        if cls.redispatching_unit_commitment_availble:
+                     "storage_type"]
+        if cls.redispatching_unit_commitment_available:
             attrs_str.append("gen_type")
         cls._assign_attr(attrs_str, str, "str", raise_if_none)
         
@@ -1987,9 +2075,8 @@ class GridObjects:
                        "storage_marginal_cost",
                        "storage_loss",
                        "storage_charging_efficiency",
-                       "storage_discharging_efficiency",
-                       ]
-        if cls.redispatching_unit_commitment_availble:
+                       "storage_discharging_efficiency"]
+        if cls.redispatching_unit_commitment_available:
             attrs_float += ["gen_pmin",
                             "gen_pmax",
                             "gen_max_ramp_up",
@@ -1997,6 +2084,11 @@ class GridObjects:
                             "gen_cost_per_MW",
                             "gen_startup_cost",
                             "gen_shutdown_cost"]
+        if cls.flexible_load_available:
+            attrs_float += ["load_size",
+                            "load_max_ramp_up",
+                            "load_max_ramp_down",
+                            "load_cost_per_MW"]
         cls._assign_attr(attrs_float, dt_float, "float", raise_if_none)
     
     @classmethod
@@ -2316,8 +2408,11 @@ class GridObjects:
                 grid2op.Space.space_utils._WARNING_ISSUED_FOR_SUB_NO_ELEM = True
 
         # redispatching / unit commitment
-        if cls.redispatching_unit_commitment_availble:
-            cls._check_validity_dispathcing_data()
+        if cls.redispatching_unit_commitment_available:
+            cls._check_validity_dispatching_data()
+
+        if cls.flexible_load_available:
+            cls._check_validity_flexibile_loads()
 
         # shunt data
         if cls.shunts_data_available:
@@ -2635,7 +2730,7 @@ class GridObjects:
                 )
 
     @classmethod
-    def _check_validity_dispathcing_data(cls):
+    def _check_validity_dispatching_data(cls):
         if cls.gen_type is None:
             raise InvalidRedispatching(
                 "Impossible to recognize the type of generators (gen_type) when "
@@ -2847,6 +2942,47 @@ class GridObjects:
                 "Invalid maximum ramp for some generator (above pmax)"
             )
 
+    @classmethod
+    def _check_validity_flexibile_loads(cls):
+        
+        for attr_name in cls._li_attr_flex_load:
+            attr = getattr(cls, attr_name, None)
+            if attr is None:
+                raise InvalidFlexibility(
+                    f"Impossible to recognize the ({attr_name}) of loads when "
+                    "flexibility is supposed to be available."
+                )
+            elif len(attr) != cls.n_load:
+                raise InvalidFlexibility(
+                    f"Invalid length for the ({attr_name}) of loads when "
+                    "flexibility is supposed to be available."
+                 )
+            elif attr.dtype is not np.dtype(bool) and  (attr < 0).any():
+                raise InvalidFlexibility(
+                    f"One of the ({attr_name}) is negative"
+                )
+        
+        for el, prim_type in zip(cls._li_attr_flex_load, cls._type_attr_flex_load):
+            type_ = {float:dt_float, bool:dt_bool, int:dt_int, str:str}[prim_type]
+            if not isinstance(getattr(cls, el), np.ndarray):
+                try:
+                    setattr(cls, el, getattr(cls, el).astype(type_))
+                except Exception as exc_:
+                    raise InvalidFlexibility(
+                        '{} should be convertible to a numpy array with error:\n "{}"'
+                        "".format(el, exc_)
+                    )
+            if not np.issubdtype(getattr(cls, el).dtype, np.dtype(type_).type):
+                try:
+                    setattr(cls, el, getattr(cls, el).astype(type_))
+                except Exception as exc_:
+                    raise InvalidFlexibility(
+                        "{} should be convertible data should be convertible to "
+                        '{} with error: \n"{}"'.format(el, type_, exc_)
+                    )
+        if (cls.load_max_ramp_up[cls.load_flexible] > cls.load_size[cls.load_flexible]).any():
+            raise InvalidFlexibility("Invalid maximum ramp for some loads (above size of load)")
+    
     @classmethod
     def attach_layout(cls, grid_layout):
         """
@@ -3085,6 +3221,13 @@ class GridObjects:
             # I need to set it to the default if set elsewhere
             cls.n_busbar_per_sub = DEFAULT_N_BUSBAR_PER_SUB
             res = True
+
+        if glop_ver < version.parse("1.10.4.dev0"):
+            # Flexibility did not exist before
+            # Affects shape of vector representation 
+            cls.flexible_load_available = False
+            cls._aux_process_pre_flexibility()
+            res = True
             
         if res:
             cls._reset_cls_dict()  # forget the previous class (stored as dict)
@@ -3150,6 +3293,23 @@ class GridObjects:
         cls._aux_fix_topo_vect_removed_storage()
         # deactivate storage
         cls.set_no_storage()
+
+    @classmethod
+    def _aux_process_pre_flexibility(cls):
+        # Remove flexibility
+        flex_attrs = ["load_size", "load_flexible", 
+                      "load_max_ramp_up", "load_max_ramp_down",
+                      "load_min_uptime", "load_min_downtime",
+                      "load_cost_per_MW"]
+        for flex_attr in flex_attrs:
+            if hasattr(cls, flex_attr):
+                setattr(cls, flex_attr, np.zeros([], dtype=dt_int))
+        if cls.attr_list_vect is not None:
+            if "actual_flex" in cls.attr_list_vect:
+                cls.attr_list_vect.remove("actual_flex")
+            if "target_flex" in cls.attr_list_vect:
+                cls.attr_list_vect.remove("target_flex")
+            cls.attr_list_set = set(cls.attr_list_vect)
             
     @classmethod
     def get_obj_connect_to(cls, _sentinel=None, substation_id=None):
@@ -3721,7 +3881,7 @@ class GridObjects:
         -------
         _topo_vect_only: this function is called once when the backend is initialized in `backend.load_grid`  
         (in `backend._compute_pos_big_topo`) and then once when everything is set up 
-        (after redispatching and storage data are loaded).
+        (after redispatching, flexibility and storage data are loaded).
         
         This is why I need the `_topo_vect_only` flag that tells this function when it's called only for 
         `topo_vect` related attributed
@@ -3925,8 +4085,8 @@ class GridObjects:
             # Indeed, at this stage (first call in the backend.load_grid) these
             # attributes are not loaded yet
             
-            # redispatching
-            if cls.redispatching_unit_commitment_availble:
+            # Redispatching
+            if cls.redispatching_unit_commitment_available:
                 for nm_attr, type_attr in zip(cls._li_attr_disp, cls._type_attr_disp):
                     save_to_dict(
                         res,
@@ -3939,7 +4099,21 @@ class GridObjects:
                 for nm_attr in cls._li_attr_disp:
                     res[nm_attr] = None
             
-            # layout (position of substation on a map of the grid)
+            # Flexibility
+            if cls._get_grid2op_version_as_version_obj() >= version.parse("1.10.4.dev0"):
+                for nm_attr, type_attr in zip(cls._li_attr_flex_load, cls._type_attr_flex_load):
+                    save_to_dict(
+                        res,
+                        cls,
+                        nm_attr,
+                        (lambda li: [type_attr(el) for el in li]) if as_list else None,
+                        copy_,
+                    )
+            # else:
+            #     for nm_attr in cls._li_attr_flex_load:
+            #         res[nm_attr] = None
+
+            # Layout (position of substation on a map of the grid)
             if cls.grid_layout is not None:
                 save_to_dict(
                     res,
@@ -3953,7 +4127,7 @@ class GridObjects:
             else:
                 res["grid_layout"] = None
 
-            # storage data
+            # Storage Data
             save_to_dict(
                 res,
                 cls,
@@ -4018,13 +4192,13 @@ class GridObjects:
                 copy_,
             )
 
-            # alert or alarm
+            # Alert or Alarm
             if cls.assistant_warning_type is not None:
                 res["assistant_warning_type"] = str(cls.assistant_warning_type)
             else:
                 res["assistant_warning_type"] = None
             
-            # area for the alarm feature
+            # Area for the alarm feature
             res["dim_alarms"] = cls.dim_alarms
         
 
@@ -4051,16 +4225,16 @@ class GridObjects:
                 copy_,
             )
             
-            # number of line alert for the alert feature
+            # No. of line alerst for the alert feature
             res['dim_alerts'] = cls.dim_alerts 
-            # save alert line names to dict
+            # Save alert line names to dict
             save_to_dict(
                 res, cls, "alertable_line_names", (lambda li: [str(el) for el in li]) if as_list else None, copy_
             )
             save_to_dict(
                 res, cls, "alertable_line_ids", (lambda li: [int(el) for el in li])  if as_list else None, copy_
             )
-            # avoid further computation and save it
+            # Avoid further computation and save it
             if not as_list:
                 cls._CLS_DICT = res.copy()
         return res
@@ -4108,10 +4282,11 @@ class GridObjects:
             # attributes are not loaded yet
             
             # redispatching / curtailment
-            res[
-                "redispatching_unit_commitment_availble"
-            ] = cls.redispatching_unit_commitment_availble
-            
+            res["redispatching_unit_commitment_available"] = cls.redispatching_unit_commitment_available
+
+            # Flexible / redispatchable loads
+            res["flexible_load_available"] = cls.flexible_load_available
+
             # n_busbar_per_sub
             res["n_busbar_per_sub"] = cls.n_busbar_per_sub
             
@@ -4178,7 +4353,7 @@ class GridObjects:
             if dict_["_PATH_GRID_CLASSES"] is not None:
                 cls._PATH_GRID_CLASSES = str(dict_["_PATH_GRID_CLASSES"])
             else:
-                cls._PATH_GRID_CLASSES = None  
+                cls._PATH_GRID_CLASSES = None
         elif "_PATH_ENV" in dict_:
             # legacy mode in grid2op <= 1.10.1 this was saved in "PATH_ENV"
             if dict_["_PATH_ENV"] is not None:
@@ -4228,7 +4403,6 @@ class GridObjects:
         cls.line_ex_to_subid = extract_from_dict(
             dict_, "line_ex_to_subid", lambda x: np.array(x).astype(dt_int)
         )
-
         cls.load_to_sub_pos = extract_from_dict(
             dict_, "load_to_sub_pos", lambda x: np.array(x).astype(dt_int)
         )
@@ -4241,7 +4415,6 @@ class GridObjects:
         cls.line_ex_to_sub_pos = extract_from_dict(
             dict_, "line_ex_to_sub_pos", lambda x: np.array(x).astype(dt_int)
         )
-
         cls.load_pos_topo_vect = extract_from_dict(
             dict_, "load_pos_topo_vect", lambda x: np.array(x).astype(dt_int)
         )
@@ -4262,10 +4435,10 @@ class GridObjects:
         cls.dim_topo = cls.sub_info.sum()
 
         if dict_["gen_type"] is None:
-            cls.redispatching_unit_commitment_availble = False
+            cls.redispatching_unit_commitment_available = False
             # and no need to make anything else, because everything is already initialized at None
         else:
-            cls.redispatching_unit_commitment_availble = True
+            cls.redispatching_unit_commitment_available = True
             type_attr_disp = [
                 str,
                 dt_float,
@@ -4297,9 +4470,18 @@ class GridObjects:
                         dict_, nm_attr, lambda x: np.array(x).astype(type_attr)
                     ),
                 )
+        
+        cls.flexible_load_available = False
+        set_flex_defaults  = True
+        if "load_flexible" in dict_:
+            if dict_["load_flexible"] is not None:
+                cls.flexible_load_available = True
+                set_flex_defaults = False
+        # Enables backwards compatibility with Flexibility (introduced 1.10.4)
+        GridObjects.set_cls_flexibility(dict_, set_defaults=set_flex_defaults)
 
+            
         cls.grid_layout = extract_from_dict(dict_, "grid_layout", lambda x: x)
-
         cls.name_shunt = extract_from_dict(dict_, "name_shunt", lambda x: x)
         if cls.name_shunt is not None:
             cls.shunts_data_available = True
@@ -4382,8 +4564,8 @@ class GridObjects:
             cls.alarms_lines_area = copy.deepcopy(dict_["alarms_lines_area"])
             cls.alarms_area_lines = copy.deepcopy(dict_["alarms_area_lines"])
 
-        # alert information 
-        if "dim_alerts" in dict_: 
+        # alert information
+        if "dim_alerts" in dict_:
             # NB by default the constructor do as if there were no alert so that's great !
             cls.dim_alerts = dict_["dim_alerts"]
             if cls.dim_alerts > 0:
@@ -4406,6 +4588,31 @@ class GridObjects:
         obj_._compute_pos_big_topo_cls()
         cls = cls.init_grid(obj_)  # , force=True
         return cls()
+    
+    @classmethod
+    def set_cls_flexibility(cls, dict_:dict, set_defaults:bool=True) -> dict:
+        """
+        Set flexibility-related attributes for GridObjects. Can use
+        default-values for Backwards compatability.
+
+        Args:
+            dict_ (dict): Dictionary from which 'GridObjects' is constructed
+            set_defaults (bool, optional): Whether to fill with default-values. Defaults to True.
+
+        Returns:
+            dict: Modified Dictionary from which 'GridObjects' is constructed
+        """
+        # Enables backwards compatibility with Flexibility (introduced 1.10.4)
+        type_attr_flex_load = [dt_float, dt_bool, dt_float,
+                            dt_float, dt_int, dt_int, dt_float]
+        if set_defaults:
+            prim_neutral_lookup = {bool:False, float:0.0, int:0, str:""}
+            for attr_name, attr_type in zip(cls._li_attr_flex_load, cls._type_attr_flex_load):
+                dict_[attr_name] = [prim_neutral_lookup[attr_type]]*cls.n_load
+        for nm_attr, type_attr in zip(cls._li_attr_flex_load, type_attr_flex_load):
+            setattr(cls, nm_attr, extract_from_dict(dict_, nm_attr,
+                    lambda x: np.array(x).astype(type_attr)))
+        return dict_
 
     @classmethod
     def process_shunt_satic_data(cls):
@@ -4815,7 +5022,7 @@ class GridObjects:
 
         gen_type_str = (
             ",".join([f'"{el}"' for el in cls.gen_type])
-            if cls.redispatching_unit_commitment_availble
+            if cls.redispatching_unit_commitment_available
             else "None"
         )
         gen_pmin_str = GridObjects._format_float_vect_to_cls_str(cls.gen_pmin)
@@ -4843,6 +5050,14 @@ class GridObjects:
             cls.gen_shutdown_cost
         )
         gen_renewable_str = GridObjects._format_bool_vect_to_cls_str(cls.gen_renewable)
+
+        load_size_str = GridObjects._format_float_vect_to_cls_str(cls.load_size)
+        load_flexible_str = GridObjects._format_bool_vect_to_cls_str(cls.load_flexible)
+        load_max_ramp_up_str = GridObjects._format_float_vect_to_cls_str(cls.load_max_ramp_up)
+        load_max_ramp_down_str = GridObjects._format_float_vect_to_cls_str(cls.load_max_ramp_down)
+        load_min_uptime_str = GridObjects._format_int_vect_to_cls_str(cls.load_min_uptime)
+        load_min_downtime_str = GridObjects._format_int_vect_to_cls_str(cls.load_min_downtime)
+        load_cost_per_MW_str = GridObjects._format_float_vect_to_cls_str(cls.load_cost_per_MW)
 
         storage_type_str = ",".join([f'"{el}"' for el in cls.storage_type])
         storage_Emax_str = GridObjects._format_float_vect_to_cls_str(cls.storage_Emax)
@@ -4994,7 +5209,7 @@ class {cls.__name__}({cls._INIT_GRID_CLS.__name__}):
     _type_attr_disp = [str, float, float, bool, float, float, int, int, float, float, float, bool]
 
     # redispatch data, not available in all environment
-    redispatching_unit_commitment_availble = {"True" if cls.redispatching_unit_commitment_availble else "False"}
+    redispatching_unit_commitment_available = {"True" if cls.redispatching_unit_commitment_available else "False"}
     gen_type = np.array([{gen_type_str}])
     gen_pmin = {gen_pmin_str}
     gen_pmax = {gen_pmax_str}
@@ -5007,6 +5222,22 @@ class {cls.__name__}({cls._INIT_GRID_CLS.__name__}):
     gen_startup_cost = {gen_startup_cost_str}  # start cost (in currency)
     gen_shutdown_cost = {gen_shutdown_cost_str}  # shutdown cost (in currency)
     gen_renewable = {gen_renewable_str}
+
+    # for flexibility
+    _li_attr_flex = ["load_size", "load_flexible", "load_max_ramp_up",
+                     "load_max_ramp_down", "load_min_uptime", "load_min_downtime", "load_cost_per_MW"]
+
+    _type_attr_flex = [float, float, bool, float, float, int, int, float]
+
+    # Flexible load data, not available in all environments
+    flexible_load_available = {"True" if cls.flexible_load_available else "False"}
+    load_size = {load_size_str}
+    load_flexible = {load_flexible_str}
+    load_max_ramp_up = {load_max_ramp_up_str}
+    load_max_ramp_down = {load_max_ramp_down_str}
+    load_min_uptime = {load_min_uptime_str}
+    load_min_downtime = {load_min_downtime_str}
+    load_cost_per_MW = {load_cost_per_MW_str}  # marginal cost (in currency / (power.step) and not in $/(MW.h) it would be $ / (MW.5mins) )
 
     # storage unit static data
     storage_type = np.array([{storage_type_str}], dtype=str)

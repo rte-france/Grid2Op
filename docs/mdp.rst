@@ -339,9 +339,16 @@ When loading the environment, there are also some other static data that are loa
   whether it can be controlled by the agent to produce both more or less power 
   at any given step. This is usually the case for generator which uses
   as primary energy coal, gaz, nuclear or water (hyrdo powerplant)
-- :green:`min_ramp` and :green:`max_ramp`: are two vector giving the maximum amount
+- :green:`is_load_flexible`: a vector of `True` / `False` indicating for each load
+  whether it can be controlled by the agent to consume both more or less power 
+  at any given step. This is could be the case for a large industry with a demand 
+  response capability or an aggregated portfolio of household consumers. 
+- :green:`gen_min_ramp` and :green:`gen_max_ramp`: are two vector giving the maximum amount
   of power each generator can be adjusted to produce more / less. Typically,
-  :green:`min_ramp = max_ramp = 0` for non controlable generators.
+  :green:`gen_min_ramp = gen_max_ramp = 0` for none-controlable generators.
+- :green:`load_min_ramp` and :green:`load_max_ramp`: are two vector giving the maximum amount
+  of power each load can be adjusted to produce more / less in 1 time step. Typically,
+  :green:`load_min_ramp = load_max_ramp = 0` for none-flexible loads.
 
 .. note::
   These elements are marked :green:`green` because they are loaded by the backend, but strictly speaking
@@ -377,9 +384,13 @@ At time of writing, grid2op support different type of actions:
   action. Indeed, writing :math:`[0, 1]^{\text{n\_gen}}` is not entirely true as a non renewable generator
   will not be affected by this type of action)
 - :blue:`redisp`:  corresponds to the action where the agent is able to modify (to increase or decrease)
-  the generator output values (asking at the some producers to produce more and at some
+  the generator output values (asking some producers to produce more and some to
   to produce less). It leaves in :math:`[\text{min\_ramp}, \text{max\_ramp}] \subset \mathbb{R}^{\text{n\_gen}}`
-  (remember that for non controlable generators, by definition we suppose that :green:`min_ramp = max_ramp = 0`)
+  (for none-controlable generators, by definition we suppose that :green:`min_ramp = max_ramp = 0`)
+- :blue:`flexibility`:  corresponds to the action where the agent is able to modify (to increase or decrease)
+  the load output values (asking some loads to consume more and others to produce less). 
+  It leaves in :math:`[\text{min\_ramp}, \text{max\_ramp}] \subset \mathbb{R}^{\text{n\_load}}`
+  (for none-flexible generators, by definition we suppose that :green:`min_ramp = max_ramp = 0`)
 
 .. note::
   The :blue:`change_bus` is only available in environment where :blue:`n_busbar_per_sub = 2`
@@ -505,10 +516,13 @@ agent in the :ref:`observation_module` page of the documentation.) The
   `gen_p`_, `gen_q`_, `gen_v`_, `gen_theta`_  and also for powerlines 
   `p_or`_, `q_or`_, `v_or`_, `a_or`_, `theta_or`_, `p_ex`_, `q_ex`_, `v_ex`_, 
   `a_ex`_, `theta_ex`_, `rho`_ etc.
-- some attributes related to "redispatching" (which is a type of actions) that is
+- some attributes related to "redispatching" (which is a type of action) that is
   computed by the environment (see :ref:`mdp-transition-kernel-def` for more information)
   which includes `target_dispatch`_ and `actual_dispatch`_ or the curtailment
   `gen_p_before_curtail`_, `curtailment_mw`_, `curtailment`_ or `curtailment_limit`_ 
+- some attributes related to "flexibility" (which is a type of action) that is
+  computed by the environment (see :ref:`mdp-transition-kernel-def` for more information)
+  which includes `target_flexibility`_ and `actual_flexibility`
 - some attributes related to "storage units", for example `storage_charge`_ , 
   `storage_power_target`_, `storage_power`_ or `storage_theta`_  
 - some related to "date" and "time", `year`_, `month`_, `day`_, `hour_of_day`_, 

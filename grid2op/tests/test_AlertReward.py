@@ -22,7 +22,6 @@ from grid2op.Runner import Runner  # TODO
 from grid2op.Action import BaseAction, PlayableAction
 from grid2op.Agent import BaseAgent
 from grid2op.Episode import EpisodeData
-
 from _aux_opponent_for_test_alerts import (_get_steps_attack,
                                            TestOpponent,
                                            TestOpponentMultiLines)

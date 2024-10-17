@@ -69,7 +69,7 @@ def _get_action_grid_class():
         [3, 21, 10, 15, 22, 16, 23, 32, 37, 26, 47, 50, 54, 35, 38, 44, 57, 45, 51, 55]
     )
 
-    GridObjects.redispatching_unit_commitment_availble = True
+    GridObjects.redispatching_unit_commitment_available = True
     GridObjects.gen_type = np.array(["thermal"] * 5)
     GridObjects.gen_pmin = np.array([0.0] * 5)
     GridObjects.gen_pmax = np.array([100.0] * 5)
@@ -82,6 +82,15 @@ def _get_action_grid_class():
     GridObjects.gen_max_ramp_up = np.array([10.0, 5.0, 15.0, 7.0, 8.0])
     GridObjects.gen_max_ramp_down = np.array([11.0, 6.0, 16.0, 8.0, 9.0])
     GridObjects.gen_renewable = ~GridObjects.gen_redispatchable
+
+    GridObjects.flexible_load_available = True
+    GridObjects.load_min_uptime = np.array([0] * 11)
+    GridObjects.load_min_downtime = np.array([0] * 11)
+    GridObjects.load_cost_per_MW = np.array([0.0] * 11)
+    GridObjects.load_size = np.array([0.0] * 11)
+    GridObjects.load_flexible = np.array([False] * 11)
+    GridObjects.load_max_ramp_up = np.array([0.0] * 11)
+    GridObjects.load_max_ramp_down = np.array([0.0] * 11)
 
     GridObjects.n_storage = 2
     GridObjects.name_storage = np.array(["storage_0", "storage_1"])
@@ -109,55 +118,22 @@ def _get_action_grid_class():
         "n_busbar_per_sub": "2",
         "name_gen": ["gen_0", "gen_1", "gen_2", "gen_3", "gen_4"],
         "name_load": [
-            "load_0",
-            "load_1",
-            "load_2",
-            "load_3",
-            "load_4",
-            "load_5",
-            "load_6",
-            "load_7",
-            "load_8",
-            "load_9",
-            "load_10",
+            "load_0", "load_1", "load_2", "load_3",
+            "load_4", "load_5", "load_6", "load_7",
+            "load_8", "load_9", "load_10"
         ],
         "name_line": [
-            "line_0",
-            "line_1",
-            "line_2",
-            "line_3",
-            "line_4",
-            "line_5",
-            "line_6",
-            "line_7",
-            "line_8",
-            "line_9",
-            "line_10",
-            "line_11",
-            "line_12",
-            "line_13",
-            "line_14",
-            "line_15",
-            "line_16",
-            "line_17",
-            "line_18",
-            "line_19",
+            "line_0","line_1","line_2","line_3",
+            "line_4","line_5","line_6","line_7",
+            "line_8","line_9","line_10","line_11",
+            "line_12","line_13","line_14","line_15",
+            "line_16","line_17","line_18","line_19",
         ],
         "name_sub": [
-            "sub_0",
-            "sub_1",
-            "sub_2",
-            "sub_3",
-            "sub_4",
-            "sub_5",
-            "sub_6",
-            "sub_7",
-            "sub_8",
-            "sub_9",
-            "sub_10",
-            "sub_11",
-            "sub_12",
-            "sub_13",
+            "sub_0","sub_1","sub_2","sub_3",
+            "sub_4","sub_5","sub_6","sub_7",
+            "sub_8","sub_9","sub_10","sub_11",
+            "sub_12","sub_13",
         ],
         "name_storage": ["storage_0", "storage_1"],
         "env_name": "test_action_env",
@@ -165,95 +141,35 @@ def _get_action_grid_class():
         "load_to_subid": [1, 2, 3, 4, 5, 8, 9, 10, 11, 12, 13],
         "gen_to_subid": [0, 1, 2, 5, 7],
         "line_or_to_subid": [
-            0,
-            0,
-            1,
-            1,
-            1,
-            2,
-            3,
-            3,
-            3,
-            4,
-            5,
-            5,
-            5,
-            6,
-            6,
-            8,
-            8,
-            9,
-            11,
-            12,
+            0,0,1,1,
+            1,2,3,3,
+            3,4,5,5,
+            5,6,6,8,
+            8,9,11,12,
         ],
         "line_ex_to_subid": [
-            1,
-            4,
-            2,
-            3,
-            4,
-            3,
-            4,
-            6,
-            8,
-            5,
-            10,
-            11,
-            12,
-            7,
-            8,
-            9,
-            13,
-            10,
-            12,
-            13,
+            1,4,2,3,
+            4,3,4,6,
+            8,5,10,11,
+            12,7,8,9,
+            13,10,12,13,
         ],
         "storage_to_subid": [1, 2],
         "load_to_sub_pos": [4, 2, 5, 4, 4, 4, 1, 1, 1, 2, 1],
         "gen_to_sub_pos": [2, 5, 3, 5, 1],
         "line_or_to_sub_pos": [
-            0,
-            1,
-            1,
-            2,
-            3,
-            1,
-            2,
-            3,
-            4,
-            3,
-            1,
-            2,
-            3,
-            1,
-            2,
-            2,
-            3,
-            0,
-            0,
-            1,
+            0,1,1,2,
+            3,1,2,3,
+            4,3,1,2,
+            3,1,2,2,
+            3,0,0,1,
         ],
         "line_ex_to_sub_pos": [
-            0,
-            0,
-            0,
-            0,
-            1,
-            1,
-            2,
-            0,
-            0,
-            0,
-            2,
-            2,
-            3,
-            0,
-            1,
-            2,
-            2,
-            0,
-            0,
-            0,
+            0,0,0,0,
+            1,1,2,0,
+            0,0,2,2,
+            3,0,1,2,
+            2,0,0,0,
         ],
         "storage_to_sub_pos": [6, 4],
         "load_pos_topo_vect": [7, 12, 20, 25, 30, 41, 43, 46, 49, 53, 56],
@@ -315,6 +231,13 @@ def _get_action_grid_class():
         "gen_cost_per_MW": [70.0] * 5,
         "gen_startup_cost": [0.0] * 5,
         "gen_shutdown_cost": [0.0] * 5,
+        "load_size":[0.0]*11,
+        "load_flexible":[False]*11,
+        "load_max_ramp_up": [0.0]*11,
+        "load_max_ramp_down": [0.0]*11,
+        "load_min_uptime": [0.0]*11,
+        "load_min_downtime": [0.0]*11,
+        "load_cost_per_MW": [0.0]*11,
         "storage_type": ["battery"] * 2,
         "storage_Emax": [100.0, 100.0],
         "storage_Emin": [0.0, 0.0],
@@ -455,6 +378,7 @@ class TestActionBase(ABC):
             set_topo_vect,
             switcth_topo_vect,
             redispatching,
+            flexibility,
             storage,
             shunts,
         ) = action()
@@ -836,6 +760,7 @@ class TestActionBase(ABC):
         act_str = (
             "This action will:\n\t - NOT change anything to the injections"
             "\n\t - NOT perform any redispatching action\n"
+            "\t - NOT perform any flexibility action\n"
             "\t - NOT modify any storage capacity\n"
             "\t - NOT perform any curtailment"
             "\n\t - NOT force any line status\n"
@@ -853,192 +778,192 @@ class TestActionBase(ABC):
         )
         assert res == act_str
 
-    def test_to_vect(self):
-        self._skipMissingKey("set_bus")
-        self._skipMissingKey("change_bus")
+def test_to_vect(self):
+    self._skipMissingKey("set_bus")
+    self._skipMissingKey("change_bus")
 
-        arr1 = np.array([False, False, False, True, True, True, False], dtype=dt_bool)
-        arr2 = np.array([1, 1, 2, 2], dtype=dt_int)
-        id_1 = 1
-        id_2 = 12
+    arr1 = np.array([False, False, False, True, True, True, False], dtype=dt_bool)
+    arr2 = np.array([1, 1, 2, 2], dtype=dt_int)
+    id_1 = 1
+    id_2 = 12
 
-        action = self.helper_action(
-            {
-                "change_bus": {"substations_id": [(id_1, arr1)]},
-                "set_bus": {"substations_id": [(id_2, arr2)]},
-            }
-        )
+    action = self.helper_action(
+        {
+            "change_bus": {"substations_id": [(id_1, arr1)]},
+            "set_bus": {"substations_id": [(id_2, arr2)]},
+        }
+    )
 
-        res = action.to_vect()
-        tmp = np.zeros(self.size_act)
-        if "curtail" in action.authorized_keys:
-            # for curtailment, at the end, and by default its -1
-            tmp[-action.n_gen :] = -1
+    res = action.to_vect()
+    tmp = np.zeros(self.size_act)
+    if "curtail" in action.authorized_keys:
+        # for curtailment, at the end, and by default its -1
+        tmp[-action.n_gen :] = -1
 
-        # compute the "set_bus" vect
-        id_set = np.nonzero(np.array(type(action).attr_list_vect) == "_set_topo_vect")[0][0]
-        size_before = 0
-        for el in type(action).attr_list_vect[:id_set]:
-            arr_ = action._get_array_from_attr_name(el)
-            size_before += arr_.shape[0]
-        tmp[size_before : (size_before + action.dim_topo)] = np.array(
-            [
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                1,
-                1,
-                2,
-                2,
-                0,
-                0,
-                0,
-            ]
-        )
-        id_change = np.nonzero(np.array(type(action).attr_list_vect) == "_change_bus_vect")[0][
-            0
+    # compute the "set_bus" vect
+    id_set = np.nonzero(np.array(type(action).attr_list_vect) == "_set_topo_vect")[0][0]
+    size_before = 0
+    for el in type(action).attr_list_vect[:id_set]:
+        arr_ = action._get_array_from_attr_name(el)
+        size_before += arr_.shape[0]
+    tmp[size_before : (size_before + action.dim_topo)] = np.array(
+        [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1,
+            1,
+            2,
+            2,
+            0,
+            0,
+            0,
         ]
-        size_before = 0
-        for el in type(action).attr_list_vect[:id_change]:
-            arr_ = action._get_array_from_attr_name(el)
-            size_before += arr_.shape[0]
-        tmp[size_before : (size_before + action.dim_topo)] = 1.0 * np.array(
-            [
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                True,
-                True,
-                True,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-            ]
-        )
-        assert np.all(res[np.isfinite(tmp)] == tmp[np.isfinite(tmp)])
-        assert np.all(np.isfinite(res) == np.isfinite(tmp))
+    )
+    id_change = np.nonzero(np.array(type(action).attr_list_vect) == "_change_bus_vect")[0][
+        0
+    ]
+    size_before = 0
+    for el in type(action).attr_list_vect[:id_change]:
+        arr_ = action._get_array_from_attr_name(el)
+        size_before += arr_.shape[0]
+    tmp[size_before : (size_before + action.dim_topo)] = 1.0 * np.array(
+        [
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            True,
+            True,
+            True,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+        ]
+    )
+    assert np.all(res[np.isfinite(tmp)] == tmp[np.isfinite(tmp)])
+    assert np.all(np.isfinite(res) == np.isfinite(tmp))
 
-    def test__eq__(self):
-        self._skipMissingKey("set_bus")
-        self._skipMissingKey("change_bus")
+def test__eq__(self):
+    self._skipMissingKey("set_bus")
+    self._skipMissingKey("change_bus")
 
-        arr1 = np.array([False, False, False, True, True, True, True], dtype=dt_bool)
-        arr2 = np.array([1, 1, 2, 2], dtype=dt_int)
-        id_1 = 1
-        id_2 = 12
-        action1 = self.helper_action(
-            {
-                "change_bus": {"substations_id": [(id_1, arr1)]},
-                "set_bus": {"substations_id": [(id_2, arr2)]},
-            }
-        )
-        action2 = self.helper_action(
-            {
-                "change_bus": {"substations_id": [(id_1, arr1)]},
-                "set_bus": {"substations_id": [(id_2, arr2)]},
-            }
-        )
-        action3 = self.helper_action()
-        test = type(action1).assert_grid_correct_cls()
-        assert action1 == action2
-        assert action1 != action3
+    arr1 = np.array([False, False, False, True, True, True, True], dtype=dt_bool)
+    arr2 = np.array([1, 1, 2, 2], dtype=dt_int)
+    id_1 = 1
+    id_2 = 12
+    action1 = self.helper_action(
+        {
+            "change_bus": {"substations_id": [(id_1, arr1)]},
+            "set_bus": {"substations_id": [(id_2, arr2)]},
+        }
+    )
+    action2 = self.helper_action(
+        {
+            "change_bus": {"substations_id": [(id_1, arr1)]},
+            "set_bus": {"substations_id": [(id_2, arr2)]},
+        }
+    )
+    action3 = self.helper_action()
+    test = type(action1).assert_grid_correct_cls()
+    assert action1 == action2
+    assert action1 != action3
 
     def test_from_vect_dn(self):
         action1 = self.helper_action({})
@@ -1270,10 +1195,8 @@ class TestActionBase(ABC):
             set_status,
             change_status,
             set_topo_vect,
-            switcth_topo_vect,
-            redispatching,
-            storage,
-            shunts,
+            switch_topo_vect,
+            *_
         ) = action()
 
         assert "load_p" in dict_injection
@@ -1284,7 +1207,7 @@ class TestActionBase(ABC):
         assert np.all(set_status == set_status_orig)
         assert np.all(change_status == change_status_orig)
         assert np.all(set_topo_vect == set_topo_vect_orig)
-        assert np.all(switcth_topo_vect == change_topo_vect_orig)
+        assert np.all(switch_topo_vect == change_topo_vect_orig)
 
     def test_get_topological_impact(self):
         self._skipMissingKey("set_bus")

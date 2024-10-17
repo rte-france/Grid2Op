@@ -96,7 +96,7 @@ class TestLoadingPredefinedEnv(unittest.TestCase):
             warnings.filterwarnings("ignore")
             with make("rte_case5_example", test=True) as env:
                 obs = env.reset()
-                assert env.redispatching_unit_commitment_availble == True
+                assert env.redispatching_unit_commitment_available == True
 
     def test_case5_can_simulate(self):
         with warnings.catch_warnings():
@@ -117,7 +117,7 @@ class TestLoadingPredefinedEnv(unittest.TestCase):
             warnings.filterwarnings("ignore")
             with make("rte_case14_redisp", test=True) as env:
                 obs = env.reset()
-                assert env.redispatching_unit_commitment_availble == True
+                assert env.redispatching_unit_commitment_available == True
 
     def test_case14redisp_can_simulate(self):
         with warnings.catch_warnings():
@@ -169,7 +169,7 @@ class TestLoadingPredefinedEnv(unittest.TestCase):
             warnings.filterwarnings("ignore")
             with make("rte_case14_realistic", test=True) as env:
                 obs = env.reset()
-                assert env.redispatching_unit_commitment_availble == True
+                assert env.redispatching_unit_commitment_available == True
 
     def test_case14realistic_can_simulate(self):
         with warnings.catch_warnings():
@@ -197,7 +197,7 @@ class TestLoadingPredefinedEnv(unittest.TestCase):
             warnings.filterwarnings("ignore")
             with make("rte_case14_test", test=True) as env:
                 obs = env.reset()
-                assert env.redispatching_unit_commitment_availble == True
+                assert env.redispatching_unit_commitment_available == True
 
     def test_case14test_can_simulate(self):
         with warnings.catch_warnings():
@@ -483,7 +483,7 @@ class TestMakeFromPathConfig(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             with make_from_dataset_path(dataset_path) as env:
-                assert env.redispatching_unit_commitment_availble == True
+                assert env.redispatching_unit_commitment_available == True
                 obs = env.reset()
                 sim_obs, reward, done, info = obs.simulate(env.action_space())
                 assert sim_obs != obs
@@ -508,7 +508,7 @@ class TestMakeFromPathConfig(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             with make_from_dataset_path(dataset_path) as env:
-                assert env.redispatching_unit_commitment_availble == True
+                assert env.redispatching_unit_commitment_available == True
                 obs = env.reset()
                 sim_obs, reward, done, info = obs.simulate(env.action_space())
                 assert sim_obs != obs
@@ -534,7 +534,7 @@ class TestMakeFromPathConfig(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             with make_from_dataset_path(dataset_path) as env:
-                assert env.redispatching_unit_commitment_availble == True
+                assert env.redispatching_unit_commitment_available == True
                 obs = env.reset()
                 sim_obs, reward, done, info = obs.simulate(env.action_space())
                 assert sim_obs != obs

@@ -81,6 +81,7 @@ class TestStorageEnv(HelperTests, unittest.TestCase):
             "This action will:\n"
             "\t - NOT change anything to the injections\n"
             "\t - NOT perform any redispatching action\n"
+            "\t - NOT perform any flexibility action\n"
             "\t - Modify the storage units in the following way:\n"
             '\t \t - Ask unit "storage_5_0" to absorb 1.00 MW (setpoint: 1.00 MW)\n'
             "\t - NOT perform any curtailment\n"

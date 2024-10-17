@@ -213,6 +213,9 @@ class Parameters:
         # allow dispatch on turned off generator (if ``True`` you can actually dispatch a turned on geenrator)
         self.ALLOW_DISPATCH_GEN_SWITCH_OFF = True
 
+        # allow flexibility on turned off load (if ``True`` you can actually flexibility adjust output of a turned on load)
+        self.ALLOW_FLEX_LOAD_SWITCH_OFF = True
+
         # if a curtailment action is "too strong" it will limit it to the "maximum feasible"
         # not to break the whole system
         self.LIMIT_INFEASIBLE_CURTAILMENT_STORAGE_ACTION = False

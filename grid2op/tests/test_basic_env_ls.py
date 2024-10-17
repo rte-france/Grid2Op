@@ -225,7 +225,7 @@ class TestBasicEnvironmentRunner(unittest.TestCase):
             assert "curtailment" in CompleteObservation.attr_list_vect, (
                 f"error after the legacy version " f"{grid2op_version}"
             )
- 
+
     def _aux_backward(self, base_path, g2op_version_txt, g2op_version):
         # TODO copy paste from test_Runner
         episode_studied = EpisodeData.list_episode(

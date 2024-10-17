@@ -178,11 +178,11 @@ class TestL2RPN_CASE14_SANDBOX(unittest.TestCase):
 
     def test_action_space(self):
         assert issubclass(self.env.action_space.subtype, PlayableAction)
-        assert self.env.action_space.n == 166, f"{self.env.action_space.n} instead of 166"
+        assert self.env.action_space.n == 177, f"{self.env.action_space.n} instead of 177"
 
     def test_observation_space(self):
         assert issubclass(self.env.observation_space.subtype, CompleteObservation)
-        size_th = 467
+        size_th = 489
         assert self.env.observation_space.n == size_th, (
             f"obs space size is {self.env.observation_space.n}," f"should be {size_th}"
         )
@@ -226,7 +226,7 @@ class TestEDUC_CASE14_REDISP(unittest.TestCase):
 
     def test_observation_space(self):
         assert issubclass(self.env.observation_space.subtype, CompleteObservation)
-        size_th = 467
+        size_th = 489 # 1.10.4
         assert self.env.observation_space.n == size_th, (
             f"obs space size is {self.env.observation_space.n}," f"should be {size_th}"
         )
@@ -270,9 +270,10 @@ class TestEDUC_STORAGE(unittest.TestCase):
 
     def test_observation_space(self):
         assert issubclass(self.env.observation_space.subtype, CompleteObservation)
-        size_th = 475
-        assert self.env.observation_space.n == size_th, (
-            f"obs space size is {self.env.observation_space.n}," f"should be {size_th}"
+        size_th_old = 475 # < 1.10.4
+        size_th_new = 497 # >= 1.10.4
+        assert self.env.observation_space.n == size_th_old or self.env.observation_space.n == size_th_new, (
+            f"obs space size is {self.env.observation_space.n}," f"should be {size_th_old} or {size_th_new}"
         )
 
     def test_random_action(self):

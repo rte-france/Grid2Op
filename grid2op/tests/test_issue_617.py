@@ -15,7 +15,6 @@ import warnings
 import copy
 import numpy as np
 
-
 from helper_path_test import PATH_DATA_TEST
 import grid2op
 from grid2op.Backend.pandaPowerBackend import PandaPowerBackend

@@ -262,6 +262,13 @@ class TestBasisObsBehaviour(unittest.TestCase):
             "gen_cost_per_MW": [5.0, 10.0, 0.0, 0.0, 10.0],
             "gen_startup_cost": [20.0, 2.0, 0.0, 0.0, 2.0],
             "gen_shutdown_cost": [10.0, 1.0, 0.0, 0.0, 1.0],
+            "load_size":[0.0]*11,
+            "load_flexible":[False]*11,
+            "load_max_ramp_up":[0.0]*11,
+            "load_max_ramp_down":[0.0]*11,
+            "load_min_uptime":[0.0]*11,
+            "load_min_downtime":[0.0]*11,
+            "load_cost_per_MW":[0.0]*11,
             "grid_layout": {
                 "sub_0": [-280.0, -81.0],
                 "sub_1": [-100.0, -270.0],
@@ -731,6 +738,8 @@ class TestBasisObsBehaviour(unittest.TestCase):
             ],
             "target_dispatch": [0.0, 0.0, 0.0, 0.0, 0.0],
             "actual_dispatch": [0.0, 0.0, 0.0, 0.0, 0.0],
+            "target_flex": [0.0]*11,
+            "actual_flex": [0.0]*11,
             "_shunt_p": [0.0],
             "_shunt_q": [-17.923625946044922],
             "_shunt_v": [0.20202238857746124],
@@ -878,8 +887,13 @@ class TestBasisObsBehaviour(unittest.TestCase):
                 dt_int,
                 dt_int,
                 dt_int,
+                # Redispatch
                 dt_float,
                 dt_float,
+                # Flexibility
+                dt_float,
+                dt_float,
+                # Storage
                 dt_float,
                 dt_float,
                 dt_float,
@@ -951,8 +965,12 @@ class TestBasisObsBehaviour(unittest.TestCase):
                 14,
                 20,
                 20,
+                # Redispatch
                 5,
                 5,
+                # Flexibility
+                11,
+                11,
                 0,
                 0,
                 0,
@@ -985,7 +1003,7 @@ class TestBasisObsBehaviour(unittest.TestCase):
                 0
             ]
         )
-        self.size_obs = 429 + 4 + 4 + 2 + 1 + 10 + 5 + 0
+        self.size_obs = 429 + 4 + 4 + 2 + 1 + 10 + 5 + 0 + 11 + 11
 
     def tearDown(self):
         self.env.close()
@@ -2067,8 +2085,8 @@ class TestBasisObsBehaviour(unittest.TestCase):
         assert np.all(obs.dtypes() == self.dtypes)
         assert np.all(obs.shapes() == self.shapes)
 
-        # TODO there is not reason that these 2 are equal: reset, will erase everything
-        # TODO whereas creating the observation
+        # TODO: There is no reason that these 2 are equal: reset, will erase everything
+        # TODO: whereas creating the observation
         # assert obs == obs2
         obs_diff, attr_diff = obs.where_different(obs2)
         for el in attr_diff:
@@ -2208,8 +2226,8 @@ class TestBasisObsBehaviour(unittest.TestCase):
             
             ok_ = np.array_equal(val, val_res)
             assert ok_, (f"values different for {el}: "
-                         f"{dict_[el]} vs "
-                         f"{self.dict_[el]}")
+                        f"{dict_[el]} vs "
+                        f"{self.dict_[el]}")
             
         # self.maxDiff = None
         # self.assertDictEqual(dict_, self.dict_)

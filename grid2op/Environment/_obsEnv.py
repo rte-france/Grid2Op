@@ -405,8 +405,10 @@ class _ObsEnv(BaseEnv):
         )
         self._backend_action_set += new_state_action
         # for storage unit
-        if time_step > 0:
-            self._backend_action_set.storage_power.values[:] = 0.0
+        # TODO: Commented out if-statement as this causes powerflow to 
+        # diverge for time_step == 0 (!)
+        # if time_step > 0:
+        self._backend_action_set.storage_power.values[:] = 0.0
         self._backend_action_set.all_changed()
         self._backend_action = copy.deepcopy(self._backend_action_set)
         
@@ -430,6 +432,22 @@ class _ObsEnv(BaseEnv):
         if "prod_p" in self._env_modification._dict_inj:
             # modification of the production setpoint value
             tmp = self._env_modification._dict_inj["prod_p"]
+            indx_ok = np.isfinite(tmp)
+            new_p[indx_ok] = tmp[indx_ok]
+        return new_p
+    
+    def _get_new_load_setpoint(self, action):
+        new_p = 1.0 * self._backend_action_set.load_p.values
+        if "load_p" in action._dict_inj:
+            tmp = action._dict_inj["load_p"]
+            indx_ok = np.isfinite(tmp)
+            new_p[indx_ok] = tmp[indx_ok]
+
+        # modification of the environment always override the modification of the agents (if any)
+        # TODO have a flag there if this is the case.
+        if "load_p" in self._env_modification._dict_inj:
+            # modification of the production setpoint value
+            tmp = self._env_modification._dict_inj["load_p"]
             indx_ok = np.isfinite(tmp)
             new_p[indx_ok] = tmp[indx_ok]
         return new_p

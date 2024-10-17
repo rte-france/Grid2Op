@@ -400,7 +400,16 @@ load_p                        vect, float   observation, :ref:`load-obs`
 load_q                        vect, float   observation, :ref:`load-obs`
 load_v                        vect, float   observation, :ref:`load-obs`
 load_bus                      vect, int     observation, :ref:`load-obs`
+\* load_size                  vect, float   Maximum consumption physically possible for each load, in MW
+\* load_flexible              vect, bool    For each load, indicates if the load's consumption can be flexibly adjusted (a.k.a. demand response)
+\* load_max_ramp_up           vect, float   For each load, indicates the maximum values the demand can vary (upward) between two consecutive steps in MW. See the subsection about the equations for more information.
+\* load_max_ramp_down         vect, float   For each load, indicates the maximum values the demand can vary (downward) between two consecutive steps in MW. See the subsection about the equations for more information.
+\* load_min_uptime            vect, int     (currently unused) For each load, indicates the minimum time a load need to be "on" before being turned off.
+\* load_min_downtime          vect, int     (currently unused) For each load, indicates the minimum time a load need to be "off" before being turned on again.
+\* load_cost_per_MW           vect, float   (will change in the near future) Cost of changing consumption, in $ / MWh (in theory) but in $ / (MW . step) (each step "costs" `prod_p * load_cost_per_MW`)
 ==========================   =============  ============================================================
+
+(\* denotes optional properties available only for some environments)
 
 .. _load-stat:
 
@@ -441,8 +450,10 @@ continous action on loads is for now non accessible to the agent.
 - `load_change_bus`: change the bus to which the load is connected. Usage: `act.load_change_bus = load_id`
   to change the bus of the
   load with id `load_id`.
-- (internal) change the active consumption of a load. Usage `act.update({"injection": {"load_p": vect}}`
-- (internal) change the reactive consumption of a load. Usage `act.update({"injection": {"load_q": vect}}`
+- `flexibility`: will apply some flexibility to a load. Usage: `act.flexibility = [(load_id, amount)]` to
+  apply a flexibility action of `amount` MW on load `load_id`
+- (internal) change the active consumption of a load. Usage `act.update({"injection": {"load_p": vect}})`
+- (internal) change the reactive consumption of a load. Usage `act.update({"injection": {"load_q": vect}})`
 
 .. note:: See the :ref:`action-module` and in particular the section
     :ref:`action-module-examples` for more information about how to manipulate these "properties".
@@ -463,6 +474,10 @@ attributes are:
   get the voltage magnitude of the bus at which load with id `load_id` is connected.
 - `load_bus`: the bus to which each load is connected. Usage `obs.load_bus[load_id]` will
   get the bus to which load with id `load_id` is connected (typically -1, 1 or 2).
+- `target_flexibility`: the target values given by the agent to the environment (*eg* using
+  `act.flexibility`), in MW. Usage: `obs.target_flexibility[load_id]`.
+- `actual_flexibility`: actual dispatch: the values the environment was able to provide as flexibility, in MW.
+  Usage: `obs.actual_flexibility[load_id]`.
 
 Equations satisfied
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -472,8 +487,109 @@ times. This is why there are no constraints on the loads. Loads can vary as much
 observe the variation of loads, without being able to perform any intervention on them.
 
 .. note:: More recently, some "new" methods have been developed that could allow TSO, to some extend, to have some
-    control on the demand. These methods, known as "*demand side management*" are not available yet in grid2op. Do
-    not hesitate to fill a "feature request" if this topic is relevant for you.
+    control on the demand. These methods, known as "*demand side management*" are now available in grid2op under the 
+    `flexibility` action type. 
+
+Notations
++++++++++++
+Let's denote by:
+
+.. math::
+    :nowrap:
+
+    \begin{align*}
+    \overline{\mathbf{c}} &: \text{maximum active consumption of all loads (vector)} \\
+    \mathbf{\overline{\delta l}} &: \text{maximum ramp up for all loads}  \\
+    \mathbf{\underline{\delta l}} &: \text{maximum ramp up for all loads} \\
+    \mathbf{f}_t &: \text{vector of all flexibility asked by the agent at step t}  \\
+    \mathbf{k}_t &: \text{vector of all "target flexibility" at step t}  \\
+    \mathbf{c}_t &: \text{vector of all active consumption at step t} \\
+    \mathbf{d}_t &: \text{vector of all actual flexibility at step t}  \\
+    \end{align*}
+
+Using the above notation, these vector are accessible in grid2op with:
+
+- :math:`\overline{\mathbf{c}}` = `env.load_size`
+- :math:`\mathbf{\overline{\delta l}}` = `env.load_max_ramp_up`
+- :math:`\mathbf{\underline{\delta l}}` = `env.load_max_ramp_down`
+- :math:`\mathbf{p}_t` = `act.load_p`
+- :math:`\mathbf{f}_t` = `act.flexibility`
+- :math:`\mathbf{k}_t` = `obs.target_flexibility`
+- :math:`\mathbf{c}_t` = `obs.load_p`  [the consumption in the observation]
+- :math:`\mathbf{d}_t` = `obs.actual_flexibility`
+
+.. note:: Vector are denoted with bold font, like :math:`\mathbf{g}_t` and we will denote the ith component
+    of this vector with :math:`g^i_t` (here representing then the active consumption of load i at step t).
+    We adopt the same naming convention for all the vectors.
+
+    **NB** bold font might not work for some greek letters.
+
+.. warning:: Unless told otherwise, the letters used here to write the equation are only relevant for the
+    loads. The same letter is used multiple times for different elements described.
+
+.. warning:: We apply a non-standard sign convention for flexibility to make the interface identical to the
+  redispatch. This means increasing flexibility will decrease load, and vice versa.
+
+
+Equations
+++++++++++
+Loads are limited in the minimum amount of power they can consume (0 MWh / step) and
+the maximum amount of power they can produce (`load_size`), this entails that:
+
+.. math::
+    :nowrap:
+    :label: load_size
+
+    \[\forall t, 0 \leq \mathbf{c}_t \leq \overline{\mathbf{l}}\]
+
+Loads are also limited in the maximum / minimum varying power between consecutive steps, this
+entails that:
+
+.. math::
+    :nowrap:
+    :label: load_ramps
+
+    \[\forall t , - \mathbf{\underline{\delta l}} \leq \mathbf{c}_{t+1} - \mathbf{c}_t \leq \mathbf{\overline{\delta l}}\]
+
+Non flexible loads cannot have their consumption adjusted:
+
+.. math::
+    :nowrap:
+    :label: load_nonflexible
+
+    \[\forall t, \forall \text{load } i, "\text{load. } i \text{ non flexible}" \Rightarrow f^i_t = 0\]
+
+The flexibility actions are added in the "target_flexiblity":
+
+.. math::
+    :nowrap:
+    :label: targetflex
+
+    \[ \forall t,
+        \left\{
+        \begin{aligned}
+            \mathbf{k}_{t+1} &= \mathbf{k}_t + \mathbf{f}_{t+1} \\
+                             &= \sum_{v \leq t+1} \mathbf{f}_{v}
+        \end{aligned}
+        \right.
+    \]
+
+
+The total consumption is the consumption decided by the load profiles which
+the agent modified with flexibility (for example by sending a signal to the consumer):
+
+.. math::
+    :nowrap:
+    :label: updatec
+
+    \[\forall t, \mathbf{c}_t = \mathbf{p}_t + \mathbf{k}_t\]
+
+The flexibility is not supposed to impact the balancing between production and loads, which is supposed
+to be ensured optimally (if the grid had an infinite capacity, by either a market or a central authority).
+
+**NB**: The equations for flexibility are integrated directly into the equations for redispatch, so that the 
+two are balanced / optimized together when calculating the redispatch vector. We discussed
+them seperately here for clarity.
 
 .. _powerline-mod-el:
 
