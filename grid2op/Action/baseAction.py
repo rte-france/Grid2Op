@@ -2805,11 +2805,11 @@ class BaseAction(GridObjects):
                 )
 
             if self._single_act:
-                if (self._flexibility[cls.load_flexible] > cls.load_max_ramp_up[cls.load_flexible]).any():
+                if (self._flexibility > cls.load_max_ramp_up).any():
                     raise InvalidFlexibility(
                         "Some flexiblity is above the maximum ramp up"
                     )
-                if (-self._flexibility[cls.load_flexible] > cls.load_max_ramp_down[cls.load_flexible]).any():
+                if (-self._flexibility > cls.load_max_ramp_down).any():
                     raise InvalidFlexibility(
                         "Some fleixiblity is below the maximum ramp down"
                     )
@@ -2818,12 +2818,12 @@ class BaseAction(GridObjects):
                     new_p = self._dict_inj["load_p"]
                     tmp_p = new_p + self._flexibility
                     indx_ok = np.isfinite(new_p)
-                    if (tmp_p[indx_ok] > cls.load_pmax[np.logical_and(indx_ok, cls.load_flexible)]).any():
+                    if (tmp_p[indx_ok] > cls.load_pmax[indx_ok]).any():
                         raise InvalidFlexibility(
                             "Some flexibility amount, accumulated with the consumption setpoint, "
                             "are above pmax for some load."
                         )
-                    if (tmp_p[indx_ok] < cls.load_pmin[np.logical_and(indx_ok, cls.load_flexible)]).any():
+                    if (tmp_p[indx_ok] < cls.load_pmin[indx_ok]).any():
                         raise InvalidFlexibility(
                             "Some flexibility amount, accumulated with the consumption setpoint, "
                             "are below pmin for some load."
