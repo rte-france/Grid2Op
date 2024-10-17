@@ -2957,7 +2957,8 @@ class GridObjects:
                     f"Invalid length for the ({attr_name}) of loads when "
                     "flexibility is supposed to be available."
                  )
-            elif attr.dtype is not np.dtype(bool) and  (attr < 0).any():
+            elif (attr.dtype is not np.dtype(bool) and 
+                 (attr[getattr(cls, "load_flexible", np.zeros(cls.n_load, dtype=bool))] < 0).any()):
                 raise InvalidFlexibility(
                     f"One of the ({attr_name}) is negative"
                 )
