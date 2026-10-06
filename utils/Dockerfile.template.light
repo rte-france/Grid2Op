@@ -7,7 +7,7 @@
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
 # Use an official Python runtime as a parent image
-FROM python:3.8-buster
+FROM python:3.8-buster@sha256:04c3f641c2254c229fd2f704c5199ff4bea57d26c1c29008ae3a4afddde98709
 
 MAINTAINER Benjamin DONNOT <benjamin.donnot@rte-france.com>
 
