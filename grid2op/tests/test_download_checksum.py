@@ -92,6 +92,11 @@ class TestDownloadChecksum(unittest.TestCase):
             self._download(sha256=self.good_sha)
         assert not os.path.exists(os.path.join(self.path_data, ENV_NAME))
 
+    def test_archive_name_cannot_escape_data_dir(self):
+        with self.assertRaises(Grid2OpException):
+            dl._aux_download(URL, ENV_NAME, self.path_data, ds_name_dl="../escaped", sha256=self.good_sha)
+        assert not os.path.exists(os.path.join(self.tmp, "escaped.tar.bz2"))
+
     def test_missing_checksum_warns_but_extracts(self):
         with self.assertWarnsRegex(UserWarning, "SHA-256"):
             self._download()
