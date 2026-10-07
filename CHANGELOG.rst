@@ -106,6 +106,7 @@ Native multi agents support:
 - [FIXED] remove deprecated python 3.8 runner on CI
 - [FIXED] CI for python 3.9 with lightsim2grid 0.6.0 (not compatible with pandapower 3)
 - [FIXED] an issue in test when using recent gymnasium version
+- [FIXED] the `"disc_lines"` array of the `info` returned by `env.step` is not shared anymore between two steps (it made `gymnasium.utils.env_checker.check_env` fail with recent gymnasium versions)
 - [ADDED] add voltage angle attributes to the complete observation vector (issue #711)
 - [IMPROVED] clarify MultiMixENv docstring
 - [IMPROVED] clarify reward kernel flags
