@@ -19,6 +19,14 @@ if TYPE_CHECKING:
     from grid2op.Environment.baseEnv import BaseEnv
 
 
+def _read_only(arr: np.ndarray) -> np.ndarray:
+    """Read only view of `arr`: some of the arrays given to the solver are class attributes
+    of the environment (shared by all the environments) or its working vectors."""
+    res = arr.view()
+    res.flags.writeable = False
+    return res
+
+
 @dataclass
 class StorageResult:
     amount_storage_mw: float = dt_float(0.0)
@@ -147,7 +155,8 @@ class RedispatchConstraints:
     """Everything a redispatch solver needs to know about the current step.
 
     It is built by the environment only when a dispatch has to be computed. The arrays
-    have one entry per generator (``n_gen``), the powers are in MW.
+    have one entry per generator (``n_gen``), the powers are in MW. They are read only
+    (copy them before modifying them).
 
     The solver must find the change of ``actual_dispatch`` for the participating generators
     such that its sum equals ``power_to_compensate_mw`` (the power the generators have to
@@ -205,16 +214,16 @@ class RedispatchConstraints:
         params = env._parameters
         contributions = dispatch_contributions(state)
         return cls(
-            new_p=new_p,
-            gen_participating=gen_participating,
-            gen_detached=gen_detached,
+            new_p=_read_only(new_p),
+            gen_participating=_read_only(gen_participating),
+            gen_detached=_read_only(gen_detached),
             power_to_compensate_mw=total_power_to_compensate(contributions),
             contributions=contributions,
-            pmin=cls_env.gen_pmin,
-            pmax=cls_env.gen_pmax,
-            ramp_up=cls_env.gen_max_ramp_up,
-            ramp_down=cls_env.gen_max_ramp_down,
-            redispatchable_mask=cls_env.gen_redispatchable,
+            pmin=_read_only(cls_env.gen_pmin),
+            pmax=_read_only(cls_env.gen_pmax),
+            ramp_up=_read_only(cls_env.gen_max_ramp_up),
+            ramp_down=_read_only(cls_env.gen_max_ramp_down),
+            redispatchable_mask=_read_only(cls_env.gen_redispatchable),
             can_use_all_redispatchable=(
                 params.IGNORE_MIN_UP_DOWN_TIME and params.ALLOW_DISPATCH_GEN_SWITCH_OFF
             ),

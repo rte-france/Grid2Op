@@ -72,6 +72,20 @@ class RecordingSolver(BaseRedispatchSolver):
         return res
 
 
+class WritingSolver(BaseRedispatchSolver):
+    """A solver that tries to modify the arrays of the constraints (some of them are
+    class attributes of the environment)."""
+    def solve(self, constraints, state):
+        constraints.pmin[:] = 0.
+        return RedispatchResult(success=True, actual_dispatch=state.actual_dispatch.copy())
+
+
+class NoSuperInitSolver(DefaultRedispatchSolver):
+    """A solver that does not call `BaseRedispatchSolver.__init__`."""
+    def __init__(self, coeff=1.):
+        self.coeff = coeff
+
+
 class TestCustomRedispatchSolver(unittest.TestCase):
     def _make(self, redispatch_solver):
         with warnings.catch_warnings():
@@ -177,6 +191,29 @@ class TestCustomRedispatchSolver(unittest.TestCase):
             assert isinstance(env_cpy.observation_space.obs_env._redispatch_solver, CountingSolver)
         finally:
             env_cpy.close()
+
+    def test_constraints_are_read_only(self):
+        env = self._make(WritingSolver())
+        try:
+            env.reset(seed=0, options={"time serie id": 0})
+            pmin_before = type(env).gen_pmin.copy()
+            with self.assertRaises(ValueError):
+                env.step(self._redisp_act(env))
+            assert (type(env).gen_pmin == pmin_before).all()
+        finally:
+            env.close()
+
+    def test_instance_without_super_init(self):
+        env = self._make(NoSuperInitSolver(coeff=2.))
+        try:
+            assert isinstance(env._redispatch_solver, NoSuperInitSolver)
+            assert env._redispatch_solver.coeff == 2.
+            assert env._redispatch_solver.env is env
+            env.reset(seed=0, options={"time serie id": 0})
+            obs, reward, done, info = env.step(self._redisp_act(env))
+            assert not done, info["exception"]
+        finally:
+            env.close()
 
     def test_runner(self):
         params = self.env.get_params_for_runner()

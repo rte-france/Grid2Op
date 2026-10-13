@@ -134,7 +134,8 @@ Native multi agents support:
   `grid2op.Environment.dispatch.BaseRedispatchSolver`. A solver receives the total power
   the generators must compensate (`RedispatchConstraints.power_to_compensate_mw`) and returns
   a `RedispatchResult` (new dispatch, or the reason of the failure and the power it could
-  not compensate) without modifying the state of the environment
+  not compensate) without modifying the state of the environment (the arrays of the
+  `RedispatchConstraints` are read only)
 - [IMPROVED] handling of redispatching, storage units, curtailment and detachment as separate
   modules (grid2op/Environment/dispatch)
 

@@ -84,7 +84,8 @@ class BaseRedispatchSolver(ABC):
 
     def copy_for_env(self, env) -> "BaseRedispatchSolver":
         """Return a deep copy of this solver bound to `env` (which can be ``None``)."""
-        env_ = self.env
+        # a subclass might not call `BaseRedispatchSolver.__init__`
+        env_ = getattr(self, "env", None)
         self.env = None  # the environment is not copied with the solver
         try:
             new_obj = copy.deepcopy(self)
