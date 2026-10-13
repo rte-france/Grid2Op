@@ -185,7 +185,7 @@ def _aux_download(
     output_path = os.path.realpath(
         os.path.join(base_dir, "{}.tar.bz2".format(ds_name_dl))
     )
-    if os.path.dirname(output_path) != base_dir:
+    if not output_path.startswith(base_dir + os.sep) or os.path.dirname(output_path) != base_dir:
         raise Grid2OpException(
             'The name "{}" of the dataset would write the archive outside of "{}", '
             "this is not allowed.".format(ds_name_dl, path_data)
