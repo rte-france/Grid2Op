@@ -101,7 +101,7 @@ Native multi agents support:
 - add detachment
 - add change_bus / set_bus
 
-[1.12.6] - 2026-xx-yy
+[1.12.6] - 2026-10-13
 -----------------------
 - [FIXED] remove deprecated python 3.8 runner on CI
 - [FIXED] CI for python 3.9 with lightsim2grid 0.6.0 (not compatible with pandapower 3)
