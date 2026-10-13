@@ -8,35 +8,51 @@
 
 from __future__ import annotations
 
+import numpy as np
+
 from grid2op.dtypes import dt_float
 
 from .dispatchTypes import DetachmentResult, RedispatchState
 
 
 class DetachmentModule:
-    """Computes the power of the loads and generators detached by the agent, that the other generators have to compensate."""
+    """Computes the power of the loads and generators detached by the agent, that the other generators have to compensate.
+
+    All the data of the step are given explicitly to :func:`DetachmentModule.compute`, this
+    module does not read nor modify the attributes of the environment.
+    """
     def __init__(self, env) -> None:
         self.env = env
 
-    def feed_data(self, new_p_th) -> None:
-        self.env._prev_gen_p[:] = new_p_th
-        self.env._aux_retrieve_modif_act(self.env._prev_load_p, self.env._env_modification, "load_p")
-        self.env._aux_retrieve_modif_act(self.env._prev_load_q, self.env._env_modification, "load_q")
-
     def compute(
         self,
-        new_p,
-        new_p_th,
+        new_p: np.ndarray,
+        new_p_th: np.ndarray,
+        new_load_p: np.ndarray,
         state: RedispatchState,
-        backend_action=None,
+        backend_action,
     ) -> DetachmentResult:
-        if backend_action is None:
-            backend_action = self.env._backend_action
+        """
+        Parameters
+        ----------
+        new_p:
+            Active production setpoint of the generators for this step (modified in place:
+            the detached generators are set to 0.)
+        new_p_th:
+            Same as `new_p` before curtailment (modified in place as well)
+        new_load_p:
+            Active consumption of the loads for this step, as given by the time series (the
+            injections of the agent are not taken into account). It is only read.
+        state:
+            The dispatch state of the environment, updated in place
+        backend_action:
+            The backend action of this step, it tells which elements are detached
+        """
         gen_detached_user = backend_action.get_gen_detached()
         load_detached_user = backend_action.get_load_detached()
 
         mw_gen_lost_this = new_p[gen_detached_user].sum()
-        mw_load_lost_this = self.env._prev_load_p[load_detached_user].sum()
+        mw_load_lost_this = new_load_p[load_detached_user].sum()
         total_power_lost = -mw_gen_lost_this + mw_load_lost_this
         state.detached_elements_mw = dt_float(
             -total_power_lost

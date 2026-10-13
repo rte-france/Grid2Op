@@ -138,6 +138,9 @@ Native multi agents support:
   `RedispatchConstraints` are read only)
 - [IMPROVED] handling of redispatching, storage units, curtailment and detachment as separate
   modules (grid2op/Environment/dispatch)
+- [IMPROVED] the consumption of the loads used for the detached power is given explicitly to
+  `DetachmentModule.compute` (from `BaseEnv._get_new_load_setpoint`, overridden by the
+  environment used by `simulate`) instead of being written in the attributes of the environment
 
 [1.12.5] - 2026-06-12
 -------------------------

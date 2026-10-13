@@ -2236,10 +2236,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._gen_activeprod_t_redisp[:] = 0.0
         self._redispatch_solver.reset()
 
-    def _feed_data_for_detachment(self, new_p_th):
-        """feed the attribute for the detachment"""
-        self._detachment_module.feed_data(new_p_th)
-        
     def _aux_retrieve_modif_act(self,
                                 input_ : np.ndarray,
                                 act: BaseAction, 
@@ -2263,6 +2259,23 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         # TODO have a flag there if this is the case.
         self._aux_retrieve_modif_act(new_p, self._env_modification, "prod_p")
         return new_p
+
+    def _get_new_load_setpoint(self, action: BaseAction) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Active and reactive consumption of the loads for this step, as given by the time series:
+        the values of the previous step, overridden by the modification of the environment.
+
+        The injections of the agent (`action`) are not taken into account: the power of the
+        detached loads is the one of the time series.
+
+        NB this is overidden in _ObsEnv where the data are read from the action to set this environment
+        instead
+        """
+        new_load_p = 1.0 * self._prev_load_p
+        new_load_q = 1.0 * self._prev_load_q
+        self._aux_retrieve_modif_act(new_load_p, self._env_modification, "load_p")
+        self._aux_retrieve_modif_act(new_load_q, self._env_modification, "load_q")
+        return new_load_p, new_load_q
 
     def _get_already_modified_gen(self, action: BaseAction):
         if not action._modif_redispatch:
@@ -3069,9 +3082,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 )
         return detailed_info, has_error
 
-    def _aux_apply_detachment(self, new_p, new_p_th):
+    def _aux_apply_detachment(self, new_p, new_p_th, new_load_p):
         return self._detachment_module.compute(
-            new_p, new_p_th, self._dispatch_state, self._backend_action
+            new_p, new_p_th, new_load_p, self._dispatch_state, self._backend_action
         )
         
     def _aux_step_reset_action(self):
@@ -3302,7 +3315,12 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             )
             new_p = self._get_new_prod_setpoint(action)
             new_p_th = new_p.copy()
-            self._feed_data_for_detachment(new_p_th)  # should be called before _axu_apply_detachment
+            new_load_p, new_load_q = self._get_new_load_setpoint(action)
+            # values of this step, read back by `_aux_update_detachment_info` (called
+            # before they are refreshed from the backend) for the detached elements
+            self._prev_gen_p[:] = new_p_th
+            self._prev_load_p[:] = new_load_p
+            self._prev_load_q[:] = new_load_q
             
             # storage unit
             if cls.n_storage > 0:
@@ -3317,7 +3335,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             
             # TODO detachment
             self._aux_update_backend_action(action, action_storage_power, init_disp)
-            detach_result = self._aux_apply_detachment(new_p, new_p_th)
+            detach_result = self._aux_apply_detachment(new_p, new_p_th, new_load_p)
             new_p = detach_result.new_p
             new_p_th = detach_result.new_p_th
 

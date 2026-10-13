@@ -429,13 +429,12 @@ class _ObsEnv(BaseEnv):
         self.current_obs.reset()
         self.time_stamp = time_stamp
 
-    def _feed_data_for_detachment(self, new_p_th):
+    def _get_new_load_setpoint(self, action : "grid2op.Action.BaseAction"):
         """In this environment the injections are not in `_env_modification` but in
-        `_backend_action_set` (they come from the forecasts), the power of the loads
-        detached is read from there."""
-        super()._feed_data_for_detachment(new_p_th)
-        self._prev_load_p[:] = self._backend_action_set.load_p.values
-        self._prev_load_q[:] = self._backend_action_set.load_q.values
+        `_backend_action_set` (they come from the forecasts), the consumption of the loads
+        is read from there."""
+        return (1.0 * self._backend_action_set.load_p.values,
+                1.0 * self._backend_action_set.load_q.values)
 
     def _get_new_prod_setpoint(self, action : "grid2op.Action.BaseAction"):
         new_p = 1.0 * self._backend_action_set.prod_p.values
