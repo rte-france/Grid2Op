@@ -396,6 +396,7 @@ class Runner(object):
         kwargs_observation=None,
         observation_bk_class=None,
         observation_bk_kwargs=None,
+        redispatch_solver=None,
         mp_context=None,
         # experimental: whether to read from local dir or generate the classes on the fly:
         _read_from_local_dir=None,
@@ -623,6 +624,7 @@ class Runner(object):
         self._read_from_local_dir = _read_from_local_dir
         self._observation_bk_class = observation_bk_class
         self._observation_bk_kwargs = observation_bk_kwargs
+        self._redispatch_solver = redispatch_solver
 
         self.logger = ConsoleLog(DoNothingLog.INFO_LEVEL if verbose else DoNothingLog.ERROR_LEVEL)
         if logger is None:
@@ -798,6 +800,7 @@ class Runner(object):
                 kwargs_observation=self._kwargs_observation,
                 observation_bk_class=self._observation_bk_class,
                 observation_bk_kwargs=self._observation_bk_kwargs,
+                redispatch_solver=self._redispatch_solver,
                 _raw_backend_class=self.backendClass,
                 _read_from_local_dir=self._read_from_local_dir,
                 # _local_dir_cls: we don't set it, in parrallel mode it makes no sense !
@@ -1299,6 +1302,7 @@ class Runner(object):
             "kwargs_observation": self._kwargs_observation,
             "observation_bk_class": self._observation_bk_class,
             "observation_bk_kwargs": self._observation_bk_kwargs,
+            "redispatch_solver": self._redispatch_solver,
             "_read_from_local_dir": self._read_from_local_dir,
             "_is_test": self._is_test,
             "_overload_name_multimix": self._overload_name_multimix,

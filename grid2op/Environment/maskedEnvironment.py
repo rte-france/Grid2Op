@@ -164,7 +164,8 @@ class MaskedEnvironment(Environment):
                              _overload_name_multimix,
                              _local_dir_cls,
                              n_busbar=DEFAULT_N_BUSBAR_PER_SUB,
-                             allow_detachment=DEFAULT_ALLOW_DETACHMENT):
+                             allow_detachment=DEFAULT_ALLOW_DETACHMENT,
+                             redispatch_solver=None):
         grid2op_env = {"init_env_path": init_env_path,
                        "init_grid_path": init_grid_path,
                        "chronics_handler": chronics_handler,
@@ -200,7 +201,8 @@ class MaskedEnvironment(Environment):
                        "_raw_backend_class": _raw_backend_class,
                        "_read_from_local_dir": _read_from_local_dir,
                        "_local_dir_cls": _local_dir_cls,
-                       "_overload_name_multimix": _overload_name_multimix}
+                       "_overload_name_multimix": _overload_name_multimix,
+                       "redispatch_solver": redispatch_solver}
         if "lines_of_interest" not in other_env_kwargs:
             raise EnvError("You cannot make a MaskedEnvironment without providing the list of lines of interest")
         for el in other_env_kwargs:

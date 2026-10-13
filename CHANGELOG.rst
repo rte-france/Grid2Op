@@ -115,6 +115,38 @@ Native multi agents support:
 - [FIXED] `grid2op.make(...)` and `grid2op.update_env()` read `datasets.json`, `updates.json` and `env_hashes.json`
   (and the updated files) from `raw.githubusercontent.com` instead of the rate limited github api (60 requests
   per hour and per IP address). At least 1 second is still left between two requests to github.
+- [FIXED] the class attribute `gen_redispatchable` was modified (detached generators were
+  removed from it) when a dispatch was infeasible with generators detached and
+  `IGNORE_MIN_UP_DOWN_TIME` and `ALLOW_DISPATCH_GEN_SWITCH_OFF` set
+- [FIXED] `obs.simulate` after a load has been detached: the environment used by `simulate`
+  restored the previous detached power from the wrong key and did not know the power of the
+  detached loads, so it could predict a dispatch that no longer compensated them
+- [FIXED] `obs.get_forecast_env()` raised an `ImpossibleRedispatching` error when an element was
+  detached in the observation (its first internal step did not restore the state of the
+  observation)
+- [FIXED] `LIMIT_INFEASIBLE_CURTAILMENT_STORAGE_ACTION` did not take the detached elements into
+  account (the limitation and the dispatch could disagree on whether a step is feasible) and could
+  reverse the storage units / curtailment instead of only cancelling them
+- [FIXED] the injections of an action were overridden by the time series on grids without
+  redispatching data and without storage units
+- [ADDED] the solver used to compute the dispatch of the generators can be customized with
+  the `redispatch_solver` key word argument of `grid2op.make` (or in the `config.py`), see
+  `grid2op.Environment.dispatch.BaseRedispatchSolver`. A solver receives the total power
+  the generators must compensate (`RedispatchConstraints.power_to_compensate_mw`) and returns
+  a `RedispatchResult` (new dispatch, or the reason of the failure and the power it could
+  not compensate) without modifying the state of the environment (the arrays of the
+  `RedispatchConstraints` are read only)
+- [IMPROVED] handling of redispatching, storage units, curtailment and detachment as separate
+  modules (grid2op/Environment/dispatch)
+- [IMPROVED] the consumption of the loads used for the detached power is given explicitly to
+  `DetachmentModule.compute` (from `BaseEnv._get_new_load_setpoint`, overridden by the
+  environment used by `simulate`) instead of being written in the attributes of the environment
+- [IMPROVED] each field of `RedispatchState` is declared once (size, dtype, initial value, group,
+  whether it is restored from an observation): its allocation, copy, reset, the state saved in
+  the observation for `obs.simulate` / `obs.get_forecast_env()` and the `BaseEnv._<field>`
+  attributes are derived from it. `obs.simulate` and `obs.get_forecast_env()` now also restore
+  the up / down times of the generators and the previous storage power, curtailment limits and
+  limited curtailment / storage of the observation (they kept the values of the previous call)
 
 [1.12.5] - 2026-06-12
 -------------------------

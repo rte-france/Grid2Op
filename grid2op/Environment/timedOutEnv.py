@@ -233,7 +233,8 @@ class TimedOutEnvironment(Environment):  # TODO heritage ou alors on met un truc
                              _local_dir_cls,
                              _overload_name_multimix,
                              n_busbar=DEFAULT_N_BUSBAR_PER_SUB,
-                             allow_detachment=DEFAULT_ALLOW_DETACHMENT):
+                             allow_detachment=DEFAULT_ALLOW_DETACHMENT,
+                             redispatch_solver=None):
         grid2op_env={"init_env_path": init_env_path,
                      "init_grid_path": init_grid_path,
                      "chronics_handler": chronics_handler,
@@ -269,7 +270,8 @@ class TimedOutEnvironment(Environment):  # TODO heritage ou alors on met un truc
                      "n_busbar": int(n_busbar),
                      "allow_detachment": bool(allow_detachment),
                      "_local_dir_cls": _local_dir_cls,
-                     "_overload_name_multimix": _overload_name_multimix}
+                     "_overload_name_multimix": _overload_name_multimix,
+                     "redispatch_solver": redispatch_solver}
         if "time_out_ms" not in other_env_kwargs:
             raise EnvError("You cannot make a MaskedEnvironment without providing the list of lines of interest")
         for el in other_env_kwargs:

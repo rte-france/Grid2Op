@@ -70,6 +70,7 @@ class _ObsEnv(BaseEnv):
         _ptr_orig_obs_space=None,
         _local_dir_cls=None,
         _read_from_local_dir=None,
+        redispatch_solver=None,
     ):
         if other_rewards is None:
             other_rewards = {}
@@ -93,7 +94,8 @@ class _ObsEnv(BaseEnv):
             update_obs_after_reward=False,
             _local_dir_cls=_local_dir_cls,
             _read_from_local_dir=_read_from_local_dir,
-            allow_detachment=allow_detachment
+            allow_detachment=allow_detachment,
+            redispatch_solver=redispatch_solver,
         )
         self._do_not_erase_local_dir_cls = True
         self.__unusable = False  # unsuable if backend cannot be copied
@@ -426,6 +428,13 @@ class _ObsEnv(BaseEnv):
         self.is_init = True
         self.current_obs.reset()
         self.time_stamp = time_stamp
+
+    def _get_new_load_setpoint(self, action : "grid2op.Action.BaseAction"):
+        """In this environment the injections are not in `_env_modification` but in
+        `_backend_action_set` (they come from the forecasts), the consumption of the loads
+        is read from there."""
+        return (1.0 * self._backend_action_set.load_p.values,
+                1.0 * self._backend_action_set.load_q.values)
 
     def _get_new_prod_setpoint(self, action : "grid2op.Action.BaseAction"):
         new_p = 1.0 * self._backend_action_set.prod_p.values

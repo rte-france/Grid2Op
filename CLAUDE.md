@@ -138,9 +138,13 @@ internal do-nothing step with overflow disconnection turned off.
    `CompleteAction` carrying injections, maintenance, hazards and `prod_v`. `StopIteration` ends the episode.
 4. Injections: new prod setpoints, `_compute_storage`, curtailment, `_backend_action += action` (with redispatch
    and storage zeroed), `_aux_apply_detachment`.
-5. Redispatch (`_aux_apply_redisp`): `_prepare_redisp` cancels invalid requests (`IllegalRedispatching`), then
-   `_compute_dispatch_vect` solves a scipy SLSQP zero-sum dispatch within pmin/pmax/ramps; failure raises
-   `ImpossibleRedispatching` and ends the episode.
+5. Redispatch (`_aux_apply_redisp`): `_prepare_redisp` cancels invalid requests (`IllegalRedispatching`), the
+   `FeasibilityGuard` limits storage / curtailment if `LIMIT_INFEASIBLE_CURTAILMENT_STORAGE_ACTION`, then
+   `_make_redisp` asks the redispatch solver (`Environment/dispatch/`, `DefaultRedispatchSolver` = scipy SLSQP,
+   replaceable with the `redispatch_solver` make kwarg) for a dispatch compensating storage, curtailment and
+   detachment within pmin/pmax/ramps; failure raises `ImpossibleRedispatching` and ends the episode. Storage,
+   curtailment and detachment are computed by modules of the same package, on a `RedispatchState` that the
+   `BaseEnv` attributes (`_actual_dispatch`, `_storage_power`, ...) are properties of.
 6. `_backend_action += _env_modification`, actual dispatch and storage are set, then the voltage-controller action
    and the opponent attack (`_aux_handle_attack` -> `OpponentSpace.attack`) are added.
 7. `backend.apply_action_public(_backend_action)`; `ImpossibleTopology` / `BackendError` end the episode.

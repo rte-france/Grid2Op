@@ -205,7 +205,8 @@ class ObservationSpace(SerializableObservationSpace):
             _ptr_orig_obs_space=self,
             _local_dir_cls=env._local_dir_cls,
             _read_from_local_dir=env._read_from_local_dir,
-            allow_detachment=type(env.backend).detachment_is_allowed
+            allow_detachment=type(env.backend).detachment_is_allowed,
+            redispatch_solver=env._redispatch_solver,
         )
         for k, v in self.obs_env.other_rewards.items():
             v.initialize(self.obs_env)
