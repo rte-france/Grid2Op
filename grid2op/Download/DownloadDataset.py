@@ -6,8 +6,10 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
+import hashlib
 import os
 import sys
+import warnings
 from tqdm import tqdm
 import re
 
@@ -42,6 +44,54 @@ ALLOWED_SCHEMES = {"http", "https"}
 # Archive extraction safety limits (S5042)
 _MAX_UNCOMPRESSED_SIZE = 30 * 1024 * 1024 * 1024  # 30 GB
 _MAX_COMPRESSION_RATIO = 100  # reject archives that expand more than 100×
+
+
+_SHA256_BLOCKSIZE = 1024 * 1024
+
+_CHECKSUM_MISMATCH_ERR = (
+    'The archive downloaded from "{url}" does not match the expected SHA-256 checksum '
+    "(expected {expected}, got {got}). The file was deleted and nothing was extracted. "
+    "The download may have been corrupted or the remote file may have been modified. "
+    "Please try again and, if the problem persists, open an issue at "
+    "https://github.com/Grid2op/grid2op/issues"
+)
+_CHECKSUM_MISSING_WARN = (
+    'No SHA-256 checksum is available for the archive of "{dataset_name}", its integrity '
+    "cannot be verified before extraction."
+)
+
+
+def _sha256_file(path, blocksize=_SHA256_BLOCKSIZE):
+    """
+    INTERNAL
+
+    .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+    Returns the hexadecimal SHA-256 digest of the file located at ``path``.
+    """
+    hash_ = hashlib.sha256()
+    with open(path, "rb") as f:
+        for block in iter(lambda: f.read(blocksize), b""):
+            hash_.update(block)
+    return hash_.hexdigest()
+
+
+def _check_archive_sha256(path, expected_sha256, url=""):
+    """
+    INTERNAL
+
+    .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+    Raises a :class:`grid2op.Exceptions.Grid2OpException` (and removes the file) if the SHA-256 of
+    the archive at ``path`` is not ``expected_sha256`` (hexadecimal, case insensitive).
+    """
+    expected = str(expected_sha256).strip().lower()
+    got = _sha256_file(path)
+    if got != expected:
+        os.remove(path)
+        raise Grid2OpException(
+            _CHECKSUM_MISMATCH_ERR.format(url=url, expected=expected, got=got)
+        )
 
 
 class DownloadProgressBar(tqdm):  # pragma: no cover
@@ -87,11 +137,16 @@ def download_url(url, output_path):  # pragma: no cover
         urllib.request.urlretrieve(url, filename=output_path, reporthook=t.update_to)
 
 
-def _aux_download(url, dataset_name, path_data, ds_name_dl=None):  # pragma: no cover
+def _aux_download(
+    url, dataset_name, path_data, ds_name_dl=None, sha256=None
+):  # pragma: no cover
     """
     INTERNAL
 
     .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+    If ``sha256`` is provided, the downloaded archive is checked against it before anything is
+    extracted. If it is ``None`` a warning is emitted and the archive is extracted unverified.
     """
     if ds_name_dl is None:
         ds_name_dl = dataset_name
@@ -126,13 +181,24 @@ def _aux_download(url, dataset_name, path_data, ds_name_dl=None):  # pragma: no 
             )
             raise Grid2OpException(str_)
 
-    output_path = os.path.abspath(
-        os.path.join(path_data, "{}.tar.bz2".format(ds_name_dl))
+    base_dir = os.path.realpath(path_data)
+    output_path = os.path.realpath(
+        os.path.join(base_dir, "{}.tar.bz2".format(ds_name_dl))
     )
+    if not output_path.startswith(base_dir + os.sep) or os.path.dirname(output_path) != base_dir:
+        raise Grid2OpException(
+            'The name "{}" of the dataset would write the archive outside of "{}", '
+            "this is not allowed.".format(ds_name_dl, path_data)
+        )
 
     # download the data (with progress bar)
     print("downloading the training data, this may take a while.")
     download_url(url, output_path)
+
+    if sha256 is None:
+        warnings.warn(_CHECKSUM_MISSING_WARN.format(dataset_name=dataset_name))
+    else:
+        _check_archive_sha256(output_path, sha256, url=url)
 
     tar = tarfile.open(output_path, "r:bz2")
     compressed_size = os.path.getsize(output_path)

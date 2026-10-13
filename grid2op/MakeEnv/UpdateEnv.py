@@ -6,7 +6,6 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of Grid2Op, Grid2Op a testbed platform to model sequential decision making in power systems.
 
-import time
 import os
 import re
 
@@ -70,7 +69,6 @@ def _update_file(dict_, env_name, file_name):
     """
     baseurl, filename = dict_["base_url"], dict_["filename"]
     url_ = baseurl + filename
-    time.sleep(1)
     new_config = _retrieve_github_content(url_, is_json=False)
     path_local_env = os.path.join(grid2op.MakeEnv.PathUtils.DEFAULT_PATH_DATA, env_name)
     if os.path.exists(os.path.join(path_local_env, ".multimix")):

@@ -106,9 +106,15 @@ Native multi agents support:
 - [FIXED] remove deprecated python 3.8 runner on CI
 - [FIXED] CI for python 3.9 with lightsim2grid 0.6.0 (not compatible with pandapower 3)
 - [FIXED] an issue in test when using recent gymnasium version
+- [FIXED] the `"disc_lines"` array of the `info` returned by `env.step` is not shared anymore between two steps (it made `gymnasium.utils.env_checker.check_env` fail with recent gymnasium versions)
 - [ADDED] add voltage angle attributes to the complete observation vector (issue #711)
 - [IMPROVED] clarify MultiMixENv docstring
 - [IMPROVED] clarify reward kernel flags
+- [ADDED] the archive of a dataset downloaded by `grid2op.make(...)` is checked against the optional `sha256`
+  field of its `datasets.json` entry before being extracted (a warning is issued if the field is missing)
+- [FIXED] `grid2op.make(...)` and `grid2op.update_env()` read `datasets.json`, `updates.json` and `env_hashes.json`
+  (and the updated files) from `raw.githubusercontent.com` instead of the rate limited github api (60 requests
+  per hour and per IP address). At least 1 second is still left between two requests to github.
 - [FIXED] the class attribute `gen_redispatchable` was modified (detached generators were
   removed from it) when a dispatch was infeasible with generators detached and
   `IGNORE_MIN_UP_DOWN_TIME` and `ALLOW_DISPATCH_GEN_SWITCH_OFF` set

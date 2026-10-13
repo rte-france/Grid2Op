@@ -8,6 +8,7 @@
 
 import unittest
 import warnings
+import numpy as np
 
 from grid2op.gym_compat import (GymEnv, GYM_AVAILABLE, GYMNASIUM_AVAILABLE)
 import grid2op
@@ -154,6 +155,14 @@ class Issue379Tester(unittest.TestCase):
             check_reset_options(self.gym_env)
         check_env(self.gym_env)
     
+    def test_step_info_not_reused(self):
+        """the arrays of the info returned by step must not be shared between two steps"""
+        self.gym_env.reset()
+        _, _, _, _, info_1 = self.gym_env.step(self.gym_env.action_space.sample())
+        _, _, _, _, info_2 = self.gym_env.step(self.gym_env.action_space.sample())
+        assert info_1["disc_lines"] is not info_2["disc_lines"]
+        assert not np.shares_memory(info_1["disc_lines"], info_2["disc_lines"])
+
 
 if __name__ == "__main__":
     unittest.main()
