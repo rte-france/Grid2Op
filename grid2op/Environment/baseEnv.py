@@ -3880,7 +3880,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         if chron_id == "":
             chron_id = None
         self.infos = {
-            "disc_lines": self._disc_lines,
+            "disc_lines": self._disc_lines.copy(),
             "is_illegal": is_illegal,
             "is_ambiguous": is_ambiguous,
             "failed_redispatching": failed_redisp,

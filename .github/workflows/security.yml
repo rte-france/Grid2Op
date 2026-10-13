@@ -2,6 +2,8 @@ name: Security checks
 
 on: [push, pull_request]
 
+permissions: {}  # deny all by default, the job re-declares what it needs
+
 jobs:
   detect-secrets:
     runs-on: ubuntu-latest
