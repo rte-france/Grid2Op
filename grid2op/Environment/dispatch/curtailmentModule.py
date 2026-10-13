@@ -21,12 +21,7 @@ class CurtailmentModule:
         self.env = env
 
     def reset(self, state: RedispatchState) -> None:
-        state.limit_curtailment[self.env.gen_renewable] = 1.0
-        state.limit_curtailment_prev[self.env.gen_renewable] = 1.0
-        state.gen_before_curtailment[:] = 0.0
-        state.sum_curtailment_mw = dt_float(0.0)
-        state.sum_curtailment_mw_prev = dt_float(0.0)
-        state.limited_before = dt_float(0.0)
+        state.reset("curtailment", masks={"gen_renewable": self.env.gen_renewable})
 
     def _update_env_action(self, new_p) -> None:
         if "prod_p" in self.env._env_modification._dict_inj:

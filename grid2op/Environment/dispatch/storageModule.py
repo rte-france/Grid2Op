@@ -23,12 +23,9 @@ class StorageModule:
             tmp = self.env._parameters.INIT_STORAGE_CAPACITY * self.env.storage_Emax
             if self.env._parameters.ACTIVATE_STORAGE_LOSS:
                 tmp += self.env.storage_loss * self.env.delta_time_seconds / 3600.0
+            state.reset("storage")
             state.storage_previous_charge[:] = tmp
             state.storage_current_charge[:] = tmp
-            state.storage_power[:] = 0.0
-            state.storage_power_prev[:] = 0.0
-            state.amount_storage = 0.0
-            state.amount_storage_prev = 0.0
 
     def withdraw_losses(self, state: RedispatchState) -> None:
         if self.env._parameters.ACTIVATE_STORAGE_LOSS:

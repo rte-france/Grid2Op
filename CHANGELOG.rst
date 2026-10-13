@@ -141,6 +141,12 @@ Native multi agents support:
 - [IMPROVED] the consumption of the loads used for the detached power is given explicitly to
   `DetachmentModule.compute` (from `BaseEnv._get_new_load_setpoint`, overridden by the
   environment used by `simulate`) instead of being written in the attributes of the environment
+- [IMPROVED] each field of `RedispatchState` is declared once (size, dtype, initial value, group,
+  whether it is restored from an observation): its allocation, copy, reset, the state saved in
+  the observation for `obs.simulate` / `obs.get_forecast_env()` and the `BaseEnv._<field>`
+  attributes are derived from it. `obs.simulate` and `obs.get_forecast_env()` now also restore
+  the up / down times of the generators and the previous storage power, curtailment limits and
+  limited curtailment / storage of the observation (they kept the values of the previous call)
 
 [1.12.5] - 2026-06-12
 -------------------------

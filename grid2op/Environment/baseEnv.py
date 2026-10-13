@@ -11,6 +11,7 @@ from datetime import datetime
 import logging
 import time
 import copy
+import dataclasses
 import os
 import json
 from typing import List, Optional, Tuple, Union, Literal, Dict, Type
@@ -486,16 +487,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._hazard_duration: np.ndarray = None
 
         self._env_dc = self._parameters.ENV_DC
+        # redispatching, storage units, curtailment and detachment data (the
+        # attributes `self._target_dispatch`, `self._storage_power`... read it)
         self._dispatch_state = RedispatchState()
-
-        # redispatching data
-        self._target_dispatch: np.ndarray = None
-        self._already_modified_gen: np.ndarray = None
-        self._actual_dispatch: np.ndarray = None
-        self._gen_uptime: np.ndarray = None
-        self._gen_downtime: np.ndarray = None
-        self._gen_activeprod_t: np.ndarray = None
-        self._gen_activeprod_t_redisp: np.ndarray = None
 
         self._thermal_limit_a: np.ndarray = thermal_limit_a
         self._disc_lines: np.ndarray = None
@@ -586,26 +580,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self.__new_forecast_param = None
         self.__new_reward_func = None
 
-        # storage units
         # TODO storage: what to do when self.storage_Emin >0. and self.storage_loss > 0.
         # TODO and we have self._storage_current_charge - self.storage_loss < self.storage_Emin
-        self._storage_current_charge = None  # the current storage charge
-        self._storage_previous_charge = None  # the previous storage charge
-        self._action_storage = None  # the storage action performed
-        self._amount_storage = None  # total amount of storage to be dispatched
-        self._amount_storage_prev = None
-        self._storage_power = None
-        self._storage_power_prev = None
-
-        # curtailment
-        self._limit_curtailment = None
-        self._limit_curtailment_prev = None
-        self._gen_before_curtailment = None
-        self._sum_curtailment_mw = None
-        self._sum_curtailment_mw_prev = None
-        self._detached_elements_mw = None
-        self._detached_elements_mw_prev = None
-        self._limited_before = 0.0  # TODO curt
 
         # attention budget
         self._has_attention_budget = has_attention_budget
@@ -722,191 +698,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         """
         return self._redispatch_solver.copy_for_env(None)
 
-    def _get_dispatch_attr(self, name: str):
-        return getattr(self._dispatch_state, name)
-
-    def _set_dispatch_attr(self, name: str, value) -> None:
-        setattr(self._dispatch_state, name, value)
-
-    def _set_dispatch_float_attr(self, name: str, value) -> None:
-        setattr(self._dispatch_state, name, dt_float(value))
-
-    @property
-    def _target_dispatch(self):
-        return self._get_dispatch_attr("target_dispatch")
-
-    @_target_dispatch.setter
-    def _target_dispatch(self, value):
-        self._set_dispatch_attr("target_dispatch", value)
-
-    @property
-    def _already_modified_gen(self):
-        return self._get_dispatch_attr("already_modified_gen")
-
-    @_already_modified_gen.setter
-    def _already_modified_gen(self, value):
-        self._set_dispatch_attr("already_modified_gen", value)
-
-    @property
-    def _actual_dispatch(self):
-        return self._get_dispatch_attr("actual_dispatch")
-
-    @_actual_dispatch.setter
-    def _actual_dispatch(self, value):
-        self._set_dispatch_attr("actual_dispatch", value)
-
-    @property
-    def _gen_uptime(self):
-        return self._get_dispatch_attr("gen_uptime")
-
-    @_gen_uptime.setter
-    def _gen_uptime(self, value):
-        self._set_dispatch_attr("gen_uptime", value)
-
-    @property
-    def _gen_downtime(self):
-        return self._get_dispatch_attr("gen_downtime")
-
-    @_gen_downtime.setter
-    def _gen_downtime(self, value):
-        self._set_dispatch_attr("gen_downtime", value)
-
-    @property
-    def _gen_activeprod_t(self):
-        return self._get_dispatch_attr("gen_activeprod_t")
-
-    @_gen_activeprod_t.setter
-    def _gen_activeprod_t(self, value):
-        self._set_dispatch_attr("gen_activeprod_t", value)
-
-    @property
-    def _gen_activeprod_t_redisp(self):
-        return self._get_dispatch_attr("gen_activeprod_t_redisp")
-
-    @_gen_activeprod_t_redisp.setter
-    def _gen_activeprod_t_redisp(self, value):
-        self._set_dispatch_attr("gen_activeprod_t_redisp", value)
-
-    @property
-    def _storage_current_charge(self):
-        return self._get_dispatch_attr("storage_current_charge")
-
-    @_storage_current_charge.setter
-    def _storage_current_charge(self, value):
-        self._set_dispatch_attr("storage_current_charge", value)
-
-    @property
-    def _storage_previous_charge(self):
-        return self._get_dispatch_attr("storage_previous_charge")
-
-    @_storage_previous_charge.setter
-    def _storage_previous_charge(self, value):
-        self._set_dispatch_attr("storage_previous_charge", value)
-
-    @property
-    def _action_storage(self):
-        return self._get_dispatch_attr("action_storage")
-
-    @_action_storage.setter
-    def _action_storage(self, value):
-        self._set_dispatch_attr("action_storage", value)
-
-    @property
-    def _amount_storage(self):
-        return self._get_dispatch_attr("amount_storage")
-
-    @_amount_storage.setter
-    def _amount_storage(self, value):
-        self._set_dispatch_float_attr("amount_storage", value)
-
-    @property
-    def _amount_storage_prev(self):
-        return self._get_dispatch_attr("amount_storage_prev")
-
-    @_amount_storage_prev.setter
-    def _amount_storage_prev(self, value):
-        self._set_dispatch_float_attr("amount_storage_prev", value)
-
-    @property
-    def _storage_power(self):
-        return self._get_dispatch_attr("storage_power")
-
-    @_storage_power.setter
-    def _storage_power(self, value):
-        self._set_dispatch_attr("storage_power", value)
-
-    @property
-    def _storage_power_prev(self):
-        return self._get_dispatch_attr("storage_power_prev")
-
-    @_storage_power_prev.setter
-    def _storage_power_prev(self, value):
-        self._set_dispatch_attr("storage_power_prev", value)
-
-    @property
-    def _limit_curtailment(self):
-        return self._get_dispatch_attr("limit_curtailment")
-
-    @_limit_curtailment.setter
-    def _limit_curtailment(self, value):
-        self._set_dispatch_attr("limit_curtailment", value)
-
-    @property
-    def _limit_curtailment_prev(self):
-        return self._get_dispatch_attr("limit_curtailment_prev")
-
-    @_limit_curtailment_prev.setter
-    def _limit_curtailment_prev(self, value):
-        self._set_dispatch_attr("limit_curtailment_prev", value)
-
-    @property
-    def _gen_before_curtailment(self):
-        return self._get_dispatch_attr("gen_before_curtailment")
-
-    @_gen_before_curtailment.setter
-    def _gen_before_curtailment(self, value):
-        self._set_dispatch_attr("gen_before_curtailment", value)
-
-    @property
-    def _sum_curtailment_mw(self):
-        return self._get_dispatch_attr("sum_curtailment_mw")
-
-    @_sum_curtailment_mw.setter
-    def _sum_curtailment_mw(self, value):
-        self._set_dispatch_float_attr("sum_curtailment_mw", value)
-
-    @property
-    def _sum_curtailment_mw_prev(self):
-        return self._get_dispatch_attr("sum_curtailment_mw_prev")
-
-    @_sum_curtailment_mw_prev.setter
-    def _sum_curtailment_mw_prev(self, value):
-        self._set_dispatch_float_attr("sum_curtailment_mw_prev", value)
-
-    @property
-    def _detached_elements_mw(self):
-        return self._get_dispatch_attr("detached_elements_mw")
-
-    @_detached_elements_mw.setter
-    def _detached_elements_mw(self, value):
-        self._set_dispatch_float_attr("detached_elements_mw", value)
-
-    @property
-    def _detached_elements_mw_prev(self):
-        return self._get_dispatch_attr("detached_elements_mw_prev")
-
-    @_detached_elements_mw_prev.setter
-    def _detached_elements_mw_prev(self, value):
-        self._set_dispatch_float_attr("detached_elements_mw_prev", value)
-
-    @property
-    def _limited_before(self):
-        return self._get_dispatch_attr("limited_before")
-
-    @_limited_before.setter
-    def _limited_before(self, value):
-        self._set_dispatch_float_attr("limited_before", value)
-
     @property
     def highres_sim_counter(self) -> int:
         return self._highres_sim_counter
@@ -928,7 +719,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             
         RandomObject._custom_deepcopy_for_copy(self, new_obj)
         new_obj.name = self.name
-        new_obj._dispatch_state = RedispatchState()
+        new_obj._dispatch_state = self._dispatch_state.copy()
         # needed before the observation space is copied (it reads the solver)
         new_obj._init_dispatch_modules(self._redispatch_solver)
         if dict_ is None:
@@ -1033,13 +824,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         new_obj._env_dc = self._env_dc
 
         # redispatching data
-        new_obj._target_dispatch = copy.deepcopy(self._target_dispatch)
-        new_obj._already_modified_gen = copy.deepcopy(self._already_modified_gen)
-        new_obj._actual_dispatch = copy.deepcopy(self._actual_dispatch)
-        new_obj._gen_uptime = copy.deepcopy(self._gen_uptime)
-        new_obj._gen_downtime = copy.deepcopy(self._gen_downtime)
-        new_obj._gen_activeprod_t = copy.deepcopy(self._gen_activeprod_t)
-        new_obj._gen_activeprod_t_redisp = copy.deepcopy(self._gen_activeprod_t_redisp)
 
         new_obj._disc_lines = copy.deepcopy(self._disc_lines)
 
@@ -1151,25 +935,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         new_obj.__new_param = copy.deepcopy(self.__new_param)
         new_obj.__new_forecast_param = copy.deepcopy(self.__new_forecast_param)
         new_obj.__new_reward_func = copy.deepcopy(self.__new_reward_func)
-
-        # storage units
-        new_obj._storage_current_charge = copy.deepcopy(self._storage_current_charge)
-        new_obj._storage_previous_charge = copy.deepcopy(self._storage_previous_charge)
-        new_obj._action_storage = copy.deepcopy(self._action_storage)
-        new_obj._amount_storage = copy.deepcopy(self._amount_storage)
-        new_obj._amount_storage_prev = copy.deepcopy(self._amount_storage_prev)
-        new_obj._storage_power = copy.deepcopy(self._storage_power)
-        new_obj._storage_power_prev = copy.deepcopy(self._storage_power_prev)
-
-        # curtailment
-        new_obj._limit_curtailment = copy.deepcopy(self._limit_curtailment)
-        new_obj._limit_curtailment_prev = copy.deepcopy(self._limit_curtailment_prev)
-        new_obj._gen_before_curtailment = copy.deepcopy(self._gen_before_curtailment)
-        new_obj._sum_curtailment_mw = copy.deepcopy(self._sum_curtailment_mw)
-        new_obj._sum_curtailment_mw_prev = copy.deepcopy(self._sum_curtailment_mw_prev)
-        new_obj._detached_elements_mw = copy.deepcopy(self._detached_elements_mw)
-        new_obj._detached_elements_mw_prev = copy.deepcopy(self._detached_elements_mw_prev)
-        new_obj._limited_before = copy.deepcopy(self._limited_before)
 
         # attention budget
         new_obj._attention_budget = copy.deepcopy(self._attention_budget)
@@ -1634,7 +1399,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             shape=(bk_type.n_line,), fill_value=0, dtype=dt_int
         )
 
-        self._dispatch_state = RedispatchState.allocate(bk_type.n_gen, bk_type.n_storage)
+        self._dispatch_state = RedispatchState.allocate(bk_type.n_gen, bk_type.n_storage, bk_type.n_load)
         self._max_timestep_line_status_deactivated = (
             self._parameters.NB_TIMESTEP_COOLDOWN_LINE
         )
@@ -1856,8 +1621,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         
         self._delta_gen_p[:] = 0.
         
-        self._detached_elements_mw = 0.
-        self._detached_elements_mw_prev = 0.
+        self._dispatch_state.reset("detachment")
         
     def _reset_alert(self):
         self._last_alert[:] = False
@@ -2226,14 +1990,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self.observation_space.set_thermal_limit(self._thermal_limit_a)
 
     def _reset_redispatching(self):
-        # redispatching
-        self._target_dispatch[:] = 0.0
-        self._already_modified_gen[:] = False
-        self._actual_dispatch[:] = 0.0
-        self._gen_uptime[:] = 0
-        self._gen_downtime[:] = 0
-        self._gen_activeprod_t[:] = 0.0
-        self._gen_activeprod_t_redisp[:] = 0.0
+        self._dispatch_state.reset("redispatch")
         self._redispatch_solver.reset()
 
     def _aux_retrieve_modif_act(self,
@@ -3683,12 +3440,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             "_duration_next_maintenance",
             "_hazard_duration",
             "_env_dc",
-            "_target_dispatch",
-            "_actual_dispatch",
-            "_gen_uptime",
-            "_gen_downtime",
-            "_gen_activeprod_t",
-            "_gen_activeprod_t_redisp",
             "_thermal_limit_a",
             "_disc_lines",
             "_injection",
@@ -3731,20 +3482,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             "backend",
             "debug_dispatch",
             # "__new_param", "__new_forecast_param", "__new_reward_func",
-            "_storage_current_charge",
-            "_storage_previous_charge",
-            "_action_storage",
-            "_amount_storage",
-            "_amount_storage_prev",
-            "_storage_power",
-            "_storage_power_prev",
-            "_limit_curtailment",
-            "_limit_curtailment_prev",
-            "_gen_before_curtailment",
-            "_sum_curtailment_mw",
-            "_sum_curtailment_mw_prev",
-            "_detached_elements_mw",
-            "_detached_elements_mw_prev",
             "_has_attention_budget",
             "_attentiong_budget",
             "_attention_budget_cls",
@@ -3753,7 +3490,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             "_is_alert_illegal",
             "_is_alert_used_in_reward",
             "_kwargs_attention_budget",
-            "_limited_before",
             "_storage_module",
             "_curtailment_module",
             "_detachment_module",
@@ -4392,21 +4128,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         if "opp_space_state" in obs._env_internal_params:
             self._oppSpace._set_state(obs._env_internal_params["opp_space_state"], 
                                       obs._env_internal_params["opp_state"])
-        # storage unit
-        self._storage_current_charge[:] = obs.storage_charge
-        self._storage_previous_charge[:] = obs._env_internal_params["_storage_previous_charge"]
-        self._action_storage[:] = obs.storage_power_target
-        self._storage_power[:] = obs.storage_power
-        self._amount_storage = obs._env_internal_params["_amount_storage"]
-        self._amount_storage_prev = obs._env_internal_params["_amount_storage_prev"]
-
-        # curtailment
-        self._limit_curtailment[:] = obs.curtailment_limit
-        self._gen_before_curtailment[:] = obs.gen_p_before_curtail
-        self._sum_curtailment_mw = obs._env_internal_params["_sum_curtailment_mw"]
-        self._sum_curtailment_mw_prev = obs._env_internal_params["_sum_curtailment_mw_prev"]
-        self._detached_elements_mw = obs._env_internal_params["_detached_elements_mw"]
-        self._detached_elements_mw_prev = obs._env_internal_params["_detached_elements_mw_prev"]
+        # redispatching, storage units, curtailment and detachment
+        self._dispatch_state.load_from(obs._env_internal_params["_dispatch_state"])
 
         # line status
         self._line_status[:] = obs._env_internal_params["_line_status_env"] == 1
@@ -4426,13 +4149,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         # maintenance
         self._time_next_maintenance[:] = obs.time_next_maintenance
         self._duration_next_maintenance[:] = obs.duration_next_maintenance
-        
-        # redisp
-        self._target_dispatch[:] = obs.target_dispatch
-        self._actual_dispatch[:] = obs.actual_dispatch
-        self._already_modified_gen[:] = obs._env_internal_params["_already_modified_gen"]
-        self._gen_activeprod_t[:] = obs._env_internal_params["_gen_activeprod_t"]
-        self._gen_activeprod_t_redisp[:] = obs._env_internal_params["_gen_activeprod_t_redisp"]
         
         # current step
         self.nb_time_step = obs.current_step
@@ -4488,3 +4204,25 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         See :ref:`troubleshoot_pickle` for more information.
         """
         return self._read_from_local_dir is not None
+
+
+def _make_dispatch_property(name: str, is_float_scalar: bool) -> property:
+    def fget(self):
+        return getattr(self._dispatch_state, name)
+
+    if is_float_scalar:
+        def fset(self, value):
+            setattr(self._dispatch_state, name, dt_float(value))
+    else:
+        def fset(self, value):
+            setattr(self._dispatch_state, name, value)
+    return property(fget, fset, doc=f"Forwards to `self._dispatch_state.{name}`")
+
+
+# `BaseEnv._<field>` reads and writes the field of `BaseEnv._dispatch_state`
+for _fld in dataclasses.fields(RedispatchState):
+    setattr(BaseEnv,
+            f"_{_fld.name}",
+            _make_dispatch_property(_fld.name,
+                                    _fld.metadata["kind"] == "scalar" and _fld.metadata["dtype"] is dt_float))
+del _fld

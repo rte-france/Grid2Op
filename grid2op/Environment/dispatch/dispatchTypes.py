@@ -8,7 +8,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field, fields
 from typing import Dict, Mapping, Optional, TYPE_CHECKING
 
 import numpy as np
@@ -54,53 +54,176 @@ class GuardInfo:
     updated_env_action: bool = False
 
 
+#: kind of a :class:`RedispatchState` field: one value per generator, storage unit or load,
+#: or a single value
+DISPATCH_FIELD_KINDS = ("gen", "storage", "load", "scalar")
+
+#: groups of :class:`RedispatchState` fields, reset together by :func:`RedispatchState.reset`
+DISPATCH_FIELD_GROUPS = ("redispatch", "storage", "curtailment", "detachment")
+
+
+def _state_field(
+    kind: str,
+    dtype: type,
+    init,
+    group: str,
+    *,
+    restore: bool = True,
+    reset: bool = True,
+    reset_mask: Optional[str] = None,
+):
+    """Declares a field of :class:`RedispatchState`.
+
+    Parameters
+    ----------
+    kind:
+        One of :data:`DISPATCH_FIELD_KINDS`, gives the size of the field
+    dtype:
+        ``dt_float``, ``dt_int`` or ``dt_bool``
+    init:
+        Value of the field (of all its entries for a vector) once allocated or reset
+    group:
+        One of :data:`DISPATCH_FIELD_GROUPS`
+    restore:
+        Whether the field is restored from an observation (used by `obs.simulate` and
+        `obs.get_forecast_env()`)
+    reset:
+        Whether :func:`RedispatchState.reset` resets the field
+    reset_mask:
+        Name of a boolean mask (given to :func:`RedispatchState.reset`): only the entries
+        of this mask are reset
+    """
+    if kind not in DISPATCH_FIELD_KINDS:
+        raise ValueError(f"Unknown kind {kind}")
+    if group not in DISPATCH_FIELD_GROUPS:
+        raise ValueError(f"Unknown group {group}")
+    metadata = {
+        "kind": kind,
+        "dtype": dtype,
+        "init": init,
+        "group": group,
+        "restore": restore,
+        "reset": reset,
+        "reset_mask": reset_mask,
+    }
+    default = dtype(init) if kind == "scalar" else None
+    return field(default=default, metadata=metadata)
+
+
 @dataclass
 class RedispatchState:
     """State of the generators, storage units and curtailment kept by the environment
     from one step to the next. The environment owns it, the solver only updates
-    ``actual_dispatch``."""
-    target_dispatch: Optional[np.ndarray] = None
-    already_modified_gen: Optional[np.ndarray] = None
-    actual_dispatch: Optional[np.ndarray] = None
-    gen_uptime: Optional[np.ndarray] = None
-    gen_downtime: Optional[np.ndarray] = None
-    gen_activeprod_t: Optional[np.ndarray] = None
-    gen_activeprod_t_redisp: Optional[np.ndarray] = None
-    storage_current_charge: Optional[np.ndarray] = None
-    storage_previous_charge: Optional[np.ndarray] = None
-    action_storage: Optional[np.ndarray] = None
-    amount_storage: float = dt_float(0.0)
-    amount_storage_prev: float = dt_float(0.0)
-    storage_power: Optional[np.ndarray] = None
-    storage_power_prev: Optional[np.ndarray] = None
-    limit_curtailment: Optional[np.ndarray] = None
-    limit_curtailment_prev: Optional[np.ndarray] = None
-    gen_before_curtailment: Optional[np.ndarray] = None
-    sum_curtailment_mw: float = dt_float(0.0)
-    sum_curtailment_mw_prev: float = dt_float(0.0)
-    detached_elements_mw: float = dt_float(0.0)
-    detached_elements_mw_prev: float = dt_float(0.0)
-    limited_before: float = dt_float(0.0)
+    ``actual_dispatch``.
+
+    Each field is declared once, with :func:`_state_field`: allocation, copy, reset,
+    the conversion to / from a dictionary (to restore the state from an observation) and
+    the ``BaseEnv._<field>`` attributes are derived from these declarations.
+    """
+    # redispatch
+    target_dispatch: Optional[np.ndarray] = _state_field("gen", dt_float, 0.0, "redispatch")
+    already_modified_gen: Optional[np.ndarray] = _state_field("gen", dt_bool, False, "redispatch")
+    actual_dispatch: Optional[np.ndarray] = _state_field("gen", dt_float, 0.0, "redispatch")
+    gen_uptime: Optional[np.ndarray] = _state_field("gen", dt_int, 0, "redispatch")
+    gen_downtime: Optional[np.ndarray] = _state_field("gen", dt_int, 0, "redispatch")
+    gen_activeprod_t: Optional[np.ndarray] = _state_field("gen", dt_float, 0.0, "redispatch")
+    gen_activeprod_t_redisp: Optional[np.ndarray] = _state_field("gen", dt_float, 0.0, "redispatch")
+
+    # storage units
+    storage_current_charge: Optional[np.ndarray] = _state_field("storage", dt_float, 0.0, "storage")
+    storage_previous_charge: Optional[np.ndarray] = _state_field("storage", dt_float, 0.0, "storage")
+    # not reset: it is set to 0. at the beginning of each step
+    action_storage: Optional[np.ndarray] = _state_field("storage", dt_float, 0.0, "storage", reset=False)
+    amount_storage: float = _state_field("scalar", dt_float, 0.0, "storage")
+    amount_storage_prev: float = _state_field("scalar", dt_float, 0.0, "storage")
+    storage_power: Optional[np.ndarray] = _state_field("storage", dt_float, 0.0, "storage")
+    storage_power_prev: Optional[np.ndarray] = _state_field("storage", dt_float, 0.0, "storage")
+
+    # curtailment (the limits are reset only for the renewable generators)
+    limit_curtailment: Optional[np.ndarray] = _state_field(
+        "gen", dt_float, 1.0, "curtailment", reset_mask="gen_renewable")
+    limit_curtailment_prev: Optional[np.ndarray] = _state_field(
+        "gen", dt_float, 1.0, "curtailment", reset_mask="gen_renewable")
+    gen_before_curtailment: Optional[np.ndarray] = _state_field("gen", dt_float, 0.0, "curtailment")
+    sum_curtailment_mw: float = _state_field("scalar", dt_float, 0.0, "curtailment")
+    sum_curtailment_mw_prev: float = _state_field("scalar", dt_float, 0.0, "curtailment")
+    limited_before: float = _state_field("scalar", dt_float, 0.0, "curtailment")
+
+    # detachment
+    detached_elements_mw: float = _state_field("scalar", dt_float, 0.0, "detachment")
+    detached_elements_mw_prev: float = _state_field("scalar", dt_float, 0.0, "detachment")
 
     @classmethod
-    def allocate(cls, n_gen: int, n_storage: int) -> "RedispatchState":
-        return cls(
-            target_dispatch=np.zeros(n_gen, dtype=dt_float),
-            already_modified_gen=np.zeros(n_gen, dtype=dt_bool),
-            actual_dispatch=np.zeros(n_gen, dtype=dt_float),
-            gen_uptime=np.zeros(n_gen, dtype=dt_int),
-            gen_downtime=np.zeros(n_gen, dtype=dt_int),
-            gen_activeprod_t=np.zeros(n_gen, dtype=dt_float),
-            gen_activeprod_t_redisp=np.zeros(n_gen, dtype=dt_float),
-            storage_current_charge=np.zeros(n_storage, dtype=dt_float),
-            storage_previous_charge=np.zeros(n_storage, dtype=dt_float),
-            action_storage=np.zeros(n_storage, dtype=dt_float),
-            storage_power=np.zeros(n_storage, dtype=dt_float),
-            storage_power_prev=np.zeros(n_storage, dtype=dt_float),
-            limit_curtailment=np.ones(n_gen, dtype=dt_float),
-            limit_curtailment_prev=np.ones(n_gen, dtype=dt_float),
-            gen_before_curtailment=np.zeros(n_gen, dtype=dt_float),
-        )
+    def allocate(cls, n_gen: int, n_storage: int, n_load: int) -> "RedispatchState":
+        sizes = {"gen": n_gen, "storage": n_storage, "load": n_load}
+        res = cls()
+        for fld in fields(cls):
+            meta = fld.metadata
+            if meta["kind"] != "scalar":
+                setattr(res, fld.name,
+                        np.full(sizes[meta["kind"]], fill_value=meta["init"], dtype=meta["dtype"]))
+        return res
+
+    def copy(self) -> "RedispatchState":
+        """Copy of this state, that does not share any array with it."""
+        res = type(self)()
+        for fld in fields(self):
+            val = getattr(self, fld.name)
+            if isinstance(val, np.ndarray):
+                val = val.copy()
+            setattr(res, fld.name, val)
+        return res
+
+    def reset(
+        self,
+        group: Optional[str] = None,
+        masks: Optional[Mapping[str, np.ndarray]] = None,
+    ) -> None:
+        """Sets the fields of `group` (all the fields if ``None``) to their initial value.
+
+        `masks` gives the masks named by the `reset_mask` of the fields (only the entries
+        of the mask are reset); it is required for these fields.
+        """
+        if group is not None and group not in DISPATCH_FIELD_GROUPS:
+            raise ValueError(f"Unknown group {group}")
+        for fld in fields(self):
+            meta = fld.metadata
+            if not meta["reset"] or (group is not None and meta["group"] != group):
+                continue
+            if meta["kind"] == "scalar":
+                setattr(self, fld.name, meta["dtype"](meta["init"]))
+                continue
+            arr = getattr(self, fld.name)
+            if arr is None:
+                # not allocated
+                continue
+            if meta["reset_mask"] is None:
+                arr[:] = meta["init"]
+            else:
+                if masks is None or meta["reset_mask"] not in masks:
+                    raise KeyError(f"The mask \"{meta['reset_mask']}\" is needed to reset {fld.name}")
+                arr[masks[meta["reset_mask"]]] = meta["init"]
+
+    def to_dict(self) -> Dict[str, object]:
+        """Copy of the values of all the fields (to restore them with :func:`RedispatchState.load_from`)."""
+        res = {}
+        for fld in fields(self):
+            val = getattr(self, fld.name)
+            res[fld.name] = val.copy() if isinstance(val, np.ndarray) else val
+        return res
+
+    def load_from(self, dict_: Mapping[str, object]) -> None:
+        """Sets the fields declared with ``restore=True`` from `dict_` (as given by
+        :func:`RedispatchState.to_dict`). The arrays are modified in place."""
+        for fld in fields(self):
+            meta = fld.metadata
+            if not meta["restore"]:
+                continue
+            val = dict_[fld.name]
+            if meta["kind"] == "scalar":
+                setattr(self, fld.name, meta["dtype"](val))
+            else:
+                getattr(self, fld.name)[:] = val
 
 
 def dispatch_contributions(state: RedispatchState) -> Dict[str, float]:

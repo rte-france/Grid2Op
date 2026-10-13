@@ -34,7 +34,7 @@ class TestDetachmentModuleExplicitInputs(unittest.TestCase):
     """`DetachmentModule.compute` only uses the data it is given (no environment needed)."""
     def setUp(self) -> None:
         self.module = DetachmentModule(env=None)
-        self.state = RedispatchState.allocate(n_gen=3, n_storage=0)
+        self.state = RedispatchState.allocate(n_gen=3, n_storage=0, n_load=2)
         self.state.actual_dispatch[:] = [1.0, 2.0, 0.0]
         self.new_p = np.array([10.0, 20.0, 30.0], dtype=dt_float)
         self.new_p_th = np.array([11.0, 20.0, 30.0], dtype=dt_float)

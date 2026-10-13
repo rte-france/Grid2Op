@@ -4464,17 +4464,9 @@ class BaseObservation(GridObjects):
         # some parameters used for the "forecast env"
         # but not directly accessible in the observation
         self._env_internal_params = {
-            "_storage_previous_charge": env._storage_previous_charge.copy(),
-            "_amount_storage": env._amount_storage,
-            "_amount_storage_prev": env._amount_storage_prev,
-            "_sum_curtailment_mw": env._sum_curtailment_mw.copy(),
-            "_sum_curtailment_mw_prev": env._sum_curtailment_mw_prev.copy(),
-            "_detached_elements_mw": env._detached_elements_mw.copy(),
-            "_detached_elements_mw_prev": env._detached_elements_mw_prev.copy(),
+            # redispatching, storage units, curtailment and detachment
+            "_dispatch_state": env._dispatch_state.to_dict(),
             "_line_status_env": env.get_current_line_status().astype(dt_int),  # false -> 0 true -> 1
-            "_gen_activeprod_t": env._gen_activeprod_t.copy(),
-            "_gen_activeprod_t_redisp": env._gen_activeprod_t_redisp.copy(),
-            "_already_modified_gen": env._already_modified_gen.copy(),
         }
         self._env_internal_params["_line_status_env"]  *= 2  # false -> 0 true -> 2
         self._env_internal_params["_line_status_env"] -= 1  # false -> -1; true -> 1

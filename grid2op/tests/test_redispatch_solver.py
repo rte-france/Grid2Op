@@ -294,12 +294,12 @@ class TestSimulateAfterDetachment(unittest.TestCase):
         # one step after the detachment the two values differ
         obs, _, done, info = self.env.step(self.env.action_space({}))
         assert not done, info["exception"]
-        params = obs._env_internal_params
-        assert abs(params["_detached_elements_mw"] - params["_detached_elements_mw_prev"]) >= 1.
+        params = obs._env_internal_params["_dispatch_state"]
+        assert abs(params["detached_elements_mw"] - params["detached_elements_mw_prev"]) >= 1.
         obs_env = self.env.observation_space.obs_env
         obs_env._reset_to_orig_state(obs)
-        assert obs_env._detached_elements_mw == params["_detached_elements_mw"]
-        assert obs_env._detached_elements_mw_prev == params["_detached_elements_mw_prev"]
+        assert obs_env._detached_elements_mw == params["detached_elements_mw"]
+        assert obs_env._detached_elements_mw_prev == params["detached_elements_mw_prev"]
 
     def test_simulate(self):
         sim_obs, _, sim_done, sim_info = self.obs.simulate(self.env.action_space({}))
