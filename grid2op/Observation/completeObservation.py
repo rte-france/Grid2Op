@@ -134,7 +134,24 @@ class CompleteObservation(BaseObservation):
             and 0 means "not used" 
         #. :attr:`BaseObservation.attack_under_alert` For each attackable line `i` it says if an alert has been sent (+1) or not (-1)
             for each attackable line currently under attack.
-            
+        #. :attr:`BaseObservation.theta_or` voltage angle at the origin of each powerline
+            [:attr:`grid2op.Space.GridObjects.n_line` elements].
+        #. :attr:`BaseObservation.theta_ex` voltage angle at the extremity of each powerline
+            [:attr:`grid2op.Space.GridObjects.n_line` elements].
+        #. :attr:`BaseObservation.load_theta` voltage angle at each load
+            [:attr:`grid2op.Space.GridObjects.n_load` elements].
+        #. :attr:`BaseObservation.gen_theta` voltage angle at each generator
+            [:attr:`grid2op.Space.GridObjects.n_gen` elements].
+        #. :attr:`BaseObservation.storage_theta` voltage angle at each storage unit
+            [:attr:`grid2op.Space.GridObjects.n_storage` elements].
+
+            These attributes are set to zero when the backend does not support voltage
+            angles; see :attr:`BaseObservation.support_theta`.
+
+            Voltage angles use the reference selected by the backend. A uniform shift
+            of every angle represents the same grid state, so users can subtract a
+            common reference or statistic when reference-invariant inputs are needed.
+
     """
 
     attr_list_vect = [
@@ -208,16 +225,17 @@ class CompleteObservation(BaseObservation):
         "gen_p_detached",
         "storage_p_detached",
         # protections (>= 1.11.0)
-        "timestep_protection_engaged"
-    ]
-    attr_list_json = [
-        "_thermal_limit",
-        "support_theta",
+        "timestep_protection_engaged",
+        # voltage angles (>= 1.12.6)
         "theta_or",
         "theta_ex",
         "load_theta",
         "gen_theta",
         "storage_theta",
+    ]
+    attr_list_json = [
+        "_thermal_limit",
+        "support_theta",
     ]
     attr_list_set = set(attr_list_vect)
 

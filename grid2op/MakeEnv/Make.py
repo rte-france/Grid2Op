@@ -8,6 +8,7 @@
 
 import time
 import os
+import re
 import warnings
 from typing import Union, Optional
 import logging
@@ -44,18 +45,13 @@ _REQUEST_EXCEPT_RETRY_ERR = (
 _LIST_REMOTE_URL = (
     "https://api.github.com/repos/Grid2Op/grid2op-datasets/contents/datasets.json"
 )
-_LIST_REMOTE_KEY = "download_url"
-_LIST_REMOTE_INVALID_CONTENT_JSON_ERR = (
-    "Impossible to retrieve available datasets. "
-    "File could not be converted to json. "
-    "Parsing error:\n {}"
+_GITHUB_API_CONTENTS_REGEX = re.compile(
+    r"^https://api\.github\.com/repos/(?P<owner>[^/]+)/(?P<repo>[^/]+)/contents/(?P<path>.+)$"
 )
-_LIST_REMOTE_CORRUPTED_CONTENT_JSON_ERR = (
-    "Corrupted json retrieved from github api. "
-    "Please wait a few minutes and try again. "
-    "If the error persist, contact grid2op devs by making an issue at "
-    "\n\thttps://github.com/Grid2Op/grid2op/issues/new/choose"
-)
+_GITHUB_RAW_URL = "https://raw.githubusercontent.com/{owner}/{repo}/HEAD/{path}"
+# minimum delay (in seconds) between two requests to github (good practice, we are guests there)
+_GITHUB_MIN_DELAY = 1.0
+_last_github_request = None
 _LIST_REMOTE_INVALID_DATASETS_JSON_ERR = (
     "Impossible to retrieve available datasets. "
     "File could not be converted to json. "
@@ -140,24 +136,50 @@ def _send_request_retry(url, nb_retry=10, gh_session=None):
         return _send_request_retry(url, nb_retry=nb_retry - 1, gh_session=gh_session)
 
 
-def _retrieve_github_content(url, is_json=True):
-    answer = _send_request_retry(url)
-    try:
-        answer_json = answer.json()
-    except Exception as e:
-        raise Grid2OpException(_LIST_REMOTE_INVALID_CONTENT_JSON_ERR.format(e))
+def _github_raw_url(url):
+    """
+    INTERNAL
 
-    if _LIST_REMOTE_KEY not in answer_json:
-        raise Grid2OpException(_LIST_REMOTE_CORRUPTED_CONTENT_JSON_ERR)
-    time.sleep(1)
-    avail_datasets = _send_request_retry(answer_json[_LIST_REMOTE_KEY])
+    .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+    Converts the url of a file in the github "contents" api
+    (``https://api.github.com/repos/<owner>/<repo>/contents/<path>``) to the url of the same file
+    (default branch) on ``raw.githubusercontent.com``. The api is rate limited (60 requests per hour and
+    per IP address when not authenticated) while the raw content is not. Any other url is returned
+    unchanged.
+    """
+    match = _GITHUB_API_CONTENTS_REGEX.match(url)
+    if match is None:
+        return url
+    return _GITHUB_RAW_URL.format(**match.groupdict())
+
+
+def _wait_before_github_request():
+    """
+    INTERNAL
+
+    .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+    Makes sure at least ``_GITHUB_MIN_DELAY`` seconds elapsed since the previous request to github.
+    """
+    global _last_github_request
+    if _last_github_request is not None:
+        remaining = _GITHUB_MIN_DELAY - (time.monotonic() - _last_github_request)
+        if remaining > 0:
+            time.sleep(remaining)
+    _last_github_request = time.monotonic()
+
+
+def _retrieve_github_content(url, is_json=True):
+    _wait_before_github_request()
+    answer = _send_request_retry(_github_raw_url(url))
     if is_json:
         try:
-            res = avail_datasets.json()
+            res = answer.json()
         except Exception as e:
             raise Grid2OpException(_LIST_REMOTE_INVALID_DATASETS_JSON_ERR.format(e))
     else:
-        res = avail_datasets.text
+        res = answer.text
     return res
 
 
@@ -176,7 +198,7 @@ def _fecth_environments(dataset_name):
     url = baseurl + filename
     # name is "tar.bz2" so i need to get rid of 2 extensions
     ds_name_dl = os.path.splitext(os.path.splitext(filename)[0])[0]
-    return url, ds_name_dl
+    return url, ds_name_dl, dict_.get("sha256", None)
 
 
 def _extract_ds_name(dataset_path):
@@ -512,9 +534,13 @@ def make(
     # Env needs to be downloaded
     warnings.warn(_MAKE_FIRST_TIME_WARN.format(dataset_name))
     _create_path_folder(grid2op.MakeEnv.PathUtils.DEFAULT_PATH_DATA)
-    url, ds_name_dl = _fecth_environments(dataset_name)
+    url, ds_name_dl, sha256 = _fecth_environments(dataset_name)
     _aux_download(
-        url, dataset_name, grid2op.MakeEnv.PathUtils.DEFAULT_PATH_DATA, ds_name_dl
+        url,
+        dataset_name,
+        grid2op.MakeEnv.PathUtils.DEFAULT_PATH_DATA,
+        ds_name_dl,
+        sha256=sha256,
     )
 
     # Check if multimix from path

@@ -27,6 +27,7 @@ from grid2op.Chronics import (ChronicsHandler,
                               GridValue)
 from grid2op.Action import BaseAction, DontAct
 from grid2op.Exceptions import EnvError
+from grid2op.Environment.dispatch import BaseRedispatchSolver
 from grid2op.Observation import CompleteObservation, BaseObservation
 from grid2op.Reward import BaseReward, L2RPNReward
 from grid2op.Rules import BaseRules, DefaultRules
@@ -76,6 +77,7 @@ class MakeKwargsTypeHints(TypedDict, total=False):
     observation_backend_class: Optional[Type[Backend]]
     observation_backend_kwargs: Optional[Dict[str, Any]]
     class_in_file: bool
+    redispatch_solver: Union[BaseRedispatchSolver, Type[BaseRedispatchSolver]]
     
     
 DIFFICULTY_NAME = "difficulty"
@@ -139,6 +141,10 @@ ERR_MSG_KWARGS = {
     " obs.simulate and obs.get_forecasted_env). This should be a dictionnary. (by default it's None)"),
     "class_in_file": ("experimental: tell grid2op to store the classes generated in the hard drive "
                       "which can solve lots of pickle / multi processing related issue"),
+    "redispatch_solver": ("The solver used to compute the dispatch of the generators (keyword "
+                          '"redispatch_solver") should be an instance or a subclass of '
+                          '"grid2op.Environment.dispatch.BaseRedispatchSolver" (by default it\'s None '
+                          "and the DefaultRedispatchSolver is used)"),
 }
 
 NAME_CHRONICS_FOLDER = "chronics"
@@ -800,6 +806,18 @@ def get_default_env_kwargs(
     if observation_backend_kwargs is observation_backend_kwargs_cfg_:
         observation_backend_kwargs = None
 
+    # solver for the redispatching (new in 1.12.6)
+    redispatch_solver = None
+    if config_data.get("redispatch_solver") is not None:
+        redispatch_solver = config_data["redispatch_solver"]
+    if kwargs.get("redispatch_solver") is not None:
+        redispatch_solver = kwargs["redispatch_solver"]
+    if redispatch_solver is not None and not (
+        isinstance(redispatch_solver, BaseRedispatchSolver)
+        or (isinstance(redispatch_solver, type) and issubclass(redispatch_solver, BaseRedispatchSolver))
+    ):
+        raise EnvError(ERR_MSG_KWARGS["redispatch_solver"])
+
     # new in 1.10.2 :
     allow_loaded_backend = False
     classes_path = None
@@ -867,6 +885,7 @@ def get_default_env_kwargs(
         observation_bk_class=observation_backend_class,
         observation_bk_kwargs=observation_backend_kwargs,
         allow_detachment=allow_detachment,
+        redispatch_solver=redispatch_solver,
     )
     return (
         default_kwargs,

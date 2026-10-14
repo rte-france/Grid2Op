@@ -959,7 +959,13 @@ class TestBasisObsBehaviour(unittest.TestCase):
                 # dt_float,
                 # dt_float,
                 # timestep_protection_engaged
-                dt_int
+                dt_int,
+                # voltage angles (>= 1.12.6)
+                dt_float,
+                dt_float,
+                dt_float,
+                dt_float,
+                dt_float,
             ],
             dtype=object,
         )
@@ -1039,10 +1045,16 @@ class TestBasisObsBehaviour(unittest.TestCase):
                 # 5,
                 # 0,
                 # timestep_protection_engaged
-                20
+                20,
+                # voltage angles (>= 1.12.6)
+                20,
+                20,
+                11,
+                5,
+                0,
             ]
         )
-        self.size_obs = 429 + 4 + 4 + 2 + 1 + 10 + 5 + 0 + 5 + 20
+        self.size_obs = 429 + 4 + 4 + 2 + 1 + 10 + 5 + 0 + 5 + 20 + 56
 
     def tearDown(self):
         self.env.close()
@@ -2132,6 +2144,49 @@ class TestBasisObsBehaviour(unittest.TestCase):
             assert el in obs.attr_list_json, f"{el} should be equal in obs and obs2"
         vect2 = obs2.to_vect()
         assert np.all(vect == vect2)
+
+    def test_theta_attributes_in_vector(self):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            env = grid2op.make(
+                "educ_case14_storage",
+                test=True,
+                _add_to_name=type(self).__name__,
+            )
+
+        with env:
+            obs = env.reset()
+            theta_attrs = (
+                "theta_or",
+                "theta_ex",
+                "load_theta",
+                "gen_theta",
+                "storage_theta",
+            )
+            expected_by_attr = {}
+
+            for attr_id, attr_nm in enumerate(theta_attrs):
+                assert attr_nm in type(obs).attr_list_vect
+                assert attr_nm not in type(obs).attr_list_json
+                values = (
+                    np.arange(getattr(obs, attr_nm).size, dtype=dt_float)
+                    + 100.0 * (attr_id + 1)
+                )
+                getattr(obs, attr_nm)[:] = values
+                expected_by_attr[attr_nm] = values
+
+            obs._vectorized = None
+            obs_vect = obs.to_vect()
+            obs_from_vect = env.observation_space.from_vect(obs_vect)
+
+            for attr_nm, expected in expected_by_attr.items():
+                np.testing.assert_array_equal(
+                    env.observation_space.extract_from_vect(obs_vect, attr_nm),
+                    expected,
+                )
+                np.testing.assert_array_equal(
+                    getattr(obs_from_vect, attr_nm), expected
+                )
 
     def test_5_simulate_proper_timestep(self):
         self.skipTest(

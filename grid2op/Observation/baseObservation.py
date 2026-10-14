@@ -32,7 +32,7 @@ from grid2op.Exceptions import (
     NoForecastAvailable,
     BaseObservationError,
 )
-from grid2op.Space import GridObjects, ElTypeInfo
+from grid2op.Space import GridObjects, ElTypeInfo, GRID2OP_CURRENT_VERSION_STR
 
 # TODO have a method that could do "forecast" by giving the _injection by the agent,
 # TODO if he wants to make custom forecasts
@@ -1375,6 +1375,24 @@ class BaseObservation(GridObjects):
             except ValueError as exc_:  # noqa: F841
                 # this attribute was not there in the first place
                 pass 
+
+    @classmethod
+    def _aux_process_grid2op_compat_1_12_6(cls):
+        """Keep the observation vector compatible with versions before 1.12.6."""
+        theta_attrs = [
+            "theta_or",
+            "theta_ex",
+            "load_theta",
+            "gen_theta",
+            "storage_theta",
+        ]
+        cls.attr_list_vect = copy.deepcopy(cls.attr_list_vect)
+        cls.attr_list_json = copy.deepcopy(cls.attr_list_json)
+        for el in theta_attrs:
+            if el in cls.attr_list_vect:
+                cls.attr_list_vect.remove(el)
+            if el not in cls.attr_list_json:
+                cls.attr_list_json.append(el)
         
     @classmethod
     def process_grid2op_compat(cls) -> None:
@@ -1408,6 +1426,13 @@ class BaseObservation(GridObjects):
         if glop_ver < cls.MIN_VERSION_DETACH:
             # detachment has been added in grid2op 1.11
             cls._aux_process_grid2op_compat_1_11_0()
+
+        if (
+            glop_ver < version.parse("1.12.6")
+            and cls.glop_version != GRID2OP_CURRENT_VERSION_STR
+        ):
+            # voltage angles have been added to the observation vector in 1.12.6
+            cls._aux_process_grid2op_compat_1_12_6()
             
         cls.attr_list_set = copy.deepcopy(cls.attr_list_set)
         cls.attr_list_set = set(cls.attr_list_vect)
@@ -4439,17 +4464,9 @@ class BaseObservation(GridObjects):
         # some parameters used for the "forecast env"
         # but not directly accessible in the observation
         self._env_internal_params = {
-            "_storage_previous_charge": env._storage_previous_charge.copy(),
-            "_amount_storage": env._amount_storage,
-            "_amount_storage_prev": env._amount_storage_prev,
-            "_sum_curtailment_mw": env._sum_curtailment_mw.copy(),
-            "_sum_curtailment_mw_prev": env._sum_curtailment_mw_prev.copy(),
-            "_detached_elements_mw": env._detached_elements_mw.copy(),
-            "_detached_elements_mw_prev": env._detached_elements_mw_prev.copy(),
+            # redispatching, storage units, curtailment and detachment
+            "_dispatch_state": env._dispatch_state.to_dict(),
             "_line_status_env": env.get_current_line_status().astype(dt_int),  # false -> 0 true -> 1
-            "_gen_activeprod_t": env._gen_activeprod_t.copy(),
-            "_gen_activeprod_t_redisp": env._gen_activeprod_t_redisp.copy(),
-            "_already_modified_gen": env._already_modified_gen.copy(),
         }
         self._env_internal_params["_line_status_env"]  *= 2  # false -> 0 true -> 2
         self._env_internal_params["_line_status_env"] -= 1  # false -> -1; true -> 1

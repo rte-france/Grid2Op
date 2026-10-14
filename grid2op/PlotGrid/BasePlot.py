@@ -11,8 +11,9 @@ import warnings
 
 import numpy as np
 from abc import ABC, abstractmethod
+from typing import Iterable, Callable, Union
 
-from grid2op.Observation import BaseObservation
+from grid2op.Observation import BaseObservation, ObservationSpace
 from grid2op.Exceptions import PlotError
 from grid2op.PlotGrid.LayoutUtil import layout_obs_sub_load_and_gen
 from grid2op.PlotGrid.PlotUtil import PlotUtil as pltu
@@ -43,15 +44,9 @@ class BasePlot(ABC):  # pragma: no cover
 
     """
 
-    def __init__(
-        self,
-        observation_space,
-        width=800,
-        height=600,
-        scale=2000.0,
-        grid_layout=None,
-        parallel_spacing=3.0,
-    ):
+    def __init__(self, observation_space:ObservationSpace, width:int=800, 
+                 height:int=600, scale:float=2000.0, grid_layout:Union[dict,None]=None,
+                 parallel_spacing:float=3.0):
 
         self.observation_space = observation_space
         self.width = width
@@ -76,10 +71,7 @@ class BasePlot(ABC):  # pragma: no cover
         )
         self.observation_space.rho = np.full(self.observation_space.n_line, 0.0)
         self.observation_space.p_or = np.ones(self.observation_space.n_line)
-
-        # TODO storage: display the storage units too
-        # TODO storage doc (yes also the documentation)
-
+    
     @abstractmethod
     def create_figure(self):
         """
@@ -105,7 +97,8 @@ class BasePlot(ABC):  # pragma: no cover
         """
         pass
 
-    def compute_grid_layout(self, observation_space, grid_layout=None):
+    def compute_grid_layout(self, observation_space:ObservationSpace,
+                            grid_layout:dict=None):
         """
         Compute the grid layout from the observation space
 
@@ -155,7 +148,9 @@ class BasePlot(ABC):  # pragma: no cover
         )
 
     @abstractmethod
-    def draw_substation(self, figure, observation, sub_id, sub_name, pos_x, pos_y):
+    def draw_substation(self, figure:object, observation:BaseObservation,
+                        sub_id:int, sub_name:str, 
+                        pos_x:int, pos_y:int):
         """
         Draws a substation into the figure
 
@@ -178,7 +173,9 @@ class BasePlot(ABC):  # pragma: no cover
         """
         pass
 
-    def update_substation(self, figure, observation, sub_id, sub_name, pos_x, pos_y):
+    def update_substation(self, figure:object, observation:BaseObservation, 
+                          sub_id:int, sub_name:str,
+                          pos_x:int, pos_y:int):
         """
         INTERNAL
 
@@ -189,20 +186,10 @@ class BasePlot(ABC):  # pragma: no cover
         pass
 
     @abstractmethod
-    def draw_load(
-        self,
-        figure,
-        observation,
-        load_name,
-        load_id,
-        load_bus,
-        load_value,
-        load_unit,
-        pos_x,
-        pos_y,
-        sub_x,
-        sub_y,
-    ):
+    def draw_load(self, figure:object, observation:BaseObservation,
+                  load_id:int, load_name:str, load_bus:int,
+                  load_value:float, load_unit:str,
+                  pos_x:int, pos_y:int, sub_x:int, sub_y:int):
         """
         Draws a load into the figure
 
@@ -235,20 +222,10 @@ class BasePlot(ABC):  # pragma: no cover
         """
         pass
 
-    def update_load(
-        self,
-        figure,
-        observation,
-        load_name,
-        load_id,
-        load_bus,
-        load_value,
-        load_unit,
-        pos_x,
-        pos_y,
-        sub_x,
-        sub_y,
-    ):
+    def update_load(self, figure:object, observation:BaseObservation,
+                    load_id:int, load_name:str, load_bus:int,
+                    load_value:float, load_unit:str,
+                    pos_x:int, pos_y:int, sub_x:int, sub_y:int):
         """
         INTERNAL
 
@@ -259,20 +236,10 @@ class BasePlot(ABC):  # pragma: no cover
         pass
 
     @abstractmethod
-    def draw_gen(
-        self,
-        figure,
-        observation,
-        gen_name,
-        gen_id,
-        gen_bus,
-        gen_value,
-        gen_unit,
-        pos_x,
-        pos_y,
-        sub_x,
-        sub_y,
-    ):
+    def draw_gen(self, figure:object, observation:BaseObservation,
+                 gen_id:int, gen_name:str, gen_bus:int,
+                 gen_value:float, gen_unit:str,
+                 pos_x:int, pos_y:int, sub_x:int, sub_y:int):
         """
         Draws a generator into the figure
 
@@ -306,20 +273,10 @@ class BasePlot(ABC):  # pragma: no cover
         """
         pass
 
-    def update_gen(
-        self,
-        figure,
-        observation,
-        gen_name,
-        gen_id,
-        gen_bus,
-        gen_value,
-        gen_unit,
-        pos_x,
-        pos_y,
-        sub_x,
-        sub_y,
-    ):
+    def update_gen(self, figure:object, observation:BaseObservation,
+                   gen_id:int, gen_name:str, gen_bus:int,
+                   gen_value:float, gen_unit:str,
+                   pos_x:int, pos_y:int, sub_x:int, sub_y:int):
         """
         INTERNAL
 
@@ -330,22 +287,11 @@ class BasePlot(ABC):  # pragma: no cover
         pass
 
     @abstractmethod
-    def draw_powerline(
-        self,
-        figure,
-        observation,
-        line_id,
-        line_name,
-        connected,
-        line_value,
-        line_unit,
-        or_bus,
-        pos_or_x,
-        pos_or_y,
-        ex_bus,
-        pos_ex_x,
-        pos_ex_y,
-    ):
+    def draw_powerline(self, figure:object, observation:BaseObservation,
+                       line_id:int, line_name:str, connected:bool,
+                       line_value:float, line_unit:str, 
+                       or_bus:int, pos_or_x:int, pos_or_y:int,
+                       ex_bus:int, pos_ex_x:int, pos_ex_y:int):
         """
         Draws a powerline into the figure
 
@@ -382,46 +328,25 @@ class BasePlot(ABC):  # pragma: no cover
         """
         pass
 
-    def update_powerline(
-        self,
-        figure,
-        observation,
-        line_id,
-        line_name,
-        connected,
-        line_value,
-        line_unit,
-        or_bus,
-        pos_or_x,
-        pos_or_y,
-        ex_bus,
-        pos_ex_x,
-        pos_ex_y,
-    ):
+    def update_powerline(self, figure:object, observation:BaseObservation,
+                         line_id:int, line_name:str, connected:bool,
+                         line_value:float, line_unit:str, 
+                         or_bus:int, pos_or_x:int, pos_or_y:int,
+                         ex_bus:int, pos_ex_x:int, pos_ex_y:int):
         """
         INTERNAL
 
         .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
 
-        Draws a powerline into the figure
+        Updates a powerline into the figure
         """
         pass
 
     @abstractmethod
-    def draw_storage(
-        self,
-        figure,
-        observation,
-        storage_name,
-        storage_id,
-        storage_bus,
-        storage_value,
-        storage_unit,
-        pos_x,
-        pos_y,
-        sub_x,
-        sub_y,
-    ):
+    def draw_storage(self, figure:object, observation:BaseObservation,
+                     storage_id:int, storage_name:str, storage_bus:int,
+                     storage_value:float, storage_unit:str,
+                     pos_x:int, pos_y:int, sub_x:int, sub_y:int):
         """
         Draws a storage unit into the figure
 
@@ -434,15 +359,15 @@ class BasePlot(ABC):  # pragma: no cover
         observation: :grid2op.Observation.BaseObservation:
         Current state of the grid being drawn
 
-        storage_name: ``str`` Name of the load
+        storage_id: ``int`` Id of the ESS, Index in the observation
+        
+        storage_name: ``str`` Name of the ESS
 
-        storage_id: ``int`` Id of the load, Index in the observation
+        storage_bus: ``int`` Id of bus the ESS is connected to.
 
-        storage_bus: ``int`` Id of bus the load is connected to.
+        storage_value: ``float`` An informative value of the ESS current state
 
-        storage_value: ``float`` An informative value of the load current state
-
-        storage_unit: ``str`` The unit of the `load_value` argument as a string
+        storage_unit: ``str`` The unit of the `stprage_value` argument as a string
 
         pos_x: ``int`` x position from the layout
 
@@ -454,20 +379,10 @@ class BasePlot(ABC):  # pragma: no cover
         """
         pass
 
-    def update_storage(
-        self,
-        figure,
-        observation,
-        storage_name,
-        storage_id,
-        storage_bus,
-        storage_value,
-        storage_unit,
-        pos_x,
-        pos_y,
-        sub_x,
-        sub_y,
-    ):
+    def update_storage(self, figure:object, observation:BaseObservation,
+                       storage_id:int, storage_name:str, storage_bus:int,
+                       storage_value:float, storage_unit:str,
+                       pos_x:int, pos_y:int, sub_x:int, sub_y:int):
         """
         INTERNAL
 
@@ -478,7 +393,7 @@ class BasePlot(ABC):  # pragma: no cover
         pass
 
     @abstractmethod
-    def draw_legend(self, figure, observation):
+    def draw_legend(self, figure:object, observation:BaseObservation):
         """
         Setup the legend for the given figure.
 
@@ -492,7 +407,7 @@ class BasePlot(ABC):  # pragma: no cover
         """
         pass
 
-    def update_legend(self, figure, observation):
+    def update_legend(self, figure:object, observation:BaseObservation):
         """
         INTERNAL
 
@@ -502,14 +417,22 @@ class BasePlot(ABC):  # pragma: no cover
         """
         pass
 
-    def plot_postprocess(self, figure, observation, is_update):
+    def plot_postprocess(self, figure:object, observation:BaseObservation, update:bool):
         """
         Some implementations may need post-processing.
         This is called at the end of plot.
         """
         pass
 
-    def _plot_subs(self, figure, observation, redraw):
+    def _plot_subs(self, figure:object, observation:BaseObservation, redraw:bool):
+        """
+        INTERNAL
+
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+        
+        Plots the substations
+        """
+
         draw_fn = self.draw_substation
         if not redraw:
             draw_fn = self.update_substation
@@ -520,104 +443,80 @@ class BasePlot(ABC):  # pragma: no cover
             sub_y = self._grid_layout[sub_name][1]
             draw_fn(figure, observation, sub_idx, sub_name, sub_x, sub_y)
 
-    def _aux_draw_elements(
-        self,
-        figure,
-        observation,
-        load_values,
-        load_unit,
-        draw_fn,
-        el_names,
-        el_to_subid,
-        el_pos_topo_vect,
-    ):
+    def _aux_draw_elements(self, figure:object, observation:BaseObservation,
+                           el_values:Iterable[float], el_unit:str, draw_fn:Callable,
+                           el_names:Iterable[str], el_to_subid:Iterable[int], 
+                           el_pos_topo_vect:Iterable[int]):
         """
         generic method to loop through all elements of a given type and call the draw function
         on them
         """
         topo = observation.topo_vect
         topo_pos = el_pos_topo_vect
-        for stor_idx, stor_name in enumerate(el_names):
-            if stor_name not in self._grid_layout:
+        for el_idx, el_name in enumerate(el_names):
+            if el_name not in self._grid_layout:
                 continue
-            load_value = None
-            if load_values is not None:
-                if load_values[stor_idx] is not None:
-                    load_value = np.round(float(load_values[stor_idx]), 2)
+            el_value = None
+            if el_values is not None:
+                if el_values[el_idx] is not None:
+                    el_value = np.round(float(el_values[el_idx]), 2)
                 else:
-                    load_value = None
-            sto_x = self._grid_layout[stor_name][0]
-            sto_y = self._grid_layout[stor_name][1]
-            sto_subid = el_to_subid[stor_idx]
-            subname = observation.name_sub[sto_subid]
-            sto_bus = topo[topo_pos[stor_idx]]
-            sto_bus = sto_bus if sto_bus > 0 else 0
+                    el_value = None
+            el_x = self._grid_layout[el_name][0]
+            el_y = self._grid_layout[el_name][1]
+            el_subid = el_to_subid[el_idx]
+            subname = observation.name_sub[el_subid]
+            el_bus = topo[topo_pos[el_idx]]
+            el_bus = el_bus if el_bus > 0 else 0
             sub_x = self._grid_layout[subname][0]
             sub_y = self._grid_layout[subname][1]
-            draw_fn(
-                figure,
-                observation,
-                stor_idx,
-                stor_name,
-                sto_bus,
-                load_value,
-                load_unit,
-                sto_x,
-                sto_y,
-                sub_x,
-                sub_y,
-            )
+            draw_fn(figure, observation,
+                    el_idx, el_name, el_bus,
+                    el_value, el_unit,
+                    el_x, el_y, sub_x, sub_y)
 
-    def _plot_loads(self, figure, observation, load_values, load_unit, redraw):
+    def _plot_loads(self, figure:object, observation:BaseObservation, load_values:Iterable[float], 
+                    load_unit:str, redraw:bool):
         draw_fn = self.draw_load
         if not redraw:
             draw_fn = self.update_load
 
-        self._aux_draw_elements(
-            figure,
-            observation,
-            load_values,
-            load_unit,
-            draw_fn,
-            observation.name_load,
-            observation.load_to_subid,
-            observation.load_pos_topo_vect,
-        )
+        self._aux_draw_elements(figure, observation,
+                                load_values, load_unit,
+                                draw_fn,
+                                observation.name_load,
+                                observation.load_to_subid,
+                                observation.load_pos_topo_vect)
 
-    def _plot_storages(self, figure, observation, storage_values, storage_unit, redraw):
+    def _plot_storages(self, figure:object, observation:BaseObservation, storage_values:Iterable[float],
+                       storage_unit:str, redraw:bool):
         if observation.n_storage == 0:
             return
         draw_fn = self.draw_storage
         if not redraw:
             draw_fn = self.update_storage
-        self._aux_draw_elements(
-            figure,
-            observation,
-            storage_values,
-            storage_unit,
-            draw_fn,
-            observation.name_storage,
-            observation.storage_to_subid,
-            observation.storage_pos_topo_vect,
-        )
+        self._aux_draw_elements(figure, observation,
+                                storage_values, storage_unit,
+                                draw_fn,
+                                observation.name_storage,
+                                observation.storage_to_subid,
+                                observation.storage_pos_topo_vect)
 
-    def _plot_gens(self, figure, observation, gen_values, gen_unit, redraw):
+    def _plot_gens(self, figure:object, observation:BaseObservation, gen_values:Iterable[float],
+                   gen_unit:str, redraw:bool):
         draw_fn = self.draw_gen
         if not redraw:
             draw_fn = self.update_gen
 
-        self._aux_draw_elements(
-            figure,
-            observation,
-            gen_values,
-            gen_unit,
-            draw_fn,
-            observation.name_gen,
-            observation.gen_to_subid,
-            observation.gen_pos_topo_vect,
-        )
+        self._aux_draw_elements(figure, observation,
+                                gen_values, gen_unit,
+                                draw_fn,
+                                observation.name_gen,
+                                observation.gen_to_subid,
+                                observation.gen_pos_topo_vect)
 
-    def _plot_lines(self, figure, observation, line_values, line_unit, redraw):
+    def _plot_lines(self, figure:object, observation:BaseObservation, line_values:Iterable[float],
+                    line_unit:str, redraw:bool):
         draw_fn = self.draw_powerline
         if not redraw:
             draw_fn = self.update_powerline
@@ -672,28 +571,18 @@ class BasePlot(ABC):  # pragma: no cover
                     line_ex_x -= ox * self._parallel_spacing
                     line_ex_y -= oy * self._parallel_spacing
 
-            draw_fn(
-                figure,
-                observation,
-                line_idx,
-                line_name,
-                line_status,
-                line_value,
-                line_unit,
-                line_or_bus,
-                line_or_x,
-                line_or_y,
-                line_ex_bus,
-                line_ex_x,
-                line_ex_y,
-            )
+            draw_fn(figure, observation,
+                    line_idx, line_name, line_status,
+                    line_value, line_unit,
+                    line_or_bus, line_or_x, line_or_y,
+                    line_ex_bus, line_ex_x, line_ex_y)
 
-    def _plot_legend(self, fig, observation, redraw):
+    def _plot_legend(self, figure:object, observation:BaseObservation, redraw:bool):
         draw_fn = self.draw_legend
         if not redraw:
             draw_fn = self.update_legend
 
-        draw_fn(fig, observation)
+        draw_fn(figure, observation)
 
     def plot_layout(self):
         """
@@ -704,16 +593,8 @@ class BasePlot(ABC):  # pragma: no cover
             observation=self.observation_space, figure=None, redraw=True
         )
 
-    def plot_obs(
-        self,
-        observation,
-        figure=None,
-        redraw=True,
-        line_info="rho",
-        load_info="p",
-        gen_info="p",
-        storage_info="p",
-    ):
+    def plot_obs(self, observation:BaseObservation, figure:Union[object,None]=None, redraw:bool=True,
+                 line_info:str="rho", load_info:str="p", gen_info:str="p", storage_info:str="p"):
         """
         Plot an observation.
 
@@ -841,35 +722,18 @@ class BasePlot(ABC):  # pragma: no cover
                 f'provided as "storage_info"'
             )
 
-        return self.plot_info(
-            observation=observation,
-            figure=figure,
-            redraw=redraw,
-            line_values=line_values,
-            line_unit=line_unit,
-            load_values=load_values,
-            load_unit=load_unit,
-            gen_values=gen_values,
-            gen_unit=gen_unit,
-            storage_values=storage_values,
-            storage_unit=storage_unit,
-        )
+        return self.plot_info(figure=figure, observation=observation, redraw=redraw,
+                              line_values=line_values, line_unit=line_unit,
+                              load_values=load_values, load_unit=load_unit,
+                              gen_values=gen_values, gen_unit=gen_unit,
+                              storage_values=storage_values, storage_unit=storage_unit)
 
-    def plot_info(
-        self,
-        figure=None,
-        redraw=True,
-        line_values=None,
-        line_unit="",
-        load_values=None,
-        load_unit="",
-        storage_values=None,
-        storage_unit="",
-        gen_values=None,
-        gen_unit="",
-        observation=None,
-        coloring=None,
-    ):
+    def plot_info(self, figure:Union[object,None]=None, redraw:bool=True, 
+                  line_values:Union[Iterable[float],None]=None, line_unit:str="", 
+                  load_values:Union[Iterable[float],None]=None, load_unit:str="",
+                  storage_values:Union[Iterable[float],None]=None, storage_unit:str="",
+                  gen_values:Union[Iterable[float],None]=None, gen_unit:str="", 
+                  observation:BaseObservation=None, coloring:Union[str,None]=None):
         """
         Plot an observation with custom values
 
@@ -881,7 +745,7 @@ class BasePlot(ABC):  # pragma: no cover
 
         line_values: ``list``
             information to be displayed for the powerlines
-            [must have the same size as observation.n_line  and convertible to float]
+            [must have the same size as observation.n_line and convertible to float]
 
         line_unit: ``str``
             Unit string for the :line_values: argument, displayed after the line value

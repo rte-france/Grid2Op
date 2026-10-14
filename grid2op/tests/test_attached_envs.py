@@ -184,7 +184,8 @@ class TestL2RPN_CASE14_SANDBOX(unittest.TestCase):
         assert issubclass(self.env.observation_space.subtype, CompleteObservation)
         # size_th = 467
         # size_th = 473  # gen_delta
-        size_th = 473 + 20  # n_line added for timestep_protection_engaged
+        # timestep_protection_engaged + theta_or/theta_ex/load/gen/storage
+        size_th = 473 + 20 + 2 * 20 + 11 + 6
         assert self.env.observation_space.n == size_th, (
             f"obs space size is {self.env.observation_space.n}," f"should be {size_th}"
         )
@@ -229,7 +230,8 @@ class TestL2RPN_CASE14_SANDBOX_DETACH(unittest.TestCase):
 
     def test_observation_space(self):
         assert issubclass(self.env.observation_space.subtype, CompleteObservation)
-        size_th = 518 + 20  # n_line added for timestep_protection_engaged
+        # timestep_protection_engaged + theta_or/theta_ex/load/gen/storage
+        size_th = 518 + 20 + 2 * 20 + 11 + 6
         assert self.env.observation_space.n == size_th, (
             f"obs space size is {self.env.observation_space.n}," f"should be {size_th}"
         )
@@ -274,7 +276,8 @@ class TestEDUC_CASE14_REDISP(unittest.TestCase):
     def test_observation_space(self):
         assert issubclass(self.env.observation_space.subtype, CompleteObservation)
         # size_th = 467
-        size_th = 473 + 20  # n_line added for timestep_protection_engaged
+        # timestep_protection_engaged + theta_or/theta_ex/load/gen/storage
+        size_th = 473 + 20 + 2 * 20 + 11 + 6
         assert self.env.observation_space.n == size_th, (
             f"obs space size is {self.env.observation_space.n}," f"should be {size_th}"
         )
@@ -319,7 +322,8 @@ class TestEDUC_STORAGE(unittest.TestCase):
     def test_observation_space(self):
         assert issubclass(self.env.observation_space.subtype, CompleteObservation)
         # size_th = 475
-        size_th = 481 + 20  # n_line added for timestep_protection_engaged
+        # timestep_protection_engaged + theta_or/theta_ex/load/gen/storage
+        size_th = 481 + 20 + 2 * 20 + 11 + 6 + 2
         assert self.env.observation_space.n == size_th, (
             f"obs space size is {self.env.observation_space.n}," f"should be {size_th}"
         )

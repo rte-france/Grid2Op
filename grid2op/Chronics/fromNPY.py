@@ -203,24 +203,59 @@ class FromNPY(GridValue):
             )
 
         self._forecasts = None
+        self._multi_forecasts = False
+        self._load_p_forecast = None
+        self._load_q_forecast = None
+        self._prod_p_forecast = None
+        self._prod_v_forecast = None
+        self.n_forecast_horizons = 0
+
+        self.__new_load_p_forecast = None
+        self.__new_load_q_forecast = None
+        self.__new_prod_p_forecast = None
+        self.__new_prod_v_forecast = None
+        self.__switch_to_multi_forecasts = False
+
         if load_p_forecast is not None:
             if load_q_forecast is None:
                 raise ChronicsError("If you provide load_p_forecast you should provide load_q_forecast.")
             if prod_p_forecast is None:
                 raise ChronicsError("If you provide load_p_forecast you should provide prod_p_forecast.")
-                
-            self._forecasts = FromNPY(
-                load_p=load_p_forecast,
-                load_q=load_q_forecast,
-                prod_p=prod_p_forecast,
-                prod_v=prod_v_forecast,
-                load_p_forecast=None,
-                load_q_forecast=None,
-                prod_p_forecast=None,
-                prod_v_forecast=None,
-                i_start=i_start,
-                i_end=i_end,
-            )
+
+            if load_p_forecast.ndim == 2:
+                if load_q_forecast.ndim != 2 or prod_p_forecast.ndim != 2:
+                    raise ChronicsError("All forecast arrays must use the same number of dimensions.")
+                if prod_v_forecast is not None and prod_v_forecast.ndim != 2:
+                    raise ChronicsError("All forecast arrays must use the same number of dimensions.")
+
+                self._forecasts = FromNPY(
+                    load_p=load_p_forecast,
+                    load_q=load_q_forecast,
+                    prod_p=prod_p_forecast,
+                    prod_v=prod_v_forecast,
+                    load_p_forecast=None,
+                    load_q_forecast=None,
+                    prod_p_forecast=None,
+                    prod_v_forecast=None,
+                    i_start=i_start,
+                    i_end=i_end,
+                )
+
+            elif load_p_forecast.ndim == 3:
+                self._multi_forecasts = True
+                self._load_p_forecast = 1.0 * load_p_forecast
+                self._load_q_forecast = 1.0 * load_q_forecast
+                self._prod_p_forecast = 1.0 * prod_p_forecast
+
+                if prod_v_forecast is not None:
+                    self._prod_v_forecast = 1.0 * prod_v_forecast
+
+                self._validate_multi_forecasts()
+            else:
+                raise ChronicsError(
+                    "Forecast arrays must have shape (T, N) or (T, H, N)."
+                )
+
         elif load_q_forecast is not None:
             raise ChronicsError(
                 "if load_q_forecast is not None, then load_p_forecast should not be None"
@@ -232,6 +267,94 @@ class FromNPY(GridValue):
         
         self._init_state = init_state
         self._max_iter = min(self._i_end - self._i_start, load_p.shape[0])
+
+    @staticmethod
+    def _format_multi_forecast_array(
+        arr: Optional[np.ndarray],
+    ) -> Optional[np.ndarray]:
+        if arr is None:
+            return None
+
+        if arr.ndim == 2:
+            return 1.0 * arr[:, np.newaxis, :]
+
+        if arr.ndim == 3:
+            return 1.0 * arr
+
+        raise ChronicsError(
+            "Forecast arrays must have shape (T, N) or (T, H, N)."
+        )
+
+    def _validate_multi_forecasts(self) -> None:
+        if self._load_p_forecast is None:
+            raise ChronicsError(
+                "load_p_forecast must be provided for multi-horizon forecasts."
+            )
+
+        if self._load_q_forecast is None:
+            raise ChronicsError(
+                "If you provide load_p_forecast you should provide load_q_forecast."
+            )
+
+        if self._prod_p_forecast is None:
+            raise ChronicsError(
+                "If you provide load_p_forecast you should provide prod_p_forecast."
+            )
+
+        expected_t = self._load_p.shape[0]
+        expected_h = self._load_p_forecast.shape[1]
+
+        arrays = (
+            ("load_p_forecast", self._load_p_forecast, self.n_load),
+            ("load_q_forecast", self._load_q_forecast, self.n_load),
+            ("prod_p_forecast", self._prod_p_forecast, self.n_gen),
+        )
+
+        for name, arr, expected_n in arrays:
+            if arr.ndim != 3:
+                raise ChronicsError(
+                    "All multi-horizon forecast arrays must have shape (T, H, N)."
+                )
+
+            if arr.shape[0] != expected_t:
+                raise ChronicsError(
+                    f"{name} must have the same number of timesteps as the chronics."
+                )
+
+            if arr.shape[1] != expected_h:
+                raise ChronicsError(
+                    "All forecast arrays must have the same number of horizons."
+                )
+
+            if arr.shape[2] != expected_n:
+                raise ChronicsError(
+                    f"{name} has an invalid number of columns for this environment."
+                )
+
+        if self._prod_v_forecast is not None:
+            arr = self._prod_v_forecast
+
+            if arr.ndim != 3:
+                raise ChronicsError(
+                    "All multi-horizon forecast arrays must have shape (T, H, N)."
+                )
+
+            if arr.shape[0] != expected_t:
+                raise ChronicsError(
+                    "prod_v_forecast must have the same number of timesteps as the chronics."
+                )
+
+            if arr.shape[1] != expected_h:
+                raise ChronicsError(
+                    "All forecast arrays must have the same number of horizons."
+                )
+
+            if arr.shape[2] != self.n_gen:
+                raise ChronicsError(
+                    "prod_v_forecast has an invalid number of columns for this environment."
+                )
+
+        self.n_forecast_horizons = expected_h
 
     def initialize(
         self,
@@ -287,6 +410,17 @@ class FromNPY(GridValue):
 
         if self._forecasts:
             self._forecasts._get_long_hash(hash_)
+
+        if self._multi_forecasts:
+            for arr in (
+                self._load_p_forecast,
+                self._load_q_forecast,
+                self._prod_p_forecast,
+                self._prod_v_forecast,
+            ):
+                if arr is not None:
+                    hash_.update(arr.tobytes())
+
         return hash_.digest()
 
     def get_id(self) -> str:
@@ -421,6 +555,9 @@ class FromNPY(GridValue):
                     raise ChronicsError("self._prod_v.shape[0] != self._forecasts._prod_v.shape[0]")
             self._forecasts.check_validity(backend=backend)
 
+        if self._multi_forecasts:
+            self._validate_multi_forecasts()
+
     def next_chronics(self):
         # restart the chronics: read it again !
         self.current_datetime = self.start_datetime
@@ -449,9 +586,45 @@ class FromNPY(GridValue):
         else:
             self._i_end = self.__new_iend
 
-        if self._forecasts is not None:
-            # update the forecast
+        if self.__switch_to_multi_forecasts:
+            self._forecasts = None
+            self._multi_forecasts = True
+
+            self._load_p_forecast = self.__new_load_p_forecast
+            self._load_q_forecast = self.__new_load_q_forecast
+            self._prod_p_forecast = self.__new_prod_p_forecast
+            self._prod_v_forecast = self.__new_prod_v_forecast
+
+            self.__new_load_p_forecast = None
+            self.__new_load_q_forecast = None
+            self.__new_prod_p_forecast = None
+            self.__new_prod_v_forecast = None
+            self.__switch_to_multi_forecasts = False
+
+            self._validate_multi_forecasts()
+
+        elif self._multi_forecasts:
+            if self.__new_load_p_forecast is not None:
+                self._load_p_forecast = self.__new_load_p_forecast
+                self.__new_load_p_forecast = None
+
+            if self.__new_load_q_forecast is not None:
+                self._load_q_forecast = self.__new_load_q_forecast
+                self.__new_load_q_forecast = None
+
+            if self.__new_prod_p_forecast is not None:
+                self._prod_p_forecast = self.__new_prod_p_forecast
+                self.__new_prod_p_forecast = None
+
+            if self.__new_prod_v_forecast is not None:
+                self._prod_v_forecast = self.__new_prod_v_forecast
+                self.__new_prod_v_forecast = None
+
+            self._validate_multi_forecasts()
+
+        elif self._forecasts is not None:
             self._forecasts.next_chronics()
+
         self.check_validity(backend=None)
         self._max_iter = self._i_end - self._i_start
 
@@ -488,16 +661,59 @@ class FromNPY(GridValue):
 
     def forecasts(self):
         """
-        By default, forecasts are only made 1 step ahead.
+        Return forecasts available from the current timestep.
 
-        We could change that. Do not hesitate to make a feature request
-        (https://github.com/Grid2Op/grid2op/issues/new?assignees=&labels=enhancement&template=feature_request.md&title=) if that is necessary for you.
+        Existing two-dimensional forecast arrays keep the historical
+        one-step-ahead behaviour. Three-dimensional arrays use the shape
+        ``(T, H, N)`` and return one entry per horizon.
         """
+        if self._multi_forecasts:
+            if (
+                self.current_index < 0
+                or self.current_index >= self._load_p_forecast.shape[0]
+            ):
+                return []
+
+            results = []
+
+            for h in range(self.n_forecast_horizons):
+                dict_ = {
+                    "load_p": 1.0
+                    * self._load_p_forecast[self.current_index, h, :],
+                    "load_q": 1.0
+                    * self._load_q_forecast[self.current_index, h, :],
+                    "prod_p": 1.0
+                    * self._prod_p_forecast[self.current_index, h, :],
+                }
+
+                if self._prod_v_forecast is not None:
+                    dict_["prod_v"] = (
+                        1.0
+                        * self._prod_v_forecast[self.current_index, h, :]
+                    )
+
+                results.append(
+                    (
+                        self.current_datetime
+                        + (h + 1) * self.time_interval,
+                        {"injection": dict_},
+                    )
+                )
+
+            return results
+
         if self._forecasts is None:
             return []
+
         self._forecasts.current_index = self.current_index - 1
         dt, dict_, *rest = self._forecasts.load_next()
-        return [(self.current_datetime + self.time_interval, dict_)]
+
+        return [
+            (
+                self.current_datetime + self.time_interval,
+                dict_,
+            )
+        ]
 
     def change_chronics(
         self,
@@ -623,10 +839,47 @@ class FromNPY(GridValue):
             obs = env.reset()  # now has some effect !
             sim_o, *_ = obs.simulate()  # sim_o.load_p has the values of new_load_p_forecast[0]
         """
+        requested_multi = (
+            (new_load_p is not None and new_load_p.ndim == 3)
+            or (new_load_q is not None and new_load_q.ndim == 3)
+            or (new_prod_p is not None and new_prod_p.ndim == 3)
+            or (new_prod_v is not None and new_prod_v.ndim == 3)
+        )
+
+        if self._multi_forecasts or requested_multi:
+            if (
+                new_load_p is None
+                or new_load_q is None
+                or new_prod_p is None
+            ):
+                raise ChronicsError(
+                    "load_p, load_q and prod_p forecasts must all be "
+                    "provided when switching to multi-horizon forecasts."
+                )
+
+            self.__new_load_p_forecast = (
+                self._format_multi_forecast_array(new_load_p)
+            )
+            self.__new_load_q_forecast = (
+                self._format_multi_forecast_array(new_load_q)
+            )
+            self.__new_prod_p_forecast = (
+                self._format_multi_forecast_array(new_prod_p)
+            )
+            self.__new_prod_v_forecast = (
+                self._format_multi_forecast_array(new_prod_v)
+            )
+
+            if requested_multi and not self._multi_forecasts:
+                self.__switch_to_multi_forecasts = True
+
+            return
+
         if self._forecasts is None:
             raise ChronicsError(
                 "You cannot change the forecast for this chronics are there are no forecasts enabled"
             )
+
         self._forecasts.change_chronics(
             new_load_p=new_load_p,
             new_load_q=new_load_q,

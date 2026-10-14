@@ -175,7 +175,7 @@ class IdToAct(Converter):
             # add the do nothing action, always
             self.all_actions.append(super().__call__())
             tmp_act_cls = type(self._template_act)
-            if "_set_line_status" in tmp_act_cls.attr_list_vect:
+            if "set_line_status" in tmp_act_cls.authorized_keys:
                 # lines 'set'
                 include_ = True
                 if "set_line_status" in kwargs:
@@ -183,7 +183,7 @@ class IdToAct(Converter):
                 if include_:
                     self.all_actions += self.get_all_unitary_line_set(self)
 
-            if "_switch_line_status" in tmp_act_cls.attr_list_vect:
+            if "change_line_status" in tmp_act_cls.authorized_keys:
                 # lines 'change'
                 include_ = True
                 if "change_line_status" in kwargs:
@@ -191,15 +191,15 @@ class IdToAct(Converter):
                 if include_:
                     self.all_actions += self.get_all_unitary_line_change(self)
 
-            if "_set_topo_vect" in tmp_act_cls.attr_list_vect:
+            if "set_bus" in tmp_act_cls.authorized_keys:
                 # topologies 'set'
                 include_ = True
                 if "set_topo_vect" in kwargs:
                     include_ = kwargs["set_topo_vect"]
                 if include_:
                     self.all_actions += self.get_all_unitary_topologies_set(self)
-
-            if "_change_bus_vect" in tmp_act_cls.attr_list_vect:
+                    
+            if "change_bus" in tmp_act_cls.authorized_keys:
                 # topologies 'change'
                 include_ = True
                 if "change_bus_vect" in kwargs:
@@ -207,7 +207,7 @@ class IdToAct(Converter):
                 if include_:
                     self.all_actions += self.get_all_unitary_topologies_change(self)
 
-            if "_redispatch" in tmp_act_cls.attr_list_vect:
+            if "redispatch" in tmp_act_cls.authorized_keys:
                 # redispatch (transformed to discrete variables)
                 include_ = True
                 if "redispatch" in kwargs:
@@ -215,7 +215,7 @@ class IdToAct(Converter):
                 if include_:
                     self.all_actions += self.get_all_unitary_redispatch(self)
 
-            if "_curtail" in tmp_act_cls.attr_list_vect:
+            if "curtail" in tmp_act_cls.authorized_keys:
                 # redispatch (transformed to discrete variables)
                 include_ = True
                 if "curtail" in kwargs:
@@ -223,7 +223,7 @@ class IdToAct(Converter):
                 if include_:
                     self.all_actions += self.get_all_unitary_curtail(self)
 
-            if "_storage_power" in tmp_act_cls.attr_list_vect:
+            if "set_storage" in tmp_act_cls.authorized_keys:
                 # redispatch (transformed to discrete variables)
                 include_ = True
                 if "storage" in kwargs:

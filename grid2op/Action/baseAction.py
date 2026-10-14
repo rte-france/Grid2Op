@@ -1259,8 +1259,8 @@ class BaseAction(GridObjects):
         
         if "change_bus" in cls.authorized_keys:
             cls.authorized_keys.remove("change_bus")
-        if "_private_change_bus_vect" in cls.attr_list_vect:
-            cls.attr_list_vect.remove("_private_change_bus_vect")
+        if "_change_bus_vect" in cls.attr_list_vect:
+            cls.attr_list_vect.remove("_change_bus_vect")
                 
     @classmethod
     def process_grid2op_compat(cls):

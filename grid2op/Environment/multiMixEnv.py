@@ -84,7 +84,7 @@ class MultiMixEnvironment(GridObjects, RandomObject):
     You might think the MultiMixEnvironment as a dictionary of :class:`Environment` that implements
     some of the :class:`BaseEnv` interface such as :func:`BaseEnv.step` or :func:`BaseEnv.reset`.
 
-    By default, each time you call the "step" function a different mix is used. Mixes, by default
+    By default, each time you call the "reset" function a different mix is used. Mixes, by default
     are looped through always in the same order. You can see the Examples section for information
     about control of these
 

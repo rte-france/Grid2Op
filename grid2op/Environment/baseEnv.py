@@ -11,6 +11,7 @@ from datetime import datetime
 import logging
 import time
 import copy
+import dataclasses
 import os
 import json
 from typing import List, Optional, Tuple, Union, Literal, Dict, Type
@@ -19,7 +20,6 @@ import sys
 
 import warnings
 import numpy as np
-from scipy.optimize import (minimize, LinearConstraint)
 from abc import ABC, abstractmethod
 
 from grid2op._glop_platform_info import _IS_WINDOWS
@@ -59,26 +59,19 @@ from grid2op.Chronics import ChronicsHandler
 from grid2op.Rules import AlwaysLegal, BaseRules
 from grid2op.typing_variables import STEP_INFO_TYPING, RESET_OPTIONS_TYPING
 from grid2op.VoltageControler import ControlVoltageFromFile
-
-# TODO put in a separate class the redispatching function
-
-DETAILED_REDISP_ERR_MSG = (
-    "\nThis is an attempt to explain why the dispatch did not succeed and caused a game over.\n"
-    "To compensate the {increase} of loads and / or {decrease} of "
-    "renewable energy (due to naturl causes but also through curtailment) and / or variation in the storage units, "
-    "the generators should {increase} their total production of {sum_move:.2f}MW (in total).\n"
-    "But, if you take into account the generator constraints ({pmax} and {max_ramp_up}) you "
-    "can have at most {avail_up_sum:.2f}MW.\n"
-    "Indeed at time t, generators are in state:\n\t{gen_setpoint}\ntheir ramp max is:"
-    "\n\t{ramp_up}\n and pmax is:\n\t{gen_pmax}\n"
-    "Wrapping up, each generator can {increase} at {maximum} of:\n\t{avail_up}\n"
-    "NB: if you did not do any dispatch during this episode, it would have been possible to "
-    "meet these constraints. This situation is caused by not having enough degree of freedom "
-    'to "compensate" the variation of the load due to (most likely) an "over usage" of '
-    "redispatching feature (some generators stuck at {pmax} as a consequence of your "
-    "redispatching. They can't increase their productions to meet the {increase} in demand or "
-    "{decrease} of renewables)"
+from grid2op.Environment.dispatch import (
+    BaseRedispatchSolver,
+    CurtailmentModule,
+    DefaultRedispatchSolver,
+    DetachmentModule,
+    FeasibilityGuard,
+    RedispatchConstraints,
+    RedispatchResult,
+    RedispatchState,
+    StorageModule,
+    dispatch_contributions,
 )
+from grid2op.Environment.dispatch.baseRedispatchSolver import DETAILED_REDISP_ERR_MSG  # noqa: F401  (kept importable from here)
 
 
 BASE_TXT_COPYRIGHT = """# Copyright (c) 2019-2025, RTE (https://www.rte-france.com)
@@ -374,6 +367,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         _local_dir_cls=None,
         _read_from_local_dir=None,
         _raw_backend_class=None,
+        redispatch_solver: Optional[Union[BaseRedispatchSolver, Type[BaseRedispatchSolver]]] = None,
     ):
         #: flag to indicate not to erase the directory when the env has been used
         self._do_not_erase_local_dir_cls = False
@@ -493,15 +487,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self._hazard_duration: np.ndarray = None
 
         self._env_dc = self._parameters.ENV_DC
-
-        # redispatching data
-        self._target_dispatch: np.ndarray = None
-        self._already_modified_gen: np.ndarray = None
-        self._actual_dispatch: np.ndarray = None
-        self._gen_uptime: np.ndarray = None
-        self._gen_downtime: np.ndarray = None
-        self._gen_activeprod_t: np.ndarray = None
-        self._gen_activeprod_t_redisp: np.ndarray = None
+        # redispatching, storage units, curtailment and detachment data (the
+        # attributes `self._target_dispatch`, `self._storage_power`... read it)
+        self._dispatch_state = RedispatchState()
 
         self._thermal_limit_a: np.ndarray = thermal_limit_a
         self._disc_lines: np.ndarray = None
@@ -592,26 +580,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self.__new_forecast_param = None
         self.__new_reward_func = None
 
-        # storage units
         # TODO storage: what to do when self.storage_Emin >0. and self.storage_loss > 0.
         # TODO and we have self._storage_current_charge - self.storage_loss < self.storage_Emin
-        self._storage_current_charge = None  # the current storage charge
-        self._storage_previous_charge = None  # the previous storage charge
-        self._action_storage = None  # the storage action performed
-        self._amount_storage = None  # total amount of storage to be dispatched
-        self._amount_storage_prev = None
-        self._storage_power = None
-        self._storage_power_prev = None
-
-        # curtailment
-        self._limit_curtailment = None
-        self._limit_curtailment_prev = None
-        self._gen_before_curtailment = None
-        self._sum_curtailment_mw = None
-        self._sum_curtailment_mw_prev = None
-        self._detached_elements_mw = None
-        self._detached_elements_mw_prev = None
-        self._limited_before = 0.0  # TODO curt
 
         # attention budget
         self._has_attention_budget = has_attention_budget
@@ -658,6 +628,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             self._highres_sim_counter = HighResSimCounter()
             
         self._update_obs_after_reward = update_obs_after_reward
+        self._init_dispatch_modules(redispatch_solver)
         
         # alert
         self._last_alert = None
@@ -696,7 +667,37 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         
         # 1.12.1
         self._needs_active_bus = False
-        
+
+    def _init_dispatch_modules(
+        self,
+        redispatch_solver: Optional[Union[BaseRedispatchSolver, Type[BaseRedispatchSolver]]],
+    ) -> None:
+        self._storage_module = StorageModule(self)
+        self._curtailment_module = CurtailmentModule(self)
+        self._detachment_module = DetachmentModule(self)
+        self._feasibility_guard = FeasibilityGuard(self)
+        if redispatch_solver is None:
+            solver = DefaultRedispatchSolver().bind(self)
+        elif isinstance(redispatch_solver, type) and issubclass(redispatch_solver, BaseRedispatchSolver):
+            solver = redispatch_solver().bind(self)
+        elif isinstance(redispatch_solver, BaseRedispatchSolver):
+            # the same instance can be given to different environments (or reused
+            # by "make" for the environment that generates the classes)
+            solver = redispatch_solver.copy_for_env(self)
+        else:
+            raise EnvError("The redispatch solver should be an instance or a subclass of "
+                           f"BaseRedispatchSolver, found {redispatch_solver}")
+        self._redispatch_solver = solver
+
+    def get_redispatch_solver_for_kwargs(self) -> BaseRedispatchSolver:
+        """
+        .. warning:: /!\\\\ Internal, do not use unless you know what you are doing /!\\\\
+
+        Copy of the redispatch solver, not bound to any environment, used to build
+        other environments (runner, forecast environment, multi processing...)
+        """
+        return self._redispatch_solver.copy_for_env(None)
+
     @property
     def highres_sim_counter(self) -> int:
         return self._highres_sim_counter
@@ -718,6 +719,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             
         RandomObject._custom_deepcopy_for_copy(self, new_obj)
         new_obj.name = self.name
+        new_obj._dispatch_state = self._dispatch_state.copy()
+        # needed before the observation space is copied (it reads the solver)
+        new_obj._init_dispatch_modules(self._redispatch_solver)
         if dict_ is None:
             dict_ = {}
         new_obj._n_busbar = self._n_busbar
@@ -820,13 +824,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         new_obj._env_dc = self._env_dc
 
         # redispatching data
-        new_obj._target_dispatch = copy.deepcopy(self._target_dispatch)
-        new_obj._already_modified_gen = copy.deepcopy(self._already_modified_gen)
-        new_obj._actual_dispatch = copy.deepcopy(self._actual_dispatch)
-        new_obj._gen_uptime = copy.deepcopy(self._gen_uptime)
-        new_obj._gen_downtime = copy.deepcopy(self._gen_downtime)
-        new_obj._gen_activeprod_t = copy.deepcopy(self._gen_activeprod_t)
-        new_obj._gen_activeprod_t_redisp = copy.deepcopy(self._gen_activeprod_t_redisp)
 
         new_obj._disc_lines = copy.deepcopy(self._disc_lines)
 
@@ -938,25 +935,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         new_obj.__new_param = copy.deepcopy(self.__new_param)
         new_obj.__new_forecast_param = copy.deepcopy(self.__new_forecast_param)
         new_obj.__new_reward_func = copy.deepcopy(self.__new_reward_func)
-
-        # storage units
-        new_obj._storage_current_charge = copy.deepcopy(self._storage_current_charge)
-        new_obj._storage_previous_charge = copy.deepcopy(self._storage_previous_charge)
-        new_obj._action_storage = copy.deepcopy(self._action_storage)
-        new_obj._amount_storage = copy.deepcopy(self._amount_storage)
-        new_obj._amount_storage_prev = copy.deepcopy(self._amount_storage_prev)
-        new_obj._storage_power = copy.deepcopy(self._storage_power)
-        new_obj._storage_power_prev = copy.deepcopy(self._storage_power_prev)
-
-        # curtailment
-        new_obj._limit_curtailment = copy.deepcopy(self._limit_curtailment)
-        new_obj._limit_curtailment_prev = copy.deepcopy(self._limit_curtailment_prev)
-        new_obj._gen_before_curtailment = copy.deepcopy(self._gen_before_curtailment)
-        new_obj._sum_curtailment_mw = copy.deepcopy(self._sum_curtailment_mw)
-        new_obj._sum_curtailment_mw_prev = copy.deepcopy(self._sum_curtailment_mw_prev)
-        new_obj._detached_elements_mw = copy.deepcopy(self._detached_elements_mw)
-        new_obj._detached_elements_mw_prev = copy.deepcopy(self._detached_elements_mw_prev)
-        new_obj._limited_before = copy.deepcopy(self._limited_before)
 
         # attention budget
         new_obj._attention_budget = copy.deepcopy(self._attention_budget)
@@ -1421,14 +1399,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             shape=(bk_type.n_line,), fill_value=0, dtype=dt_int
         )
 
-        # create the vector to the proper shape
-        self._target_dispatch = np.zeros(bk_type.n_gen, dtype=dt_float)
-        self._already_modified_gen = np.zeros(bk_type.n_gen, dtype=dt_bool)
-        self._actual_dispatch = np.zeros(bk_type.n_gen, dtype=dt_float)
-        self._gen_uptime = np.zeros(bk_type.n_gen, dtype=dt_int)
-        self._gen_downtime = np.zeros(bk_type.n_gen, dtype=dt_int)
-        self._gen_activeprod_t = np.zeros(bk_type.n_gen, dtype=dt_float)
-        self._gen_activeprod_t_redisp = np.zeros(bk_type.n_gen, dtype=dt_float)
+        self._dispatch_state = RedispatchState.allocate(bk_type.n_gen, bk_type.n_storage, bk_type.n_load)
         self._max_timestep_line_status_deactivated = (
             self._parameters.NB_TIMESTEP_COOLDOWN_LINE
         )
@@ -1458,27 +1429,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         self._reset_redispatching()
 
-        # storage
-        self._storage_current_charge = np.zeros(bk_type.n_storage, dtype=dt_float)
-        self._storage_previous_charge = np.zeros(bk_type.n_storage, dtype=dt_float)
-        self._action_storage = np.zeros(bk_type.n_storage, dtype=dt_float)
-        self._storage_power = np.zeros(bk_type.n_storage, dtype=dt_float)
-        self._storage_power_prev = np.zeros(bk_type.n_storage, dtype=dt_float)
-        self._amount_storage = 0.0
-        self._amount_storage_prev = 0.0
-
-        # curtailment
-        self._limit_curtailment = np.ones(
-            bk_type.n_gen, dtype=dt_float
-        )  # in ratio of pmax
-        self._limit_curtailment_prev = np.ones(
-            bk_type.n_gen, dtype=dt_float
-        )  # in ratio of pmax
-        self._gen_before_curtailment = np.zeros(bk_type.n_gen, dtype=dt_float)  # in MW
-        self._sum_curtailment_mw = dt_float(0.0)
-        self._sum_curtailment_mw_prev = dt_float(0.0)
-        self._detached_elements_mw = dt_float(0.0)
-        self._detached_elements_mw_prev = dt_float(0.0)
         self._reset_curtailment()
 
         # register this is properly initialized
@@ -1671,8 +1621,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         
         self._delta_gen_p[:] = 0.
         
-        self._detached_elements_mw = 0.
-        self._detached_elements_mw_prev = 0.
+        self._dispatch_state.reset("detachment")
         
     def _reset_alert(self):
         self._last_alert[:] = False
@@ -1686,27 +1635,10 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         
     def _reset_storage(self):
         """reset storage capacity at the beginning of new environment if needed"""
-        if self.n_storage > 0:
-            tmp = self._parameters.INIT_STORAGE_CAPACITY * self.storage_Emax
-            if self._parameters.ACTIVATE_STORAGE_LOSS:
-                tmp += self.storage_loss * self.delta_time_seconds / 3600.0
-            self._storage_previous_charge[
-                :
-            ] = tmp  # might not be needed, but it's not for the time it takes...
-            self._storage_current_charge[:] = tmp
-            self._storage_power[:] = 0.0
-            self._storage_power_prev[:] = 0.0
-            self._amount_storage = 0.0
-            self._amount_storage_prev = 0.0
-            # TODO storage: check in simulate too!
+        self._storage_module.reset(self._dispatch_state)
 
     def _reset_curtailment(self):
-        self._limit_curtailment[self.gen_renewable] = 1.0
-        self._limit_curtailment_prev[self.gen_renewable] = 1.0
-        self._gen_before_curtailment[:] = 0.0
-        self._sum_curtailment_mw = dt_float(0.0)
-        self._sum_curtailment_mw_prev = dt_float(0.0)
-        self._limited_before = dt_float(0.0)
+        self._curtailment_module.reset(self._dispatch_state)
 
     def seed(self, seed=None, _seed_me=True):
         """
@@ -2058,22 +1990,9 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         self.observation_space.set_thermal_limit(self._thermal_limit_a)
 
     def _reset_redispatching(self):
-        # redispatching
-        self._target_dispatch[:] = 0.0
-        self._already_modified_gen[:] = False
-        self._actual_dispatch[:] = 0.0
-        self._gen_uptime[:] = 0
-        self._gen_downtime[:] = 0
-        self._gen_activeprod_t[:] = 0.0
-        self._gen_activeprod_t_redisp[:] = 0.0
+        self._dispatch_state.reset("redispatch")
+        self._redispatch_solver.reset()
 
-    def _feed_data_for_detachment(self, new_p_th):
-        """feed the attribute for the detachment"""
-        
-        self._prev_gen_p[:] = new_p_th
-        self._aux_retrieve_modif_act(self._prev_load_p, self._env_modification, "load_p")
-        self._aux_retrieve_modif_act(self._prev_load_q, self._env_modification, "load_q")
-        
     def _aux_retrieve_modif_act(self,
                                 input_ : np.ndarray,
                                 act: BaseAction, 
@@ -2097,6 +2016,23 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         # TODO have a flag there if this is the case.
         self._aux_retrieve_modif_act(new_p, self._env_modification, "prod_p")
         return new_p
+
+    def _get_new_load_setpoint(self, action: BaseAction) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Active and reactive consumption of the loads for this step, as given by the time series:
+        the values of the previous step, overridden by the modification of the environment.
+
+        The injections of the agent (`action`) are not taken into account: the power of the
+        detached loads is the one of the time series.
+
+        NB this is overidden in _ObsEnv where the data are read from the action to set this environment
+        instead
+        """
+        new_load_p = 1.0 * self._prev_load_p
+        new_load_q = 1.0 * self._prev_load_q
+        self._aux_retrieve_modif_act(new_load_p, self._env_modification, "load_p")
+        self._aux_retrieve_modif_act(new_load_q, self._env_modification, "load_q")
+        return new_load_p, new_load_q
 
     def _get_already_modified_gen(self, action: BaseAction):
         if not action._modif_redispatch:
@@ -2197,321 +2133,30 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         
         mismatch = self._actual_dispatch - self._target_dispatch
         mismatch = np.abs(mismatch)
+        contributions = dispatch_contributions(self._dispatch_state)
         if (
             np.abs((self._actual_dispatch).sum()) >= self._tol_poly
             or np.max(mismatch) >= self._tol_poly
-            or np.abs(self._amount_storage) >= self._tol_poly
-            or np.abs(self._sum_curtailment_mw) >= self._tol_poly
-            or np.abs(self._detached_elements_mw) >= self._tol_poly
+            or any(abs(val) >= self._tol_poly for val in contributions.values())
         ):
-            except_ = self._compute_dispatch_vect(already_modified_gen, new_p)
-            valid = except_ is None
+            # handle the case where there are storage or redispatching
+            # action or curtailment action on the "init state"
+            # of the grid
+            if self.nb_time_step == 0:
+                self._gen_activeprod_t_redisp[:] = new_p
+            constraints = RedispatchConstraints.from_state(new_p, self._dispatch_state, self)
+            result = self._redispatch_solver.solve(constraints, self._dispatch_state)
+            if not isinstance(result, RedispatchResult):
+                raise EnvError(f"The redispatch solver {type(self._redispatch_solver).__name__} "
+                               f"should return a RedispatchResult, found {result}")
+            valid = result.success
+            if valid:
+                self._actual_dispatch[:] = result.actual_dispatch
+            else:
+                except_ = result.exception
+                if except_ is None:
+                    except_ = ImpossibleRedispatching("The redispatch solver did not find any dispatch")
         return valid, except_
-
-    def _compute_dispatch_vect(self, already_modified_gen, new_p):        
-        except_ = None
-        cls = type(self)
-        this_dt_float = float  # to be compliant with scipy 1.16 (removes np.float32)
-        # handle the case where there are storage or redispatching
-        # action or curtailment action on the "init state"
-        # of the grid
-        if self.nb_time_step == 0:
-            self._gen_activeprod_t_redisp[:] = new_p
-            
-        # first i define the participating generators
-        # these are the generators that will be adjusted for redispatching
-        gen_participating = (
-            (new_p > 0.0)
-            | (np.abs(self._actual_dispatch) >= 1e-7)
-            | (self._target_dispatch != self._actual_dispatch)
-        )
-        gen_participating[~cls.gen_redispatchable] = False
-        if cls.detachment_is_allowed:
-            gen_participating[self._backend_action.get_gen_detached()] = False
-        incr_in_chronics = new_p - (
-            self._gen_activeprod_t_redisp - self._actual_dispatch
-        )
-
-        # check if the constraints are violated
-        ## total available "juice" to go down (incl ramp and pmin / pmax)
-        p_min_down = (
-            cls.gen_pmin[gen_participating]
-            - self._gen_activeprod_t_redisp[gen_participating]
-        )
-        avail_down = np.maximum(p_min_down, -cls.gen_max_ramp_down[gen_participating])
-        ## total available "juice" to go up (incl. ramp and pmin / pmax)
-        p_max_up = (
-            cls.gen_pmax[gen_participating]
-            - self._gen_activeprod_t_redisp[gen_participating]
-        )
-        avail_up = np.minimum(p_max_up, cls.gen_max_ramp_up[gen_participating])
-        except_ = self._detect_infeasible_dispatch(
-            incr_in_chronics[gen_participating], avail_down, avail_up
-        )
-        if except_ is not None:
-            # try to force the turn on of turned off generators (if parameters allow it)
-            if (
-                self._parameters.IGNORE_MIN_UP_DOWN_TIME
-                and self._parameters.ALLOW_DISPATCH_GEN_SWITCH_OFF
-            ):
-                gen_participating_tmp = self.gen_redispatchable
-                if cls.detachment_is_allowed:
-                    gen_participating_tmp[self._backend_action.get_gen_detached()] = False
-                p_min_down_tmp = (
-                    cls.gen_pmin[gen_participating_tmp]
-                    - self._gen_activeprod_t_redisp[gen_participating_tmp]
-                )
-                avail_down_tmp = np.maximum(
-                    p_min_down_tmp, -cls.gen_max_ramp_down[gen_participating_tmp]
-                )
-                p_max_up_tmp = (
-                    cls.gen_pmax[gen_participating_tmp]
-                    - self._gen_activeprod_t_redisp[gen_participating_tmp]
-                )
-                avail_up_tmp = np.minimum(
-                    p_max_up_tmp, cls.gen_max_ramp_up[gen_participating_tmp]
-                )
-                except_tmp = self._detect_infeasible_dispatch(
-                    incr_in_chronics[gen_participating_tmp],
-                    avail_down_tmp,
-                    avail_up_tmp,
-                )
-                if except_tmp is None:
-                    # I can "save" the situation by turning on all generators, I do it
-                    # TODO logger here
-                    gen_participating = gen_participating_tmp
-                    except_ = None
-                else:
-                    return except_tmp
-            else:
-                return except_
-
-        # define the objective value
-        target_vals = (
-            self._target_dispatch[gen_participating]
-            - self._actual_dispatch[gen_participating]
-        )
-        
-        already_modified_gen_me = already_modified_gen[gen_participating]
-        target_vals_me = target_vals[already_modified_gen_me]
-        nb_dispatchable = gen_participating.sum()
-        tmp_zeros = np.zeros((1, nb_dispatchable), dtype=this_dt_float)
-        coeffs = 1.0 / (
-            self.gen_max_ramp_up + self.gen_max_ramp_down + self._epsilon_poly
-        )
-        weights = np.ones(nb_dispatchable) * coeffs[gen_participating]
-        weights /= weights.sum()
-
-        if target_vals_me.shape[0] == 0:
-            # no dispatch means all dispatchable, otherwise i will never get to 0
-            already_modified_gen_me[:] = True
-            target_vals_me = target_vals[already_modified_gen_me]
-
-        # for numeric stability
-        # to scale the input also:
-        # see https://stackoverflow.com/questions/11155721/positive-directional-derivative-for-linesearch
-        scale_x = max(np.max(np.abs(self._actual_dispatch)), 1.0)
-        scale_x = this_dt_float(scale_x)
-        target_vals_me_optim = 1.0 * (target_vals_me / scale_x)
-        target_vals_me_optim = target_vals_me_optim.astype(this_dt_float)
-
-        # see https://stackoverflow.com/questions/11155721/positive-directional-derivative-for-linesearch
-        # where they advised to scale the function
-        scale_objective = max(0.5 * np.abs(target_vals_me_optim).sum() ** 2, 1.0)
-        scale_objective = np.round(scale_objective, decimals=4)
-        scale_objective = this_dt_float(scale_objective)
-
-        # add the "sum to 0"
-        mat_sum_0_no_turn_on = np.ones((1, nb_dispatchable), dtype=this_dt_float)
-        # this is where the storage is taken into account
-        # storages are "load convention" this means that i need to sum the amount of production to sum of storage
-        # hence the "+ self._amount_storage" below
-        # self._sum_curtailment_mw is "generator convention" hence the "-" there
-        const_sum_0_no_turn_on = (
-            np.zeros(1, dtype=this_dt_float)
-            + self._amount_storage
-            - self._sum_curtailment_mw
-            + self._detached_elements_mw
-        )
-        
-        # gen increase in the chronics
-        new_p_th = new_p[gen_participating] + self._actual_dispatch[gen_participating]
-
-        # minimum value available for disp
-        ## first limit delta because of pmin
-        p_min_const = self.gen_pmin[gen_participating] - new_p_th
-        ## second limit delta because of ramps
-        ramp_down_const = (
-            -self.gen_max_ramp_down[gen_participating]
-            - incr_in_chronics[gen_participating]
-        )
-        ## take max of the 2
-        min_disp = np.maximum(p_min_const, ramp_down_const)
-        min_disp = min_disp.astype(this_dt_float)
-
-        # maximum value available for disp
-        ## first limit delta because of pmin
-        p_max_const = self.gen_pmax[gen_participating] - new_p_th
-        ## second limit delta because of ramps
-        ramp_up_const = (
-            self.gen_max_ramp_up[gen_participating]
-            - incr_in_chronics[gen_participating]
-        )
-        ## take min of the 2
-        max_disp = np.minimum(p_max_const, ramp_up_const)
-        max_disp = max_disp.astype(this_dt_float)
-
-        # add everything into a linear constraint object
-        # equality
-        added = 0.5 * self._epsilon_poly
-        equality_const = LinearConstraint(
-            mat_sum_0_no_turn_on,  # do the sum
-            (const_sum_0_no_turn_on) / scale_x,  # lower bound
-            (const_sum_0_no_turn_on) / scale_x,  # upper bound
-        )
-        mat_pmin_max_ramps = np.eye(nb_dispatchable)
-        ineq_const = LinearConstraint(
-            mat_pmin_max_ramps,
-            (min_disp - added) / scale_x,
-            (max_disp + added) / scale_x,
-        )
-
-        # choose a good initial point (close to the solution)
-        # the idea here is to chose a initial point that would be close to the
-        # desired solution (split the (sum of the) dispatch to the available generators)
-        x0 = np.zeros(gen_participating.sum(), dtype=this_dt_float)
-        if (np.abs(self._target_dispatch) >= 1e-7).any() or already_modified_gen.any():
-            gen_for_x0 = np.abs(self._target_dispatch[gen_participating]) >= 1e-7
-            gen_for_x0 |= already_modified_gen[gen_participating]
-            x0[gen_for_x0] = (
-                self._target_dispatch[gen_participating][gen_for_x0]
-                - self._actual_dispatch[gen_participating][gen_for_x0]
-            ) / scale_x
-            # at this point x0 is made of the difference between the target and the
-            # actual dispatch for all generators that have a 
-            # target dispatch non 0.
-            
-            # in this "if" block I set the other component of x0 to 
-            # their "right" value
-            can_adjust = (np.abs(x0) <= 1e-7)
-            if can_adjust.any():
-                init_sum = x0.sum()
-                denom_adjust = (1.0 / weights[can_adjust]).sum()
-                if denom_adjust <= 1e-2:
-                    # i don't want to divide by something too cloose to 0.
-                    denom_adjust = 1.0
-                x0[can_adjust] = -init_sum / (weights[can_adjust] * denom_adjust)
-        else:
-            # to "force" the exact reset to 0.0 for all components
-            x0 -= self._actual_dispatch[gen_participating] / scale_x
-
-        def target(actual_dispatchable):
-            # define my real objective
-            quad_ = (
-                actual_dispatchable[already_modified_gen_me] - target_vals_me_optim
-            ) ** 2
-            coeffs_quads = weights[already_modified_gen_me] * quad_
-            coeffs_quads_const = coeffs_quads.sum()
-            coeffs_quads_const /= scale_objective  # scaling the function
-            return coeffs_quads_const
-
-        def jac(actual_dispatchable):
-            res_jac = 1.0 * tmp_zeros
-            res_jac[0, already_modified_gen_me] = (
-                2.0
-                * weights[already_modified_gen_me]
-                * (actual_dispatchable[already_modified_gen_me] - target_vals_me_optim)
-            )
-            res_jac /= scale_objective  # scaling the function
-            return res_jac.reshape(-1)
-
-        # objective function
-        def f(init):
-            this_res = minimize(
-                target,
-                init,
-                method="SLSQP",
-                constraints=[equality_const, ineq_const],
-                options={
-                    "eps": max(this_dt_float(self._epsilon_poly / scale_x), 1e-6),
-                    "ftol": max(this_dt_float(self._epsilon_poly / scale_x), 1e-6),
-                    "disp": False,
-                },
-                jac=jac
-                # hess=hess  # not used for SLSQP
-            )
-            return this_res
-        res = f(x0)
-        if res.success:
-            self._actual_dispatch[gen_participating] += res.x * scale_x
-        else:
-            # check if constraints are "approximately" met
-            mat_const = np.concatenate((mat_sum_0_no_turn_on, mat_pmin_max_ramps))
-            downs = np.concatenate(
-                (const_sum_0_no_turn_on / scale_x, (min_disp - added) / scale_x)
-            )
-            ups = np.concatenate(
-                (const_sum_0_no_turn_on / scale_x, (max_disp + added) / scale_x)
-            )
-            vals = np.matmul(mat_const, res.x)
-            ok_down = np.all(
-                vals - downs >= -self._tol_poly
-            )  # i don't violate "down" constraints
-            ok_up = np.all(vals - ups <= self._tol_poly)
-            if ok_up and ok_down:
-                # it's ok i can tolerate "small" perturbations
-                self._actual_dispatch[gen_participating] += res.x * scale_x
-            else:
-                # TODO try with another method here, maybe
-                error_dispatch = (
-                    "Redispatching automaton terminated with error (no more information available "
-                    'at this point):\n"{}"'.format(res.message)
-                )
-                except_ = ImpossibleRedispatching(error_dispatch)
-        return except_
-
-    def _detect_infeasible_dispatch(self, incr_in_chronics, avail_down, avail_up):
-        """This function is an attempt to give more detailed log by detecting infeasible dispatch"""
-        except_ = None
-        sum_move = (
-            incr_in_chronics.sum() + self._amount_storage - self._sum_curtailment_mw + self._detached_elements_mw
-        )
-        avail_down_sum = avail_down.sum()
-        avail_up_sum = avail_up.sum()
-        gen_setpoint = self._gen_activeprod_t_redisp[self.gen_redispatchable]
-        if sum_move > avail_up_sum:
-            # infeasible because too much is asked
-            msg = DETAILED_REDISP_ERR_MSG.format(
-                sum_move=sum_move,
-                avail_up_sum=avail_up_sum,
-                gen_setpoint=np.round(gen_setpoint, decimals=2),
-                ramp_up=self.gen_max_ramp_up[self.gen_redispatchable],
-                gen_pmax=self.gen_pmax[self.gen_redispatchable],
-                avail_up=np.round(avail_up, decimals=2),
-                increase="increase",
-                decrease="decrease",
-                maximum="maximum",
-                pmax="pmax",
-                max_ramp_up="max_ramp_up",
-            )
-            except_ = ImpossibleRedispatching(msg)
-        elif sum_move < avail_down_sum:
-            # infeasible because not enough is asked
-            msg = DETAILED_REDISP_ERR_MSG.format(
-                sum_move=sum_move,
-                avail_up_sum=avail_down_sum,
-                gen_setpoint=np.round(gen_setpoint, decimals=2),
-                ramp_up=self.gen_max_ramp_down[self.gen_redispatchable],
-                gen_pmax=self.gen_pmin[self.gen_redispatchable],
-                avail_up=np.round(avail_up, decimals=2),
-                increase="decrease",
-                decrease="increase",
-                maximum="minimum",
-                pmax="pmin",
-                max_ramp_up="max_ramp_down",
-            )
-            except_ = ImpossibleRedispatching(msg)
-        return except_
 
     def _update_actions(self):
         """
@@ -2780,353 +2425,14 @@ class BaseEnv(GridObjects, RandomObject, ABC):
 
         NB this is a loss, this is not seen grid side, so `storage_discharging_efficiency` has no impact on this
         """
-        # NB this should be done AFTER the computation of self._amount_storage, because this energy is dissipated
-        # in the storage units, thus NOT seen as power from the grid.
-        if self._parameters.ACTIVATE_STORAGE_LOSS:
-            tmp_ = self.storage_loss * self.delta_time_seconds / 3600.0
-            self._storage_current_charge -= tmp_
-            # charge cannot be negative, but it can be below Emin if there are some uncompensated losses
-            self._storage_current_charge[:] = np.maximum(
-                self._storage_current_charge, 0.0
-            )
-
-    def _aux_remove_power_too_high(self, delta_, indx_too_high):
-        """
-        delta_ is given in energy (and NOT power)
-
-        handles self._storage_power in
-        case we need to cut the storage action because the power would be too high
-        """
-        coeff_p_to_E = (
-            self.delta_time_seconds / 3600.0
-        )  # TODO optim this is const for all time steps
-        tmp_ = 1.0 / coeff_p_to_E * delta_
-        if self._parameters.ACTIVATE_STORAGE_LOSS:
-            # from the storage i need to reduce of tmp_ MW (to compensate the delta_ MWh)
-            # but when it's "transfer" to the grid i don't have the same amount (due to inefficiencies)
-            # it's a "/" because i need more energy from the grid than what the actual charge will be
-            tmp_ /= self.storage_charging_efficiency[indx_too_high]
-        self._storage_power[indx_too_high] -= tmp_
-
-    def _aux_remove_power_too_low(self, delta_, indx_too_low):
-        """
-        delta_ is given in energy (and NOT power)
-
-        handles self._storage_power in
-        case we need to cut the storage action because the power would be too low
-        """
-        coeff_p_to_E = (
-            self.delta_time_seconds / 3600.0
-        )  # TODO optim this is const for all time steps
-        tmp_ = 1.0 / coeff_p_to_E * delta_
-        if self._parameters.ACTIVATE_STORAGE_LOSS:
-            # from the storage i need to increase of tmp_ MW (to compensate the delta_ MWh)
-            # but when it's "transfer" to the grid i don't have the same amount (due to inefficiencies)
-            # it's a "*" because i have less power on the grid than what is removed from the battery
-            tmp_ *= self.storage_discharging_efficiency[indx_too_low]
-        self._storage_power[indx_too_low] -= tmp_
+        self._storage_module.withdraw_losses(self._dispatch_state)
 
     def _compute_storage(self, action_storage_power):
-        self._storage_previous_charge[:] = self._storage_current_charge
-        storage_act = np.isfinite(action_storage_power) & (np.abs(action_storage_power) >= 1e-7)
-        self._action_storage[:] = 0.0
-        self._storage_power[:] = 0.0
-        modif = False
-        coeff_p_to_E = (
-            self.delta_time_seconds / 3600.0
-        )  # TODO optim this is const for all time steps
-        if storage_act.any():
-            modif = True
-            this_act_stor = action_storage_power[storage_act]
-            eff_ = np.ones(storage_act.sum())
-            if self._parameters.ACTIVATE_STORAGE_LOSS:
-                fill_storage = (
-                    this_act_stor > 0.0
-                )  # index of storages that sees their charge increasing
-                unfill_storage = (
-                    this_act_stor < 0.0
-                )  # index of storages that sees their charge decreasing
-                eff_[fill_storage] *= self.storage_charging_efficiency[storage_act][
-                    fill_storage
-                ]
-                eff_[unfill_storage] /= self.storage_discharging_efficiency[
-                    storage_act
-                ][unfill_storage]
-            self._storage_current_charge[storage_act] += (
-                this_act_stor * coeff_p_to_E * eff_
-            )
-            self._action_storage[storage_act] += action_storage_power[storage_act]
-            self._storage_power[storage_act] = this_act_stor
-
-        if modif:
-            # indx when there is too much energy on the battery
-            indx_too_high = self._storage_current_charge > self.storage_Emax
-            if indx_too_high.any():
-                delta_ = (
-                    self._storage_current_charge[indx_too_high]
-                    - self.storage_Emax[indx_too_high]
-                )
-                self._aux_remove_power_too_high(delta_, indx_too_high)
-                self._storage_current_charge[indx_too_high] = self.storage_Emax[
-                    indx_too_high
-                ]
-
-            # indx when there is not enough energy on the battery
-            indx_too_low = self._storage_current_charge < self.storage_Emin
-            if indx_too_low.any():
-                delta_ = (
-                    self._storage_current_charge[indx_too_low]
-                    - self.storage_Emin[indx_too_low]
-                )
-                self._aux_remove_power_too_low(delta_, indx_too_low)
-                self._storage_current_charge[indx_too_low] = self.storage_Emin[
-                    indx_too_low
-                ]
-
-            self._storage_current_charge[:] = np.maximum(
-                self._storage_current_charge, self.storage_Emin
-            )
-            # storage is "load convention", dispatch is "generator convention"
-            # i need the generator to have the same sign as the action on the batteries
-            self._amount_storage = self._storage_power.sum()
-        else:
-            # battery effect should be removed, so i multiply it by -1.
-            self._amount_storage = 0.0
-
-        tmp = self._amount_storage
-        self._amount_storage -= self._amount_storage_prev
-        self._amount_storage_prev = tmp
-
-        # dissipated energy, it's not seen on the grid, just lost in the storage unit.
-        # this is why it should not be taken into account in self._amount_storage
-        # and NOT absorbed by the generators either
-        # NB loss in the storage unit can make it got below Emin in energy, but never below 0.
-        self._withdraw_storage_losses()
-        # end storage
-
-    def _compute_max_ramp_this_step(self, new_p):
-        """
-        compute the total "power" i can add or remove this step that takes into account
-        generators ramps and Pmin / Pmax
-
-        new_p: array of the (temporary) new production in the chronics that should happen
-        """
-        # TODO
-        # maximum value it can take
-        th_max = np.minimum(
-            self._gen_activeprod_t_redisp[self.gen_redispatchable]
-            + self.gen_max_ramp_up[self.gen_redispatchable],
-            self.gen_pmax[self.gen_redispatchable],
-        )
-        # minimum value it can take
-        th_min = np.maximum(
-            self._gen_activeprod_t_redisp[self.gen_redispatchable]
-            - self.gen_max_ramp_down[self.gen_redispatchable],
-            self.gen_pmin[self.gen_redispatchable],
-        )
-
-        max_total_up = (th_max - new_p[self.gen_redispatchable]).sum()
-        max_total_down = (
-            th_min - new_p[self.gen_redispatchable]
-        ).sum()  # TODO is that it ?
-        return max_total_down, max_total_up
-
-    def _aux_update_curtail_env_act(self, new_p):
-        if "prod_p" in self._env_modification._dict_inj:
-            self._env_modification._dict_inj["prod_p"][:] = new_p
-        else:
-            self._env_modification._dict_inj["prod_p"] = 1.0 * new_p
-            self._env_modification._modif_inj = True
-
-    def _aux_update_curtailment_act(self, action):
-        curtailment_act = 1.0 * action._curtail
-        ind_curtailed_in_act = (curtailment_act != -1.0) & self.gen_renewable
-        self._limit_curtailment_prev[:] = self._limit_curtailment
-        self._limit_curtailment[ind_curtailed_in_act] = curtailment_act[
-            ind_curtailed_in_act
-        ]
-
-    def _aux_compute_new_p_curtailment(self, new_p, curtailment_vect):
-        """modifies the new_p argument !!!!"""
-        gen_curtailed = (
-            np.abs(curtailment_vect - 1.) >= 1e-7
-        )  # curtailed either right now, or in a previous action
-        max_action = self.gen_pmax[gen_curtailed] * curtailment_vect[gen_curtailed]
-        new_p[gen_curtailed] = np.minimum(max_action, new_p[gen_curtailed])
-        return gen_curtailed
+        return self._storage_module.compute(action_storage_power, self._dispatch_state)
 
     def _aux_handle_curtailment_without_limit(self, action, new_p):
         """modifies the new_p argument !!!! (but not the action)"""
-        if self.redispatching_unit_commitment_availble and (
-            action._modif_curtailment or (np.abs(self._limit_curtailment - 1.) >= 1e-7).any()
-        ):
-            self._aux_update_curtailment_act(action)
-
-            gen_curtailed = self._aux_compute_new_p_curtailment(
-                new_p, self._limit_curtailment
-            )
-
-            tmp_sum_curtailment_mw = dt_float(
-                new_p[gen_curtailed].sum()
-                - self._gen_before_curtailment[gen_curtailed].sum()
-            )
-
-            self._sum_curtailment_mw = (
-                tmp_sum_curtailment_mw - self._sum_curtailment_mw_prev
-            )
-            self._sum_curtailment_mw_prev = tmp_sum_curtailment_mw
-            self._aux_update_curtail_env_act(new_p)
-        else:
-            self._sum_curtailment_mw = -self._sum_curtailment_mw_prev
-            self._sum_curtailment_mw_prev = dt_float(0.0)
-            gen_curtailed = np.abs(self._limit_curtailment - 1.) >= 1e-7
-
-        return gen_curtailed
-
-    def _aux_readjust_curtailment_after_limiting(
-        self, total_curtailment, new_p_th, new_p
-    ):
-        self._sum_curtailment_mw += total_curtailment
-        self._sum_curtailment_mw_prev += total_curtailment
-        if total_curtailment > self._tol_poly:
-            # in this case, the curtailment is too strong, I need to make it less strong
-            curtailed = new_p_th - new_p
-        else:
-            # in this case, the curtailment is too low, this can happen, for example when there is a
-            # "strong" curtailment but afterwards you ask to set everything to 1. (so no curtailment)
-            # I cannot reuse the previous case (too_much > self._tol_poly) because the
-            # curtailment is already computed there...
-            new_p_with_previous_curtailment = 1.0 * new_p_th
-            self._aux_compute_new_p_curtailment(
-                new_p_with_previous_curtailment, self._limit_curtailment_prev
-            )
-            curtailed = new_p_th - new_p_with_previous_curtailment
-
-        curt_sum = curtailed.sum()
-        if abs(curt_sum) > self._tol_poly:
-            curtailed[~self.gen_renewable] = 0.0
-            curtailed *= total_curtailment / curt_sum
-            new_p[self.gen_renewable] += curtailed[self.gen_renewable]
-
-    def _aux_readjust_storage_after_limiting(self, total_storage):
-        new_act_storage = 1.0 * self._storage_power
-        sum_this_step = new_act_storage.sum()
-        if abs(total_storage) < abs(sum_this_step):
-            # i can modify the current action
-            modif_storage = new_act_storage * total_storage / sum_this_step
-        else:
-            # i need to retrieve what I did in a previous action
-            # because the current action is not enough (the previous actions
-            # cause a problem right now)
-            new_act_storage = 1.0 * self._storage_power_prev
-            sum_this_step = new_act_storage.sum()
-            if abs(sum_this_step) > 1e-1:
-                modif_storage = new_act_storage * total_storage / sum_this_step
-            else:
-                # TODO: this is not cover by any test :-(
-                # it happens when you do an action too strong, then a do nothing,
-                # then you decrease the limit to rapidly 
-                # (game over would jappen after at least one do nothing)
-                
-                # In this case I reset it completely or do I ? I don't really
-                # know what to do !
-                modif_storage = new_act_storage  # or self._storage_power ???
-
-        # handle self._storage_power and self._storage_current_charge
-        coeff_p_to_E = (
-            self.delta_time_seconds / 3600.0
-        )  # TODO optim this is const for all time steps
-        self._storage_power -= modif_storage
-
-        # now compute the state of charge of the storage units (with efficiencies)
-        is_discharging = self._storage_power < 0.0
-        is_charging = self._storage_power > 0.0
-        modif_storage[is_discharging] /= type(self).storage_discharging_efficiency[
-            is_discharging
-        ]
-        modif_storage[is_charging] *= type(self).storage_charging_efficiency[
-            is_charging
-        ]
-
-        self._storage_current_charge -= coeff_p_to_E * modif_storage
-        # inform the grid that the storage is reduced
-        self._amount_storage -= total_storage
-        self._amount_storage_prev -= total_storage
-
-    def _aux_limit_curtail_storage_if_needed(self, new_p, new_p_th, gen_curtailed):
-        gen_redisp = self.gen_redispatchable
-
-        normal_increase = new_p - (
-            self._gen_activeprod_t_redisp - self._actual_dispatch
-        )
-        normal_increase = normal_increase[gen_redisp]
-        p_min_down = (
-            self.gen_pmin[gen_redisp] - self._gen_activeprod_t_redisp[gen_redisp]
-        )
-        avail_down = np.maximum(p_min_down, -self.gen_max_ramp_down[gen_redisp])
-        p_max_up = self.gen_pmax[gen_redisp] - self._gen_activeprod_t_redisp[gen_redisp]
-        avail_up = np.minimum(p_max_up, self.gen_max_ramp_up[gen_redisp])
-
-        sum_move = (
-            normal_increase.sum() + self._amount_storage - self._sum_curtailment_mw
-        )
-        total_storage_curtail = self._amount_storage - self._sum_curtailment_mw
-        update_env_act = False
-
-        if abs(total_storage_curtail) >= self._tol_poly:
-            # if there is an impact on the curtailment / storage (otherwise I cannot fix anything)
-            too_much = 0.0
-            if sum_move > avail_up.sum():
-                # I need to limit curtailment (not enough ramps up available)
-                too_much = dt_float(sum_move - avail_up.sum() + self._tol_poly)
-                self._limited_before = too_much
-            elif sum_move < avail_down.sum():
-                # I need to limit storage unit (not enough ramps down available)
-                too_much = dt_float(sum_move - avail_down.sum() - self._tol_poly)
-                self._limited_before = too_much
-            elif np.abs(self._limited_before) >= self._tol_poly:
-                # adjust the "mess" I did before by not curtailing enough
-                # max_action = self.gen_pmax[gen_curtailed] * self._limit_curtailment[gen_curtailed]
-                update_env_act = True
-                too_much = min(avail_up.sum() - self._tol_poly, self._limited_before)
-                self._limited_before -= too_much
-                too_much = self._limited_before
-
-            if abs(too_much) > self._tol_poly:
-                total_curtailment = (
-                    -self._sum_curtailment_mw / total_storage_curtail * too_much
-                )
-                total_storage = (
-                    self._amount_storage / total_storage_curtail * too_much
-                )  # TODO !!!
-                update_env_act = True
-                # TODO "log" the total_curtailment and total_storage somewhere (in the info part of the step function)
-
-                if np.sign(total_curtailment) != np.sign(total_storage):
-                    # curtailment goes up, storage down, i only "limit" the one that
-                    # has the same sign as too much
-                    total_curtailment = (
-                        too_much
-                        if np.sign(total_curtailment) == np.sign(too_much)
-                        else 0.0
-                    )
-                    total_storage = (
-                        too_much if np.sign(total_storage) == np.sign(too_much) else 0.0
-                    )
-                    # NB i can directly assign all the "curtailment" to the maximum because in this case, too_much will
-                    # necessarily be > than total_curtail (or total_storage) because the other
-                    # one is of opposite sign
-
-                # fix curtailment
-                self._aux_readjust_curtailment_after_limiting(
-                    total_curtailment, new_p_th, new_p
-                )
-
-                # fix storage
-                self._aux_readjust_storage_after_limiting(total_storage)
-
-            if update_env_act:
-                self._aux_update_curtail_env_act(new_p)
+        return self._curtailment_module.compute(action, new_p, self._dispatch_state)
 
     def _aux_handle_act_inj(self, action: BaseAction):
         for inj_key in ["load_p", "prod_p", "load_q"]:
@@ -3173,7 +2479,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                           action: BaseAction,
                           new_p: np.ndarray,
                           new_p_th: np.ndarray,
-                          gen_curtailed: np.ndarray,
                           except_: List[Exception],
                           powerline_status):
         cls = type(self)
@@ -3217,7 +2522,11 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             and self._parameters.LIMIT_INFEASIBLE_CURTAILMENT_STORAGE_ACTION
         ):
             # limit the curtailment / storage in case of infeasible redispatching
-            self._aux_limit_curtail_storage_if_needed(new_p, new_p_th, gen_curtailed)
+            self._feasibility_guard.check_and_clamp(
+                new_p,
+                new_p_th,
+                self._dispatch_state,
+            )
 
         self._storage_power_prev[:] = self._storage_power
         # case where the action modifies load (TODO maybe make a different env for that...)
@@ -3530,28 +2839,10 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 )
         return detailed_info, has_error
 
-    def _aux_apply_detachment(self, new_p, new_p_th):
-        gen_detached_user = self._backend_action.get_gen_detached()
-        load_detached_user = self._backend_action.get_load_detached()
-        
-        # handle gen
-        mw_gen_lost_this = new_p[gen_detached_user].sum() 
-        
-        # handle loads
-        mw_load_lost_this = self._prev_load_p[load_detached_user].sum() 
-        
-        # put everything together
-        total_power_lost = -mw_gen_lost_this + mw_load_lost_this
-        self._detached_elements_mw = (-total_power_lost + 
-                                      self._actual_dispatch[gen_detached_user].sum() - 
-                                      self._detached_elements_mw_prev)
-        self._detached_elements_mw_prev = -total_power_lost
-        
-        # and now modifies the vectors
-        new_p[gen_detached_user] = 0.
-        new_p_th[gen_detached_user] = 0.
-        self._actual_dispatch[gen_detached_user] = 0.
-        return new_p, new_p_th
+    def _aux_apply_detachment(self, new_p, new_p_th, new_load_p):
+        return self._detachment_module.compute(
+            new_p, new_p_th, new_load_p, self._dispatch_state, self._backend_action
+        )
         
     def _aux_step_reset_action(self):
         action = self._action_space({})
@@ -3781,7 +3072,12 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             )
             new_p = self._get_new_prod_setpoint(action)
             new_p_th = new_p.copy()
-            self._feed_data_for_detachment(new_p_th)  # should be called before _axu_apply_detachment
+            new_load_p, new_load_q = self._get_new_load_setpoint(action)
+            # values of this step, read back by `_aux_update_detachment_info` (called
+            # before they are refreshed from the backend) for the detached elements
+            self._prev_gen_p[:] = new_p_th
+            self._prev_load_p[:] = new_load_p
+            self._prev_load_q[:] = new_load_q
             
             # storage unit
             if cls.n_storage > 0:
@@ -3792,11 +3088,13 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             # curtailment (does not attempt to "limit" the curtailment to make sure
             # it is feasible)
             self._gen_before_curtailment[cls.gen_renewable] = new_p[cls.gen_renewable]
-            gen_curtailed = self._aux_handle_curtailment_without_limit(action, new_p)
+            self._aux_handle_curtailment_without_limit(action, new_p)
             
             # TODO detachment
             self._aux_update_backend_action(action, action_storage_power, init_disp)
-            new_p, new_p_th = self._aux_apply_detachment(new_p, new_p_th)
+            detach_result = self._aux_apply_detachment(new_p, new_p_th, new_load_p)
+            new_p = detach_result.new_p
+            new_p_th = detach_result.new_p_th
 
             beg__redisp = time.perf_counter()
             if (cls.redispatching_unit_commitment_availble or cls.n_storage > 0):
@@ -3804,10 +3102,13 @@ class BaseEnv(GridObjects, RandomObject, ABC):
                 # and it is also in this function that the limiting of the curtailment / storage actions
                 # is perform to make the state "feasible"
                 res_disp = self._aux_apply_redisp(
-                    action, new_p, new_p_th, gen_curtailed, except_, powerline_status
+                    action, new_p, new_p_th, except_, powerline_status
                 )
                 action, failed_redisp, is_illegal_reco, is_done = res_disp
             else:
+                # the injections of the action override the ones of the time series
+                # (done in `_aux_apply_redisp` in the other case)
+                self._aux_handle_act_inj(action)
                 # just check generator up and down times
                 gen_up_before = np.abs(self._gen_activeprod_t) > 1e-7
                 except_tmp = self._handle_updown_times(gen_up_before, self._actual_dispatch)
@@ -3880,7 +3181,7 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         if chron_id == "":
             chron_id = None
         self.infos = {
-            "disc_lines": self._disc_lines,
+            "disc_lines": self._disc_lines.copy(),
             "is_illegal": is_illegal,
             "is_ambiguous": is_ambiguous,
             "failed_redispatching": failed_redisp,
@@ -4139,12 +3440,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             "_duration_next_maintenance",
             "_hazard_duration",
             "_env_dc",
-            "_target_dispatch",
-            "_actual_dispatch",
-            "_gen_uptime",
-            "_gen_downtime",
-            "_gen_activeprod_t",
-            "_gen_activeprod_t_redisp",
             "_thermal_limit_a",
             "_disc_lines",
             "_injection",
@@ -4187,20 +3482,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             "backend",
             "debug_dispatch",
             # "__new_param", "__new_forecast_param", "__new_reward_func",
-            "_storage_current_charge",
-            "_storage_previous_charge",
-            "_action_storage",
-            "_amount_storage",
-            "_amount_storage_prev",
-            "_storage_power",
-            "_storage_power_prev",
-            "_limit_curtailment",
-            "_limit_curtailment_prev",
-            "_gen_before_curtailment",
-            "_sum_curtailment_mw",
-            "_sum_curtailment_mw_prev",
-            "_detached_elements_mw",
-            "_detached_elements_mw_prev",
             "_has_attention_budget",
             "_attentiong_budget",
             "_attention_budget_cls",
@@ -4209,8 +3490,16 @@ class BaseEnv(GridObjects, RandomObject, ABC):
             "_is_alert_illegal",
             "_is_alert_used_in_reward",
             "_kwargs_attention_budget",
-            "_limited_before",
+            "_storage_module",
+            "_curtailment_module",
+            "_detachment_module",
+            "_feasibility_guard",
+            "_redispatch_solver",
+            "_dispatch_state",
         ]:
+            if isinstance(getattr(type(self), attr_nm, None), property):
+                # stored in self._dispatch_state, released with it
+                continue
             if hasattr(self, attr_nm):
                 delattr(self, attr_nm)
             setattr(self, attr_nm, None)
@@ -4839,21 +4128,8 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         if "opp_space_state" in obs._env_internal_params:
             self._oppSpace._set_state(obs._env_internal_params["opp_space_state"], 
                                       obs._env_internal_params["opp_state"])
-        # storage unit
-        self._storage_current_charge[:] = obs.storage_charge
-        self._storage_previous_charge[:] = obs._env_internal_params["_storage_previous_charge"]
-        self._action_storage[:] = obs.storage_power_target
-        self._storage_power[:] = obs.storage_power
-        self._amount_storage = obs._env_internal_params["_amount_storage"]
-        self._amount_storage_prev = obs._env_internal_params["_amount_storage_prev"]
-
-        # curtailment
-        self._limit_curtailment[:] = obs.curtailment_limit
-        self._gen_before_curtailment[:] = obs.gen_p_before_curtail
-        self._sum_curtailment_mw = obs._env_internal_params["_sum_curtailment_mw"]
-        self._sum_curtailment_mw_prev = obs._env_internal_params["_sum_curtailment_mw_prev"]
-        self._detached_elements_mw = obs._env_internal_params["_detached_elements_mw"]
-        self._detached_elements_mw_prev = obs._env_internal_params["_detached_elements_mw"]
+        # redispatching, storage units, curtailment and detachment
+        self._dispatch_state.load_from(obs._env_internal_params["_dispatch_state"])
 
         # line status
         self._line_status[:] = obs._env_internal_params["_line_status_env"] == 1
@@ -4873,13 +4149,6 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         # maintenance
         self._time_next_maintenance[:] = obs.time_next_maintenance
         self._duration_next_maintenance[:] = obs.duration_next_maintenance
-        
-        # redisp
-        self._target_dispatch[:] = obs.target_dispatch
-        self._actual_dispatch[:] = obs.actual_dispatch
-        self._already_modified_gen[:] = obs._env_internal_params["_already_modified_gen"]
-        self._gen_activeprod_t[:] = obs._env_internal_params["_gen_activeprod_t"]
-        self._gen_activeprod_t_redisp[:] = obs._env_internal_params["_gen_activeprod_t_redisp"]
         
         # current step
         self.nb_time_step = obs.current_step
@@ -4935,3 +4204,25 @@ class BaseEnv(GridObjects, RandomObject, ABC):
         See :ref:`troubleshoot_pickle` for more information.
         """
         return self._read_from_local_dir is not None
+
+
+def _make_dispatch_property(name: str, is_float_scalar: bool) -> property:
+    def fget(self):
+        return getattr(self._dispatch_state, name)
+
+    if is_float_scalar:
+        def fset(self, value):
+            setattr(self._dispatch_state, name, dt_float(value))
+    else:
+        def fset(self, value):
+            setattr(self._dispatch_state, name, value)
+    return property(fget, fset, doc=f"Forwards to `self._dispatch_state.{name}`")
+
+
+# `BaseEnv._<field>` reads and writes the field of `BaseEnv._dispatch_state`
+for _fld in dataclasses.fields(RedispatchState):
+    setattr(BaseEnv,
+            f"_{_fld.name}",
+            _make_dispatch_property(_fld.name,
+                                    _fld.metadata["kind"] == "scalar" and _fld.metadata["dtype"] is dt_float))
+del _fld

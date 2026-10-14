@@ -10,7 +10,7 @@
 import tempfile
 import json
 import unittest
-
+import numpy as np
 from grid2op.gym_compat import (DiscreteActSpace, GymActionSpace,
                                 GymObservationSpace, GymEnv, ContinuousToDiscreteConverter)
 from grid2op.tests.helper_path_test import *
@@ -45,7 +45,7 @@ class BaseTestGymConverter:
             if isinstance(tmp, (int, float, dt_float, dt_int, dt_bool, np.int64, np.int32)):
                 assert np.all(np.abs(float(obj[k]) - float(obj2[k])) <= self.tol)
             elif len(tmp) == 1:
-                assert np.all(np.abs(float(obj[k]) - float(obj2[k])) <= self.tol)
+                assert np.all(np.abs(float(obj[k][0]) - float(obj2[k][0])) <= self.tol)
             else:
                 assert np.all(
                     np.abs(obj[k].astype(dt_float) - obj2[k].astype(dt_float))
